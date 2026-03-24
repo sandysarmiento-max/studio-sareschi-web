@@ -1,0 +1,237 @@
+:root {
+  --bg: #fffafb;
+  --surface: #ffffff;
+  --surface-soft: #fff2f7;
+  --text: #2f2630;
+  --muted: #6f6471;
+  --primary: #c13f75;
+  --primary-strong: #a72e61;
+  --border: #f0dbe6;
+  --shadow: 0 14px 35px rgba(75, 29, 57, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.container {
+  width: min(1080px, 92vw);
+  margin: 0 auto;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 250, 251, 0.92);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-wrap {
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand {
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  letter-spacing: 0.2px;
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 1.2rem;
+}
+
+.nav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-links a:hover,
+.nav-links a:focus-visible {
+  color: var(--primary);
+}
+
+.section {
+  padding: 5rem 0;
+}
+
+.hero {
+  padding-top: 6rem;
+}
+
+.hero-grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1.35fr 1fr;
+  align-items: start;
+}
+
+.eyebrow {
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+h1,
+h2,
+h3 {
+  margin-top: 0;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: clamp(2rem, 3vw, 3rem);
+  margin-bottom: 0.9rem;
+}
+
+.hero-copy {
+  color: var(--muted);
+  max-width: 58ch;
+}
+
+.hero-actions {
+  margin-top: 1.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.7rem 1.2rem;
+  text-decoration: none;
+  font-weight: 600;
+  transition: 150ms ease;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover,
+.btn-primary:focus-visible {
+  background: var(--primary-strong);
+}
+
+.btn-secondary {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+}
+
+.hero-card,
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.35rem;
+  box-shadow: var(--shadow);
+}
+
+.hero-card h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+}
+
+.hero-card ul {
+  padding-left: 1rem;
+  margin: 0;
+  color: var(--muted);
+}
+
+.section-heading {
+  margin-bottom: 1.4rem;
+}
+
+.section-heading h2 {
+  margin: 0;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.one-column {
+  grid-template-columns: 1fr;
+}
+
+.card p {
+  color: var(--muted);
+  margin-bottom: 0.9rem;
+}
+
+.card-link {
+  color: var(--primary-strong);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.section-soft {
+  background: var(--surface-soft);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.whatsapp-fab {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 30;
+  border-radius: 999px;
+  background: #25d366;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  padding: 0.85rem 1rem;
+  box-shadow: 0 10px 25px rgba(20, 109, 55, 0.32);
+}
+
+@media (max-width: 840px) {
+  .hero-grid,
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 4rem 0;
+  }
+
+  .nav-wrap {
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.8rem 0;
+  }
+}
