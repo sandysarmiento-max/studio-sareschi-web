@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -49,7 +49,7 @@
             <h2>Contenido inicial</h2>
             <ul>
               <li>2 Apps publicadas</li>
-              <li>1 herramienta de libre uso</li>
+              <li>1 mini app de libre uso disponible</li>
               <li>Contacto directo por WhatsApp</li>
             </ul>
           </aside>
@@ -81,30 +81,209 @@
         <div class="container">
           <div class="section-heading">
             <p class="eyebrow">Libre uso</p>
-            <h2>Recursos abiertos</h2>
+            <h2>Herramientas abiertas</h2>
           </div>
-          <div class="card-grid one-column">
-            <article class="card">
-              <h3>Mini calculadora de anillo</h3>
-              <p>
-                Herramienta rápida de referencia para estimar medidas de anillo en
-                segundos.
-              </p>
-              <a class="card-link" href="#" aria-disabled="true">Disponible pronto</a>
-            </article>
-          </div>
+
+          <article class="mini-tool" data-mini-app="ring-calculator">
+            <header class="mini-tool__header">
+              <div>
+                <h3>Mini calculadora de anillo</h3>
+                <p>
+                  Ingresa el grosor real de tu material y obtén una referencia rápida del
+                  anillo sugerido.
+                </p>
+              </div>
+              <span class="mini-tool__badge">Mini app reusable</span>
+            </header>
+
+            <div class="mini-tool__body">
+              <section class="mini-tool-panel" aria-label="Formulario de cálculo">
+                <label class="mini-tool-label" for="ring-grosor">Grosor</label>
+                <div class="mini-tool-input-row">
+                  <input
+                    class="mini-tool-input"
+                    id="ring-grosor"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value="18"
+                    inputmode="decimal"
+                  />
+                  <span class="mini-tool-suffix">mm</span>
+                </div>
+
+                <button id="ring-calcular" class="mini-tool-button" type="button">
+                  Calcular
+                </button>
+                <p class="mini-tool-status" id="ring-status">
+                  Pulsa <strong>Calcular</strong> para ver el resultado.
+                </p>
+
+                <div class="mini-tool-result">
+                  <span class="mini-tool-chip" id="ring-label">—</span>
+                  <p>Anillo sugerido para el grosor indicado</p>
+                </div>
+              </section>
+
+              <section class="mini-tool-panel" aria-label="Vista previa visual">
+                <h4>Vista previa</h4>
+                <div class="mini-tool-preview-wrap">
+                  <svg
+                    id="ring-preview"
+                    viewBox="0 0 560 180"
+                    aria-label="Vista previa del anillo sugerido y grosor del material"
+                  ></svg>
+                </div>
+              </section>
+            </div>
+          </article>
         </div>
       </section>
     </main>
 
     <a
       class="whatsapp-fab"
-      href="https://wa.me/51969095636?text=Hola%2C%20vengo%20de%20Studio%20Sareschi%20y%20quiero%20m%C3%A1s%20informaci%C3%B3n" 
+      href="https://wa.me/51969095636?text=Hola%2C%20vengo%20de%20Studio%20Sareschi%20y%20quiero%20m%C3%A1s%20informaci%C3%B3n"
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Contactar por WhatsApp"
     >
       WhatsApp
     </a>
+
+    <script>
+      const RINGS = [
+        { label: '7/16"', diameter: 11.1, capacity: 9.1 },
+        { label: '1/2"', diameter: 12.7, capacity: 9.5 },
+        { label: '5/8"', diameter: 16.0, capacity: 12.5 },
+        { label: '3/4"', diameter: 19.0, capacity: 14.5 },
+        { label: '7/8"', diameter: 22.0, capacity: 17.5 },
+        { label: '1"', diameter: 25.4, capacity: 20.0 },
+        { label: '1 1/8"', diameter: 28.6, capacity: 23.0 },
+        { label: '1 1/4"', diameter: 31.8, capacity: 26.0 },
+        { label: '1 1/2"', diameter: 38.1, capacity: 32.0 },
+      ];
+
+      const ringInput = document.getElementById('ring-grosor');
+      const ringLabel = document.getElementById('ring-label');
+      const ringStatus = document.getElementById('ring-status');
+      const ringPreview = document.getElementById('ring-preview');
+      const ringMaxMm = 32;
+      let ringHasCalculated = false;
+
+      function parseMm(value) {
+        const normalized = String(value ?? '').replace(',', '.');
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+      }
+
+      function clamp(number, min, max) {
+        return Math.max(min, Math.min(max, number));
+      }
+
+      function getRecommendedRing(thickness) {
+        return RINGS.find((ring) => thickness <= ring.capacity) || RINGS[RINGS.length - 1];
+      }
+
+      function renderPlaceholder() {
+        ringPreview.innerHTML = `
+          <rect x="1" y="1" width="558" height="178" rx="20" fill="#fff6fa"></rect>
+          <text x="26" y="28" style="font-size:15px;fill:#6d3758;font-weight:800">Vista previa</text>
+          <text x="26" y="48" style="font-size:12px;fill:#915f7b">La representación aparecerá al calcular.</text>
+          <g transform="translate(138 101)">
+            <circle cx="0" cy="0" r="34" fill="#f7dfe9" stroke="#9a6f86" stroke-width="1"></circle>
+            <circle cx="0" cy="0" r="25" fill="#fff6fa" stroke="#9a6f86" stroke-width="1"></circle>
+            <rect x="-2" y="-13" width="130" height="26" rx="7" fill="#fbeaf1" stroke="#b17b99" stroke-width="1"></rect>
+          </g>
+        `;
+      }
+
+      function buildPreview(mm, ring) {
+        const centerX = 118;
+        const centerY = 104;
+        const ringRadius = clamp(ring.diameter * 1.9, 30, 56);
+        const innerRadius = ringRadius - 7;
+        const materialHeight = clamp(mm * 2.05, 20, 62);
+        const materialWidth = 208;
+        const pxPerMm = materialHeight / Math.max(mm, 1);
+        const setback = clamp(pxPerMm * 2, 4, 7);
+        const materialX = centerX - setback;
+        const materialY = centerY - materialHeight / 2;
+        const labelX = 188;
+        const labelY = Math.max(26, centerY - ringRadius - 16);
+        const arrowToX = centerX - ringRadius * 0.38;
+        const arrowToY = centerY - ringRadius * 0.58;
+        const dimX = materialX + materialWidth + 54;
+        const dimTop = materialY + 4;
+        const dimBottom = materialY + materialHeight - 4;
+        const dimTextX = dimX + 12;
+        const dimTextY = centerY - 1;
+
+        ringPreview.innerHTML = `
+          <defs>
+            <marker id="arrowHead" markerWidth="7" markerHeight="7" refX="5.5" refY="3.2" orient="auto">
+              <polygon points="0 0, 6.4 3.2, 0 6.4" fill="#9a6f86"></polygon>
+            </marker>
+            <marker id="arrowMini" markerWidth="6" markerHeight="6" refX="4.1" refY="3" orient="auto-start-reverse">
+              <polygon points="0 3, 6 0, 6 6" fill="#9a6f86"></polygon>
+            </marker>
+          </defs>
+
+          <rect x="1" y="1" width="558" height="178" rx="20" fill="#fff6fa"></rect>
+
+          <circle cx="${centerX}" cy="${centerY}" r="${ringRadius}" fill="#f7dfe9" stroke="#9a6f86" stroke-width="1"></circle>
+          <circle cx="${centerX}" cy="${centerY}" r="${innerRadius}" fill="#fff6fa" stroke="#9a6f86" stroke-width="1"></circle>
+          <rect x="${materialX}" y="${materialY}" width="${materialWidth}" height="${materialHeight}" rx="7" fill="#fbeaf1" stroke="#b17b99" stroke-width="1"></rect>
+
+          <text x="${labelX}" y="${labelY}" style="font-size:14px;fill:#6d3758;font-weight:800">${ring.label} <tspan style="font-size:12px;font-weight:600;fill:#8a556e">(capacidad aprox. ${ring.capacity.toFixed(1)} mm)</tspan></text>
+          <line x1="${labelX - 6}" y1="${labelY + 8}" x2="${arrowToX}" y2="${arrowToY}" stroke="#9a6f86" stroke-width="1.1" marker-end="url(#arrowHead)"></line>
+
+          <line x1="${dimX}" y1="${dimTop}" x2="${dimX}" y2="${dimBottom}" stroke="#9a6f86" stroke-width="1" marker-start="url(#arrowMini)" marker-end="url(#arrowMini)"></line>
+          <line x1="${materialX + materialWidth + 14}" y1="${dimTop}" x2="${dimX - 10}" y2="${dimTop}" stroke="#d3b2c2" stroke-width="1"></line>
+          <line x1="${materialX + materialWidth + 14}" y1="${dimBottom}" x2="${dimX - 10}" y2="${dimBottom}" stroke="#d3b2c2" stroke-width="1"></line>
+          <text x="${dimTextX}" y="${dimTextY - 4}" style="font-size:12px;fill:#6d3758;font-weight:800">${mm.toFixed(1)} mm</text>
+          <text x="${dimTextX}" y="${dimTextY + 10}" style="font-size:10px;fill:#8a556e">medida real</text>
+        `;
+      }
+
+      function calculateAndRenderRing() {
+        const mm = parseMm(ringInput.value);
+
+        if (mm > ringMaxMm) {
+          ringLabel.textContent = 'Límite';
+          ringStatus.classList.add('warning');
+          ringStatus.innerHTML = `Supera el límite de <strong>${ringMaxMm} mm</strong> para anillo de <strong>1 1/2&quot;</strong>.`;
+          ringHasCalculated = true;
+          return;
+        }
+
+        const ring = getRecommendedRing(mm);
+        ringLabel.textContent = ring.label;
+        ringStatus.classList.remove('warning');
+        ringStatus.innerHTML = `Resultado actualizado para <strong>${mm.toFixed(1)} mm</strong>.`;
+        buildPreview(mm, ring);
+        ringHasCalculated = true;
+      }
+
+      ringInput.addEventListener('input', () => {
+        ringStatus.classList.remove('warning');
+        if (ringHasCalculated) {
+          ringStatus.innerHTML = 'Cambiaste el grosor. Pulsa <strong>Calcular</strong> para actualizar.';
+        }
+      });
+
+      ringInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          calculateAndRenderRing();
+        }
+      });
+
+      document
+        .getElementById('ring-calcular')
+        .addEventListener('click', calculateAndRenderRing);
+
+      renderPlaceholder();
+    </script>
   </body>
 </html>
