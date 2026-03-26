@@ -401,6 +401,31 @@ h1 {
   display: block;
 }
 
+.aral-calc-promo {
+  margin-top: 1rem;
+  border: 1px solid #ecd8e4;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.74);
+  padding: 0.9rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.aral-calc-promo p {
+  margin: 0;
+  color: #5d4f5e;
+  font-size: 0.92rem;
+  max-width: 72ch;
+}
+
+.aral-calc-promo__cta {
+  white-space: nowrap;
+  padding: 0.58rem 1rem;
+  font-size: 0.88rem;
+}
+
 @media (max-width: 840px) {
   .mini-tool__body {
     grid-template-columns: 1fr;
@@ -408,5 +433,10 @@ h1 {
 
   .mini-tool__header {
     flex-direction: column;
+  }
+
+  .aral-calc-promo {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
