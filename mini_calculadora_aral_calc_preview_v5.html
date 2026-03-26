@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini calculadora Aral Calc · Vista previa v4</title>
+  <style>
+    :root{
+      --bg:#f6f2ec;
+      --panel:#fffdf9;
+      --panel-2:#fcf9f4;
+      --border:#d9d1c6;
+      --text:#5d554c;
+      --muted:#8b8175;
+      --accent:#7f8c7a;
+      --accent-2:#e6ede3;
+      --soft:#f3ece4;
+      --ring:#ebe4db;
+      --material:#dfe8dd;
+      --line:#8e8579;
+      --shadow:0 10px 28px rgba(85,74,62,.06);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      background:linear-gradient(180deg,#f8f5f0 0%, #f4efe8 100%);
+      color:var(--text);
+    }
+    .page{
+      max-width:1180px;
+      margin:0 auto;
+      padding:20px 16px 26px;
+    }
+    .shell{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:28px;
+      padding:22px;
+      box-shadow:var(--shadow);
+    }
+    h1{
+      margin:0 0 16px;
+      font-size:clamp(28px,4vw,42px);
+      line-height:1.02;
+      letter-spacing:-.035em;
+      color:#5f564d;
+      max-width:840px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:330px minmax(0,1fr);
+      gap:16px;
+      align-items:start;
+    }
+    .card{
+      background:var(--panel-2);
+      border:1px solid var(--border);
+      border-radius:26px;
+      padding:18px;
+      box-shadow:0 8px 20px rgba(84,74,63,.035);
+    }
+    .title{
+      margin:0;
+      font-size:18px;
+      line-height:1.1;
+      font-weight:800;
+      color:#62594f;
+    }
+    .brief{
+      margin:8px 0 0;
+      font-size:13px;
+      line-height:1.5;
+      color:var(--muted);
+      max-width:36ch;
+    }
+    .field{margin-top:16px}
+    label{
+      display:block;
+      margin-bottom:8px;
+      font-size:13px;
+      font-weight:700;
+      color:#6d6359;
+    }
+    .input-row{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    input{
+      width:100%;
+      min-width:0;
+      border:1px solid #a7b7a0;
+      background:#fffefa;
+      border-radius:999px;
+      padding:14px 18px;
+      font-size:28px;
+      line-height:1;
+      color:#584f46;
+      outline:none;
+      box-shadow:0 0 0 4px rgba(127,140,122,.08);
+    }
+    input:focus{
+      box-shadow:0 0 0 4px rgba(127,140,122,.14);
+    }
+    .suffix{
+      flex:0 0 auto;
+      min-width:62px;
+      text-align:center;
+      border:1px solid var(--border);
+      background:var(--soft);
+      color:#756b60;
+      border-radius:999px;
+      padding:13px 14px;
+      font-size:14px;
+      font-weight:800;
+    }
+    .button{
+      width:100%;
+      margin-top:14px;
+      border:1px solid var(--accent);
+      background:var(--accent);
+      color:#fff;
+      border-radius:999px;
+      padding:14px 18px;
+      font-size:15px;
+      font-weight:800;
+      cursor:pointer;
+      box-shadow:0 10px 18px rgba(127,140,122,.18);
+      transition:transform .15s ease;
+    }
+    .button:hover{transform:translateY(-1px)}
+    .button:active{transform:translateY(0)}
+    .status{
+      min-height:18px;
+      margin-top:8px;
+      font-size:12px;
+      color:#8c8277;
+    }
+    .status.warning{
+      color:#b35f58;
+      font-weight:700;
+    }
+    .result{
+      margin-top:14px;
+      border:1px solid var(--border);
+      background:var(--soft);
+      border-radius:22px;
+      padding:14px;
+      display:grid;
+      grid-template-columns:auto 1fr;
+      gap:14px;
+      align-items:center;
+      min-height:112px;
+    }
+    .ring-chip{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:76px;
+      padding:10px 14px;
+      border-radius:18px;
+      background:#fffefa;
+      border:1px solid #d3ccc1;
+      font-size:28px;
+      font-weight:800;
+      line-height:1;
+      color:#5b534a;
+    }
+    .result-copy{
+      font-size:14px;
+      line-height:1.45;
+      color:#6f665c;
+      font-weight:700;
+      max-width:16ch;
+    }
+    .preview-wrap{
+      display:grid;
+      gap:12px;
+    }
+    .preview-box{
+      border:1px solid var(--border);
+      background:#fbf8f2;
+      border-radius:24px;
+      padding:10px 12px;
+      min-height:210px;
+      overflow:hidden;
+    }
+    .preview-box svg{
+      display:block;
+      width:100%;
+      height:auto;
+    }
+    .bottom-bar{
+      margin-top:14px;
+      border:1px solid var(--border);
+      background:linear-gradient(135deg,#f5efe7 0%, #f8f4ee 100%);
+      border-radius:22px;
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .bottom-copy{
+      font-size:14px;
+      line-height:1.5;
+      color:#72685d;
+      max-width:720px;
+    }
+    .cta{
+      flex:0 0 auto;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:170px;
+      border:1px solid var(--accent);
+      background:var(--accent);
+      color:#fff;
+      border-radius:999px;
+      padding:12px 18px;
+      text-decoration:none;
+      font-size:14px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+    @media (max-width:980px){
+      .grid{grid-template-columns:1fr}
+      .bottom-bar{flex-direction:column;align-items:flex-start}
+      .cta{min-width:auto}
+    }
+    @media (max-width:640px){
+      .page{padding:14px 10px 20px}
+      .shell{padding:14px}
+      .card{padding:14px}
+      .result{grid-template-columns:1fr}
+      .ring-chip{width:max-content}
+      input{font-size:24px}
+      .preview-box{min-height:180px}
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="shell">
+      <h1>Descubre el anillo sugerido según el grosor real de tu material</h1>
+
+      <div class="grid">
+        <section class="card">
+          <h2 class="title">Mini calculadora</h2>
+          <p class="brief">Ingresa el grosor total de tu material y calcula una referencia rápida.</p>
+
+          <div class="field">
+            <label for="grosor">Grosor</label>
+            <div class="input-row">
+              <input id="grosor" type="number" step="0.1" min="0" value="18" inputmode="decimal" />
+              <span class="suffix">mm</span>
+            </div>
+          </div>
+
+          <button id="calcularBtn" class="button" type="button">Calcular</button>
+          <div class="status" id="statusText">Pulsa <strong>Calcular</strong> para ver el resultado.</div>
+
+          <div class="result">
+            <div class="ring-chip" id="ringLabel">—</div>
+            <div class="result-copy">Anillo sugerido para el grosor indicado</div>
+          </div>
+        </section>
+
+        <section class="card preview-wrap">
+          <div>
+            <h2 class="title">Vista previa</h2>
+          </div>
+
+          <div class="preview-box">
+            <svg id="previewSvg" viewBox="0 0 560 180" aria-label="Vista previa del anillo sugerido y grosor del material"></svg>
+          </div>
+        </section>
+      </div>
+
+      <div class="bottom-bar">
+        <div class="bottom-copy">Esta mini herramienta es solo una muestra. Con <strong>Aral Calc</strong> puedes calcular con más anticipación y avanzar incluso sin tener el material físicamente contigo.</div>
+        <a class="cta" href="javascript:void(0)">Conocer Aral Calc</a>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const RINGS = [
+      { label:'7/16"', diameter:11.1, capacity:9.1 },
+      { label:'1/2"', diameter:12.7, capacity:9.5 },
+      { label:'5/8"', diameter:16.0, capacity:12.5 },
+      { label:'3/4"', diameter:19.0, capacity:14.5 },
+      { label:'7/8"', diameter:22.0, capacity:17.5 },
+      { label:'1"', diameter:25.4, capacity:20.0 },
+      { label:'1 1/8"', diameter:28.6, capacity:23.0 },
+      { label:'1 1/4"', diameter:31.8, capacity:26.0 },
+      { label:'1 1/2"', diameter:38.1, capacity:32.0 }
+    ];
+
+    const input = document.getElementById('grosor');
+    const ringLabel = document.getElementById('ringLabel');
+    const statusText = document.getElementById('statusText');
+    const svg = document.getElementById('previewSvg');
+    const MAX_MM = 32;
+    let hasCalculated = false;
+
+    function parseMm(value){
+      const normalized = String(value ?? '').replace(',', '.');
+      const n = Number(normalized);
+      return Number.isFinite(n) && n >= 0 ? n : 0;
+    }
+
+    function clamp(n, min, max){
+      return Math.max(min, Math.min(max, n));
+    }
+
+    function getRecommendedRing(thickness){
+      return RINGS.find(r => thickness <= r.capacity) || RINGS[RINGS.length - 1];
+    }
+
+    function renderPlaceholder(){
+      svg.innerHTML = `
+        <rect x="1" y="1" width="558" height="178" rx="20" fill="#fbf8f2"></rect>
+        <text x="26" y="28" style="font-size:15px;fill:#62594f;font-weight:800">Vista previa</text>
+        <text x="26" y="48" style="font-size:12px;fill:#8e8579">La representación aparecerá al calcular.</text>
+        <g transform="translate(138 101)">
+          <circle cx="0" cy="0" r="34" fill="#ebe4db" stroke="#8e8579" stroke-width="1"></circle>
+          <circle cx="0" cy="0" r="25" fill="#fbf8f2" stroke="#8e8579" stroke-width="1"></circle>
+          <rect x="-2" y="-13" width="130" height="26" rx="7" fill="#dfe8dd" stroke="#7f8c7a" stroke-width="1"></rect>
+        </g>
+      `;
+    }
+
+    function buildPreview(mm, ring){
+      const centerX = 118;
+      const centerY = 104;
+      const ringRadius = clamp(ring.diameter * 1.9, 30, 56);
+      const band = 1;
+      const innerRadius = ringRadius - 7;
+      const materialHeight = clamp(mm * 2.05, 20, 62);
+      const materialWidth = 208;
+      const halfRingX = centerX;
+      const pxPerMm = materialHeight / Math.max(mm, 1);
+      const setback = clamp(pxPerMm * 2, 4, 7);
+      const materialX = halfRingX - setback;
+      const materialY = centerY - materialHeight / 2;
+      const labelX = 188;
+      const labelY = Math.max(26, centerY - ringRadius - 16);
+      const arrowToX = centerX - ringRadius * 0.38;
+      const arrowToY = centerY - ringRadius * 0.58;
+      const dimX = materialX + materialWidth + 54;
+      const dimTop = materialY + 4;
+      const dimBottom = materialY + materialHeight - 4;
+      const dimTextX = dimX + 12;
+      const dimTextY = centerY - 1;
+
+      svg.innerHTML = `
+        <defs>
+          <marker id="arrowHead" markerWidth="7" markerHeight="7" refX="5.5" refY="3.2" orient="auto">
+            <polygon points="0 0, 6.4 3.2, 0 6.4" fill="#8e8579"></polygon>
+          </marker>
+          <marker id="arrowMini" markerWidth="6" markerHeight="6" refX="4.1" refY="3" orient="auto-start-reverse">
+            <polygon points="0 3, 6 0, 6 6" fill="#8e8579"></polygon>
+          </marker>
+          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="rgba(95,86,77,0.10)"/>
+          </filter>
+        </defs>
+
+        <rect x="1" y="1" width="558" height="178" rx="20" fill="#fbf8f2"></rect>
+
+        <g filter="url(#shadow)">
+          <circle cx="${centerX}" cy="${centerY}" r="${ringRadius}" fill="#ebe4db" stroke="#8e8579" stroke-width="1"></circle>
+          <circle cx="${centerX}" cy="${centerY}" r="${innerRadius}" fill="#fbf8f2" stroke="#8e8579" stroke-width="1"></circle>
+          <rect x="${materialX}" y="${materialY}" width="${materialWidth}" height="${materialHeight}" rx="7" fill="#dfe8dd" stroke="#7f8c7a" stroke-width="1"></rect>
+        </g>
+
+        <text x="${labelX}" y="${labelY}" style="font-size:14px;fill:#5d554c;font-weight:800">${ring.label} <tspan style="font-size:12px;font-weight:600;fill:#7d7469">(capacidad aprox. ${ring.capacity.toFixed(1)} mm)</tspan></text>
+        <line x1="${labelX - 6}" y1="${labelY + 8}" x2="${arrowToX}" y2="${arrowToY}" stroke="#8e8579" stroke-width="1.1" marker-end="url(#arrowHead)"></line>
+
+        <line x1="${dimX}" y1="${dimTop}" x2="${dimX}" y2="${dimBottom}" stroke="#8e8579" stroke-width="1" marker-start="url(#arrowMini)" marker-end="url(#arrowMini)"></line>
+        <line x1="${materialX + materialWidth + 14}" y1="${dimTop}" x2="${dimX - 10}" y2="${dimTop}" stroke="#b7aea1" stroke-width="1"></line>
+        <line x1="${materialX + materialWidth + 14}" y1="${dimBottom}" x2="${dimX - 10}" y2="${dimBottom}" stroke="#b7aea1" stroke-width="1"></line>
+        <text x="${dimTextX}" y="${dimTextY - 4}" style="font-size:12px;fill:#5d554c;font-weight:800">${mm.toFixed(1)} mm</text>
+        <text x="${dimTextX}" y="${dimTextY + 10}" style="font-size:10px;fill:#8e8579">medida real</text>
+      `;
+    }
+
+    function calculateAndRender(){
+      const mm = parseMm(input.value);
+
+      if (mm > MAX_MM) {
+        ringLabel.textContent = 'Límite';
+        statusText.classList.add('warning');
+        statusText.innerHTML = `Supera el límite de <strong>${MAX_MM} mm</strong> para anillo de <strong>1 1/2&quot;</strong>.`;
+        hasCalculated = true;
+        return;
+      }
+
+      const ring = getRecommendedRing(mm);
+      ringLabel.textContent = ring.label;
+      statusText.classList.remove('warning');
+      statusText.innerHTML = `Resultado actualizado para <strong>${mm.toFixed(1)} mm</strong>.`;
+      buildPreview(mm, ring);
+      hasCalculated = true;
+    }
+
+    input.addEventListener('input', () => {
+      statusText.classList.remove('warning');
+      if (hasCalculated) {
+        statusText.innerHTML = 'Cambiaste el grosor. Pulsa <strong>Calcular</strong> para actualizar.';
+      }
+    });
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        calculateAndRender();
+      }
+    });
+
+    document.getElementById('calcularBtn').addEventListener('click', calculateAndRender);
+
+    renderPlaceholder();
+  </script>
+</body>
+</html>
