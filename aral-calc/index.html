@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <title>Aral Calc | Studio Sareschi</title>
+  <style>
+    :root{
+      --bg:#fffafb; --panel:#ffffff; --panel2:#fff6fa; --border:#f0dbe6;
+      --text:#2f2630; --muted:#6f6471; --accent:#c13f75; --accent-soft:#fbe8f1; --soft2:#fff2f7;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Inter',ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1280px;margin:0 auto;padding:16px;display:grid;gap:24px;grid-template-columns:280px 1fr}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:28px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .title{font-size:20px;font-weight:700;color:#61584f}
+    .subtitle{margin-top:4px;font-size:14px;color:var(--muted)}
+    .project-btn{width:100%;border-radius:24px;border:1px solid var(--border);background:var(--panel2);color:#61584f;padding:16px;text-align:left;font-size:15px;cursor:pointer;margin-bottom:12px}
+    .project-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
+    .section-title{font-size:20px;font-weight:700;color:#61584f;margin-bottom:14px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+    .chip{border:1px solid var(--border);background:var(--panel2);color:#6b6259;border-radius:999px;padding:8px 12px;font-size:14px;cursor:pointer}
+    .grid{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+    .label{font-size:14px;color:#6b6259;margin-bottom:6px}
+    .field-row{display:flex;align-items:center;gap:8px}
+    input,select{width:100%;border:1px solid var(--border);background:var(--panel2);border-radius:18px;padding:12px 14px;font-size:15px;color:var(--text);outline:none}
+    input:focus,select:focus{border-color:#9cab96;box-shadow:0 0 0 3px var(--accent-soft)}
+    .suffix{flex:0 0 auto;border:1px solid var(--border);background:var(--soft2);color:var(--muted);border-radius:14px;padding:10px 12px;font-size:14px}
+    .note{margin-top:8px;font-size:13px;color:var(--muted);line-height:1.45}
+    .cards{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+    .card{border:1px solid var(--border);background:var(--panel2);border-radius:24px;padding:16px}
+    .card.accent{border-color:var(--accent);background:var(--accent);color:#fff}
+    .card .k{font-size:14px;color:var(--muted)}
+    .card.accent .k{color:#eef3ec}
+    .card .v{margin-top:6px;font-size:30px;font-weight:700}
+    .card .h{margin-top:8px;font-size:13px;color:var(--muted);line-height:1.4}
+    .card.accent .h{color:#eef3ec}
+    .main{display:flex;flex-direction:column;gap:24px}
+    .table-head,.table-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;border-radius:18px;padding:12px 16px;align-items:center}
+    .table-head{border:1px solid var(--border);background:var(--soft2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7b7166}
+    .table-row{border:1px solid var(--border);background:var(--panel2);color:#61584f;font-size:14px;margin-top:8px}
+    .table-row.active{border-color:var(--accent);background:var(--accent);color:#fff}
+    .button{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:16px;padding:12px 16px;font-size:14px;font-weight:600;cursor:pointer}
+    .hidden{display:none}
+    @media (max-width:980px){.wrap{grid-template-columns:1fr}}
+    @media (max-width:720px){.grid,.cards{grid-template-columns:1fr}}
+    .site-header{position:sticky;top:0;z-index:30;backdrop-filter:blur(10px);background:rgba(255,250,251,.92);border-bottom:1px solid var(--border)}
+    .nav-wrap{max-width:1280px;margin:0 auto;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+    .brand{font-weight:700;color:var(--text);text-decoration:none;letter-spacing:.2px}
+    .nav-links{display:flex;list-style:none;margin:0;padding:0;gap:16px}
+    .nav-links a{color:var(--muted);text-decoration:none;font-weight:500}
+    .nav-links a:hover,.nav-links a:focus-visible{color:var(--accent)}
+    .hero-intro{max-width:1280px;margin:0 auto;padding:24px 16px 0}
+    .hero-panel{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:18px 20px}
+    .hero-panel h1{margin:0 0 8px;font-size:clamp(1.4rem,2.2vw,2rem);line-height:1.2;color:#3a2f3a}
+    .hero-panel p{margin:0;color:var(--muted)}
+    @media (max-width:720px){.nav-wrap{flex-direction:column}.nav-links{flex-wrap:wrap;justify-content:center}}
+
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/">Studio Sareschi</a>
+    <nav aria-label="Principal">
+      <ul class="nav-links">
+        <li><a href="/#home">Home</a></li>
+        <li><a href="/#apps">Productos</a></li>
+        <li><a href="/acceso/">Acceso</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<section class="hero-intro">
+  <div class="hero-panel">
+    <h1>Aral Calc · Studio Sareschi</h1>
+    <p>Versión integrada de la calculadora original para mantener el mismo flujo de trabajo dentro del sitio.</p>
+  </div>
+</section>
+
+<div class="wrap">
+  <aside class="panel">
+    <div class="title">Aral Calc</div>
+    <div class="subtitle">Calculadora de encuadernación</div>
+    <div style="margin-top:20px">
+      <button class="project-btn active" data-project="anillado">Cuaderno anillado</button>
+      <button class="project-btn" data-project="conLomo">Cuaderno con lomo</button>
+      <button class="project-btn" data-project="conSolapa">Cuaderno con lomo y solapa</button>
+      <button class="project-btn" data-project="compuesto">Porta notas doble lomo</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="panel">
+      <div style="display:flex;gap:16px;justify-content:space-between;align-items:center;flex-wrap:wrap">
+        <div>
+          <div class="section-title" style="margin:0">Ficha del proyecto</div>
+          <div class="subtitle">Puedes abrir la ficha para imprimirla o guardarla como PDF desde tu navegador.</div>
+        </div>
+        <button class="button" id="pdf-btn">Abrir ficha PDF</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="chips">
+        <button class="chip" data-preset="A8">A8</button>
+        <button class="chip" data-preset="A7">A7</button>
+        <button class="chip" data-preset="A6">A6</button>
+        <button class="chip" data-preset="A5">A5</button>
+        <button class="chip" data-preset="A4">A4</button>
+      </div>
+      <div id="form-grid" class="grid"></div>
+    </section>
+
+    <section class="cards" id="cards"></section>
+
+    <section class="panel">
+      <div class="section-title">Guía visual 2D</div>
+      <div id="schematic"></div>
+      <p class="note hidden" id="flap-note">La solapa ya tiene un ancho editable independiente del ancho de la tapa.</p>
+    </section>
+
+    <section class="panel" id="rings-section">
+      <div class="section-title">Tabla de anillos 2:1</div>
+      <div class="table-head"><div>Medida</div><div>Diámetro</div><div>Capacidad</div></div>
+      <div id="rings-table"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const PROJECTS = {
+  anillado: {
+    label: "Cuaderno anillado",
+    type: "ring",
+    defaults: {
+      paperWidth:148,paperHeight:210,sheetCount:80,gsm:90,
+      oppositeMargin:3,topMargin:5,bottomMargin:5,
+      coverThickness:1.5,liningExtra:1.5,dividerCount:0,dividerGsm:180,guardaGsm:0,spineSlack:1
+    }
+  },
+  conLomo: {
+    label: "Cuaderno con lomo",
+    type: "spine",
+    defaults: {
+      paperWidth:148,paperHeight:210,sheetCount:80,gsm:90,
+      overhangWidth:3,overhangHeight:5,
+      coverThickness:1.5,liningExtra:1,dividerCount:0,dividerGsm:180,guardaGsm:0,spineSlack:0.5
+    }
+  },
+  conSolapa: {
+    label: "Cuaderno con lomo y solapa",
+    type: "flap",
+    defaults: {
+      paperWidth:148,paperHeight:210,sheetCount:80,gsm:90,
+      overhangWidth:3,overhangHeight:5,
+      coverThickness:1.5,liningExtra:1,dividerCount:0,dividerGsm:180,guardaGsm:0,
+      flapWidth:60,spineSlack:0.5
+    }
+  },
+  compuesto: {
+    label: "Porta notas doble lomo",
+    type: "compound",
+    defaults: {
+      paperWidth:105,paperHeight:148,
+      taco1Sheets:100,taco1Gsm:80,taco2Sheets:50,taco2Gsm:90,taco3Sheets:25,taco3Gsm:75,
+      overhangWidth:2,overhangHeight:4,
+      coverThickness:1.5,spineSlack:1
+    }
+  }
+};
+
+const CALIPERS = [
+  { gsm: 75, microns: 95 },
+  { gsm: 80, microns: 105 },
+  { gsm: 90, microns: 115 },
+  { gsm: 120, microns: 145 },
+  { gsm: 150, microns: 180 },
+  { gsm: 180, microns: 215 },
+  { gsm: 200, microns: 240 }
+];
+
+const RINGS = [
+  { label:'7/16"', diameter:11.1, capacity:9.1 },
+  { label:'1/2"', diameter:12.7, capacity:9.5 },
+  { label:'5/8"', diameter:16.0, capacity:12.5 },
+  { label:'3/4"', diameter:19.0, capacity:14.5 },
+  { label:'7/8"', diameter:22.0, capacity:17.5 },
+  { label:'1"', diameter:25.4, capacity:20.0 },
+  { label:'1 1/8"', diameter:28.6, capacity:23.0 },
+  { label:'1 1/4"', diameter:31.8, capacity:26.0 },
+  { label:'1 1/2"', diameter:38.1, capacity:32.0 }
+];
+
+const PRESETS = {
+  A8:{paperWidth:52,paperHeight:74},
+  A7:{paperWidth:74,paperHeight:105},
+  A6:{paperWidth:105,paperHeight:148},
+  A5:{paperWidth:148,paperHeight:210},
+  A4:{paperWidth:210,paperHeight:297}
+};
+
+const GSM_OPTIONS = [50,75,80,90,100,105,115,120,135,140,150,180,200,230,250];
+const GUARDA_OPTIONS = [{ value: 0, label: 'Sin guarda' }, ...GSM_OPTIONS.map(v => ({ value: v, label: `${v} gr` }))];
+
+let projectKey = "anillado";
+let form = { ...PROJECTS[projectKey].defaults };
+
+function estimateCaliper(gsm){
+  const value = Number(gsm || 0);
+  const exact = CALIPERS.find(x => x.gsm === value);
+  if (exact) return exact.microns;
+  const sorted = [...CALIPERS].sort((a,b)=>a.gsm-b.gsm);
+  const lower = [...sorted].reverse().find(x=>x.gsm<value);
+  const upper = sorted.find(x=>x.gsm>value);
+  if(lower && upper){
+    const ratio = (value - lower.gsm) / (upper.gsm - lower.gsm);
+    return Math.round(lower.microns + ratio * (upper.microns - lower.microns));
+  }
+  return Math.round(value * 1.2 + 5);
+}
+function getRecommendedRing(t){ return RINGS.find(r => t <= r.capacity) || RINGS[RINGS.length-1]; }
+function mm(v){ return `${Number(v || 0).toFixed(1)} mm`; }
+
+function fieldHTML({key,label,type="number",suffix="",step=1,options=null,note=""}){
+  if(options){
+    return `<div>
+      <div class="label">${label}</div>
+      <select data-key="${key}">
+        ${options.map(o => {
+          const option = typeof o === "object" ? o : { value: o, label: `${o} gr` };
+          return `<option value="${option.value}" ${String(form[key])===String(option.value)?'selected':''}>${option.label}</option>`;
+        }).join("")}
+      </select>
+      ${note ? `<div class="note">${note}</div>` : ""}
+    </div>`;
+  }
+  return `<div>
+    <div class="label">${label}</div>
+    <div class="field-row">
+      <input data-key="${key}" type="${type}" value="${form[key] ?? ""}" step="${step}">
+      ${suffix ? `<span class="suffix">${suffix}</span>` : ""}
+    </div>
+    ${note ? `<div class="note">${note}</div>` : ""}
+  </div>`;
+}
+
+function renderForm(){
+  const mode = PROJECTS[projectKey].type;
+  const el = document.getElementById("form-grid");
+  let html = "";
+
+  html += fieldHTML({key:"paperWidth", label:"Ancho de hoja", suffix:"mm"});
+  html += fieldHTML({key:"paperHeight", label:"Alto de hoja", suffix:"mm"});
+
+  if(mode !== "compound"){
+    html += fieldHTML({key:"sheetCount", label:"Cantidad de hojas", suffix:"u"});
+    html += fieldHTML({
+      key:"gsm", label:"Gramaje del papel", options:GSM_OPTIONS,
+      note:"Referencias basadas en gramajes de papeles disponibles en Perú."
+    });
+  } else {
+    html += fieldHTML({key:"taco1Sheets", label:"Taco 1: hojas", suffix:"u"});
+    html += fieldHTML({key:"taco1Gsm", label:"Taco 1: gramaje", options:GSM_OPTIONS});
+    html += fieldHTML({key:"taco2Sheets", label:"Taco 2: hojas", suffix:"u"});
+    html += fieldHTML({key:"taco2Gsm", label:"Taco 2: gramaje", options:GSM_OPTIONS});
+    html += fieldHTML({key:"taco3Sheets", label:"Taco 3: hojas", suffix:"u"});
+    html += fieldHTML({
+      key:"taco3Gsm", label:"Taco 3: gramaje", options:GSM_OPTIONS,
+      note:"Lomo 1 = taco 1 + taco 2 + taco 3 + 2 tapas + 2 mm de forro + holgura. Lomo 2 = taco 2 + taco 3 + 1 tapa + 1 mm de forro + holgura."
+    });
+  }
+
+  if(mode !== "compound"){
+    html += fieldHTML({key:"dividerCount", label:"Separadores", suffix:"u"});
+    html += fieldHTML({key:"dividerGsm", label:"Gramaje separadores", options:GSM_OPTIONS});
+    if(mode !== "ring"){
+      html += fieldHTML({
+        key:"guardaGsm", label:"Gramaje guardas", options:GUARDA_OPTIONS,
+        note:"Elige “Sin guarda” cuando solo uses la tapa para colocar taco encolado para desglosar."
+      });
+    }
+  }
+
+  if(mode === "ring"){
+    html += fieldHTML({key:"oppositeMargin", label:"Margen opuesto al anillado", suffix:"mm", step:0.5});
+    html += fieldHTML({key:"topMargin", label:"Margen superior", suffix:"mm", step:0.5});
+    html += fieldHTML({key:"bottomMargin", label:"Margen inferior", suffix:"mm", step:0.5});
+  } else if (mode === "compound") {
+    html += fieldHTML({key:"overhangHeight", label:"Excedente sup./inf.", suffix:"mm", step:0.5});
+  } else {
+    html += fieldHTML({key:"overhangWidth", label:"Excedente lateral", suffix:"mm", step:0.5});
+    html += fieldHTML({key:"overhangHeight", label:"Excedente sup./inf.", suffix:"mm", step:0.5});
+  }
+
+  if(mode === "flap"){
+    html += fieldHTML({key:"flapWidth", label:"Ancho de solapa", suffix:"mm", step:0.5});
+  }
+
+  html += fieldHTML({key:"coverThickness", label:"Espesor del cartón", suffix:"mm", step:0.1});
+
+  if(mode !== "compound"){
+    html += fieldHTML({
+      key:"liningExtra", label:"Extra por forro", suffix:"mm", step:0.1,
+      note:"Basado en papel de 135 gr laminado + contratapa de 90 gr."
+    });
+  } else {
+    html += `<div><div class="note">En porta notas doble lomo, el extra por forro ya está fijo dentro de la fórmula: 2 mm en lomo 1 y 1 mm en lomo 2.</div></div>`;
+  }
+
+  if(mode !== "ring"){
+    html += fieldHTML({
+      key:"spineSlack", label:"Holgura del lomo", suffix:"mm", step:0.1,
+      note:"Se considera 0.5 mm de holgura; podrás modificarlo de acuerdo a tu forma de trabajo."
+    });
+  }
+
+  el.innerHTML = html;
+  el.querySelectorAll("input, select").forEach(node => {
+    if (node.tagName === "SELECT") {
+      node.addEventListener("change", e => {
+        form[e.target.dataset.key] = e.target.value;
+        renderOutputs();
+      });
+    } else {
+      node.addEventListener("input", e => {
+        form[e.target.dataset.key] = e.target.value;
+        renderOutputs();
+      });
+      node.addEventListener("change", e => {
+        form[e.target.dataset.key] = e.target.value;
+        renderOutputs();
+      });
+    }
+  });
+}
+
+function compute(){
+  const mode = PROJECTS[projectKey].type;
+  const paperWidth = Number(form.paperWidth || 0);
+  const paperHeight = Number(form.paperHeight || 0);
+  const sheetCount = Number(form.sheetCount || 0);
+  const gsm = Number(form.gsm || 0);
+  const coverThickness = Number(form.coverThickness || 0);
+  const liningExtra = Number(form.liningExtra || 0);
+  const dividerCount = Number(form.dividerCount || 0);
+  const dividerGsm = Number(form.dividerGsm || 0);
+  const guardaGsm = Number(form.guardaGsm || 0);
+  const spineSlack = Number(form.spineSlack || 0);
+
+  const pageThickness = sheetCount * (estimateCaliper(gsm) / 1000);
+  const dividerThickness = dividerCount > 0 ? dividerCount * (estimateCaliper(dividerGsm) / 1000) : 0;
+  const guardaThickness = mode !== "ring" && guardaGsm > 0 ? 4 * (estimateCaliper(guardaGsm) / 1000) : 0;
+  const bodyThickness = pageThickness + dividerThickness + guardaThickness;
+  const ringThickness = bodyThickness + coverThickness * 2 + liningExtra;
+  const spineBase = bodyThickness + coverThickness + liningExtra;
+
+  const taco1Thickness = Number(form.taco1Sheets || 0) * (estimateCaliper(form.taco1Gsm || 0) / 1000);
+  const taco2Thickness = Number(form.taco2Sheets || 0) * (estimateCaliper(form.taco2Gsm || 0) / 1000);
+  const taco3Thickness = Number(form.taco3Sheets || 0) * (estimateCaliper(form.taco3Gsm || 0) / 1000);
+
+  const coverWidth = mode === "ring"
+    ? paperWidth + Number(form.oppositeMargin || 0)
+    : mode === "compound"
+    ? paperWidth
+    : paperWidth + Number(form.overhangWidth || 0);
+
+  const coverHeight = mode === "ring"
+    ? paperHeight + Number(form.topMargin || 0) + Number(form.bottomMargin || 0)
+    : paperHeight + Number(form.overhangHeight || 0) * 2;
+
+  const compoundCover1Width = mode === "compound" ? paperWidth + 3 : coverWidth;
+  const compoundCover2Width = mode === "compound" ? paperWidth + 1 : coverWidth;
+  const compoundCover3Width = mode === "compound" ? paperWidth + 2 : coverWidth;
+
+  const spineWidth = mode === "spine" ? spineBase + spineSlack : 0;
+  const flapSpine1Width = mode === "flap" ? bodyThickness + coverThickness + liningExtra + spineSlack : 0;
+  const flapSpine2Width = mode === "flap" ? bodyThickness + coverThickness * 2 + liningExtra + spineSlack : 0;
+  const flapWidth = mode === "flap" ? Number(form.flapWidth || coverWidth) : 0;
+  const spine1Width = mode === "compound" ? taco1Thickness + taco2Thickness + taco3Thickness + coverThickness * 2 + 2 + spineSlack : 0;
+  const spine2Width = mode === "compound" ? taco2Thickness + taco3Thickness + coverThickness + 1 + spineSlack : 0;
+
+  return {
+    mode, coverWidth, coverHeight,
+    compoundCover1Width, compoundCover2Width, compoundCover3Width,
+    spineWidth, spineBase, ringThickness, pageThickness, ring:getRecommendedRing(ringThickness),
+    flapSpine1Width, flapSpine2Width, flapWidth, spine1Width, spine2Width, spineSlack
+  };
+}
+
+function card(title, value, hint="", accent=false){
+  return `<div class="card ${accent ? 'accent' : ''}">
+    <div class="k">${title}</div>
+    <div class="v">${value}</div>
+    ${hint ? `<div class="h">${hint}</div>` : ""}
+  </div>`;
+}
+
+function renderCards(data){
+  const el = document.getElementById("cards");
+  if(data.mode === "compound"){
+    el.innerHTML = [
+      card("Tapa 1", `${mm(data.compoundCover1Width)} × ${mm(data.coverHeight)}`, "Ancho de hojas + 3 mm", true),
+      card("Tapa 2", `${mm(data.compoundCover2Width)} × ${mm(data.coverHeight)}`, "Ancho de hojas + 1 mm"),
+      card("Tapa 3", `${mm(data.compoundCover3Width)} × ${mm(data.coverHeight)}`, "Ancho de hojas + 2 mm"),
+      card("Lomo 1", `${mm(data.spine1Width)} × ${mm(data.coverHeight)}`, "Hojas + 2 tapas + 2 mm forro + holgura"),
+      card("Lomo 2", `${mm(data.spine2Width)} × ${mm(data.coverHeight)}`, "Hojas + 1 tapa + 1 mm forro + holgura")
+    ].join("");
+    return;
+  }
+  if(data.mode === "flap"){
+    el.innerHTML = [
+      card("Tapa 1 y 2", `${mm(data.coverWidth)} × ${mm(data.coverHeight)}`, "", true),
+      card("Solapa", `${mm(data.flapWidth)} × ${mm(data.coverHeight)}`, "Ancho editable de la solapa"),
+      card("Lomo 1", `${mm(data.flapSpine1Width)} × ${mm(data.coverHeight)}`, `Incluye holgura configurada: ${mm(data.spineSlack)}`),
+      card("Lomo 2", `${mm(data.flapSpine2Width)} × ${mm(data.coverHeight)}`, `Incluye holgura configurada: ${mm(data.spineSlack)}`)
+    ].join("");
+    return;
+  }
+  el.innerHTML = [
+    card("Tapa", `${mm(data.coverWidth)} × ${mm(data.coverHeight)}`, "", true),
+    data.mode === "ring"
+      ? card("Anillo sugerido", data.ring.label, `Capacidad ${mm(data.ring.capacity)}`)
+      : card("Lomo", `${mm(data.spineWidth)} × ${mm(data.coverHeight)}`, `Lomo final = base ${mm(data.spineBase)} + holgura ${mm(data.spineSlack)}`),
+    card("Grosor hojas", mm(data.pageThickness), `Estimado con ${form.gsm} gsm`),
+    card(
+      data.mode === "ring" ? "Grosor para anillo" : "Base para lomo",
+      mm(data.mode === "ring" ? data.ringThickness : data.spineBase),
+      data.mode === "ring" ? "Hojas + tapas + separadores + forro" : "Base sin holgura: hojas + separadores + guardas + 1 cartón + forro"
+    )
+  ].join("");
+}
+
+function renderSchematic(data){
+  const pieces = data.mode === "ring"
+    ? [{label:"Tapa 1", width:data.coverWidth}, {label:"Tapa 2", width:data.coverWidth}]
+    : data.mode === "compound"
+    ? [
+        {label:"Tapa 1", width:data.compoundCover1Width},
+        {label:"Lomo 1", width:data.spine1Width},
+        {label:"Tapa 2", width:data.compoundCover2Width},
+        {label:"Lomo 2", width:data.spine2Width},
+        {label:"Tapa 3", width:data.compoundCover3Width}
+      ]
+    : data.mode === "flap"
+    ? [
+        {label:"Tapa 1", width:data.coverWidth},
+        {label:"Lomo 1", width:data.flapSpine1Width},
+        {label:"Tapa 2", width:data.coverWidth},
+        {label:"Lomo 2", width:data.flapSpine2Width},
+        {label:"Solapa", width:data.flapWidth}
+      ]
+    : [{label:"Tapa 1", width:data.coverWidth}, {label:"Lomo", width:data.spineWidth}, {label:"Tapa 2", width:data.coverWidth}];
+
+  const gap = 10;
+  const totalWidth = pieces.reduce((sum, piece) => sum + piece.width, 0) + (pieces.length - 1) * gap;
+  const scale = Math.min(560 / Math.max(totalWidth, 1), 120 / Math.max(data.coverHeight, 1));
+  const startX = 78, topY = 54, pieceHeight = data.coverHeight * scale;
+  let x = startX;
+
+  let svg = `<svg id="schematic-svg" viewBox="0 0 700 235" style="width:100%;border:1px solid #ddd6cc;border-radius:24px;background:#fbf8f2">
+    <text x="20" y="24" style="font-size:13px;fill:#8c8378">Vista 2D referencial</text>
+    <line x1="44" y1="${topY}" x2="44" y2="${topY + pieceHeight}" stroke="#9a9186" stroke-width="1.2"/>
+    <line x1="52" y1="${topY}" x2="${startX - 8}" y2="${topY}" stroke="#9a9186" stroke-width="1.2"/>
+    <line x1="52" y1="${topY + pieceHeight}" x2="${startX - 8}" y2="${topY + pieceHeight}" stroke="#9a9186" stroke-width="1.2"/>
+    <path d="M44 ${topY} l-4 7 h8 z" fill="#9a9186"/>
+    <path d="M44 ${topY + pieceHeight} l-4 -7 h8 z" fill="#9a9186"/>
+    <text x="24" y="${topY + pieceHeight / 2}" text-anchor="middle" transform="rotate(-90 24 ${topY + pieceHeight / 2})" style="font-size:11px;font-weight:600;fill:#8c8378">Alto ${data.coverHeight.toFixed(1)} mm</text>`;
+
+  pieces.forEach((piece, index) => {
+    const width = piece.width * scale;
+    const isSpine = piece.label.includes("Lomo");
+    const currentX = x;
+    const narrowPiece = width < 52;
+    const labelY = narrowPiece ? (index % 2 === 0 ? topY - 18 : topY - 30) : topY - 10;
+    const valueY = narrowPiece ? (index % 2 === 0 ? topY + pieceHeight + 18 : topY + pieceHeight + 30) : topY + pieceHeight + 16;
+    const labelFontSize = narrowPiece ? 10 : 11;
+    const valueFontSize = narrowPiece ? 9 : 10;
+    x += width + gap;
+
+    svg += `<g>
+      <rect x="${currentX}" y="${topY}" width="${width}" height="${pieceHeight}" fill="${isSpine ? '#ece6dd' : '#e6eee4'}" stroke="#8c8378"/>
+      <text x="${currentX + width / 2}" y="${labelY}" text-anchor="middle" style="font-size:${labelFontSize}px;font-weight:600;fill:#5d564d">${piece.label}</text>
+      <text x="${currentX + width / 2}" y="${valueY}" text-anchor="middle" style="font-size:${valueFontSize}px;fill:#8c8378">${piece.width.toFixed(1)} mm</text>
+    </g>`;
+  });
+
+  svg += `</svg>`;
+  document.getElementById("schematic").innerHTML = svg;
+  document.getElementById("flap-note").classList.toggle("hidden", data.mode !== "flap");
+}
+
+function renderRings(data){
+  const section = document.getElementById("rings-section");
+  section.style.display = data.mode === "ring" ? "block" : "none";
+  if(data.mode !== "ring") return;
+  document.getElementById("rings-table").innerHTML = RINGS.map(r => `
+    <div class="table-row ${data.ring.label === r.label ? 'active' : ''}">
+      <div>${r.label}</div>
+      <div>${r.diameter.toFixed(1)} mm</div>
+      <div>${r.label === '1 1/2"' ? `${r.capacity.toFixed(1)} mm estimados` : `${r.capacity.toFixed(1)} mm`}</div>
+    </div>
+  `).join("");
+}
+
+function openPdfSheet(){
+  const data = compute();
+  const projectLabel = PROJECTS[projectKey].label;
+  const dateLabel = new Date().toLocaleDateString("es-PE");
+  const svgMarkup = document.getElementById("schematic-svg")?.outerHTML || "";
+
+  const summaryRows = data.mode === "compound"
+    ? [
+        ["Tapa 1", `${mm(data.compoundCover1Width)} × ${mm(data.coverHeight)}`],
+        ["Tapa 2", `${mm(data.compoundCover2Width)} × ${mm(data.coverHeight)}`],
+        ["Tapa 3", `${mm(data.compoundCover3Width)} × ${mm(data.coverHeight)}`],
+        ["Lomo 1", `${mm(data.spine1Width)} × ${mm(data.coverHeight)}`],
+        ["Lomo 2", `${mm(data.spine2Width)} × ${mm(data.coverHeight)}`]
+      ]
+    : data.mode === "flap"
+    ? [
+        ["Tapa 1 y 2", `${mm(data.coverWidth)} × ${mm(data.coverHeight)}`],
+        ["Lomo 1", `${mm(data.flapSpine1Width)} × ${mm(data.coverHeight)}`],
+        ["Lomo 2", `${mm(data.flapSpine2Width)} × ${mm(data.coverHeight)}`],
+        ["Solapa", `${mm(data.flapWidth)} × ${mm(data.coverHeight)}`]
+      ]
+    : data.mode === "ring"
+    ? [
+        ["Tapa", `${mm(data.coverWidth)} × ${mm(data.coverHeight)}`],
+        ["Anillo sugerido", data.ring.label],
+        ["Capacidad", `${mm(data.ring.capacity)}`],
+        ["Grosor para anillo", `${mm(data.ringThickness)}`]
+      ]
+    : [
+        ["Tapa", `${mm(data.coverWidth)} × ${mm(data.coverHeight)}`],
+        ["Lomo", `${mm(data.spineWidth)} × ${mm(data.coverHeight)}`],
+        ["Base para lomo", `${mm(data.spineBase)}`],
+        ["Holgura", `${mm(data.spineSlack)}`]
+      ];
+
+  const rowsHtml = summaryRows.map(([l,v]) => `<tr><td>${l}</td><td>${v}</td></tr>`).join("");
+  const notes = data.mode === "compound"
+    ? "En porta notas doble lomo, el extra por forro se considera dentro de la fórmula: 2 mm en lomo 1 y 1 mm en lomo 2."
+    : data.mode === "ring"
+    ? "Cálculo de anillado basado en hojas, tapas, separadores y forro."
+    : "Cálculo de lomo basado en hojas, cartón, forro y holgura configurada.";
+
+  const win = window.open("", "_blank");
+  if(!win){
+    alert("Tu navegador bloqueó la apertura. Permite ventanas emergentes para este archivo y vuelve a intentar.");
+    return;
+  }
+
+  win.document.write(`<!DOCTYPE html><html><head><title>Aral Calc - Ficha</title><style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f6f3ee;color:#534c45}
+    .page{padding:34px}.sheet{background:#fffdf9;border:1px solid #ddd6cc;border-radius:22px;padding:28px}
+    .brand{font-size:28px;font-weight:700;color:#61584f}.sub{margin-top:4px;font-size:14px;color:#91877c}
+    .meta{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .meta-card{border:1px solid #ddd6cc;border-radius:16px;padding:14px;background:#fffdfa}
+    .meta-k{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#91877c}
+    .meta-v{margin-top:6px;font-size:18px;font-weight:700;color:#61584f}
+    .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;margin-top:24px}
+    .box{border:1px solid #ddd6cc;border-radius:18px;padding:18px;background:#fffdfa}
+    .box h3{margin:0 0 12px;font-size:16px;color:#61584f}
+    table{width:100%;border-collapse:collapse}td{border-bottom:1px solid #eee7dc;padding:10px 0;font-size:14px}
+    td:first-child{color:#7b7166;width:48%}.note{margin-top:20px;font-size:13px;color:#91877c;line-height:1.5}
+    .svg-wrap svg{width:100%;height:auto;display:block}.bar{margin-top:14px}
+    button{border:1px solid #7f8c7a;background:#7f8c7a;color:#fff;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
+    @media print{.bar{display:none}body{background:white}.page{padding:0}.sheet{border:none;border-radius:0}}
+  </style></head><body>
+    <div class="page"><div class="sheet">
+      <div class="brand">Aral Calc</div>
+      <div class="sub">Calculadora de encuadernación</div>
+      <div class="meta">
+        <div class="meta-card"><div class="meta-k">Proyecto</div><div class="meta-v">${projectLabel}</div></div>
+        <div class="meta-card"><div class="meta-k">Fecha</div><div class="meta-v">${dateLabel}</div></div>
+      </div>
+      <div class="grid">
+        <div class="box"><h3>Resumen técnico</h3><table>${rowsHtml}</table><div class="note">${notes}</div></div>
+        <div class="box svg-wrap"><h3>Guía visual 2D</h3>${svgMarkup}</div>
+      </div>
+      <div class="bar"><button onclick="window.print()">Guardar / Imprimir PDF</button></div>
+    </div></div>
+  </body></html>`);
+  win.document.close();
+}
+
+function renderOutputs(){
+  const data = compute();
+  renderCards(data);
+  renderSchematic(data);
+  renderRings(data);
+}
+
+function render(){
+  document.querySelectorAll(".project-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.project === projectKey));
+  renderForm();
+  renderOutputs();
+}
+
+document.querySelectorAll(".project-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    projectKey = btn.dataset.project;
+    form = { ...PROJECTS[projectKey].defaults };
+    render();
+  });
+});
+document.querySelectorAll(".chip").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const p = PRESETS[btn.dataset.preset];
+    form.paperWidth = p.paperWidth;
+    form.paperHeight = p.paperHeight;
+    render();
+  });
+});
+document.getElementById("pdf-btn").addEventListener("click", openPdfSheet);
+render();
+</script>
+</body>
+</html>
