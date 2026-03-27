@@ -431,3 +431,90 @@ h1 {
     align-items: flex-start;
   }
 }
+
+.guide-hero {
+  padding-top: clamp(3rem, 5vw, 4.4rem);
+  padding-bottom: clamp(2.2rem, 4vw, 3.1rem);
+}
+
+.guide-shell {
+  max-width: 820px;
+}
+
+.guide-lead {
+  margin: 0 0 0.7rem;
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  color: #53374b;
+  font-weight: 700;
+}
+
+.guide-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  max-width: 64ch;
+}
+
+.guide-section h2 {
+  margin-bottom: 0.8rem;
+}
+
+.guide-section p {
+  margin-top: 0;
+  color: #544a55;
+  max-width: 72ch;
+}
+
+.guide-list,
+.guide-steps {
+  margin: 1rem 0 0;
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 0.45rem;
+  color: #493b49;
+}
+
+.guide-gallery-placeholder {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.guide-gallery-block {
+  min-height: 170px;
+  border: 1px dashed #d8b8c8;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.84);
+  color: #845d76;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+}
+
+.guide-note {
+  margin-top: 0.75rem;
+  font-size: 0.92rem;
+  color: #705b6d;
+}
+
+.guide-final {
+  text-align: center;
+}
+
+.guide-final .btn {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 840px) {
+  .guide-gallery-placeholder {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-gallery-block {
+    min-height: 130px;
+  }
+}
