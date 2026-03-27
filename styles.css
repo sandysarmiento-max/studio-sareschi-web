@@ -80,7 +80,8 @@ body {
 }
 
 .hero {
-  padding-top: 6rem;
+  padding-top: clamp(3.25rem, 5vw, 4.5rem);
+  padding-bottom: clamp(2.25rem, 4vw, 3.25rem);
 }
 
 .hero-grid {
@@ -159,6 +160,10 @@ h1 {
 
 .section-heading {
   margin-bottom: 1.4rem;
+}
+
+#apps.section {
+  padding-top: clamp(2.25rem, 4vw, 3.5rem);
 }
 
 .section-heading h2 {
