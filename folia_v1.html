@@ -135,7 +135,34 @@
           </div>
         </div>
         <div class="section"><h3>Márgenes</h3><div class="row2"><div class="field"><label>Superior (mm)</label><input id="marginTop" type="number" min="0" max="50" value="10"></div><div class="field"><label>Inferior (mm)</label><input id="marginBottom" type="number" min="0" max="50" value="10"></div></div><div id="marginsExtra"></div></div>
-        <div class="section"><h3>Tipo de hoja</h3><div class="choice-grid" id="sheetChoices"></div></div>
+        <div class="section">
+          <h3>Tipo de hoja</h3>
+          <div class="field">
+            <label>Modo de diseño</label>
+            <select id="layoutMode">
+              <option value="single">Diseño único</option>
+              <option value="split">Diseño dividido arriba / abajo</option>
+            </select>
+          </div>
+          <div id="singleSheetConfig">
+            <div class="choice-grid" id="sheetChoices"></div>
+          </div>
+          <div id="splitSheetConfig" hidden>
+            <div class="field">
+              <label>Diseño superior</label>
+              <select id="splitTopSheetType"></select>
+            </div>
+            <div class="field">
+              <label>Diseño inferior</label>
+              <select id="splitBottomSheetType"></select>
+            </div>
+            <div class="field">
+              <label>Proporción superior / inferior</label>
+              <input id="splitRatio" type="range" min="20" max="80" step="1" value="50">
+              <div class="meta" id="splitRatioLabel">50% / 50%</div>
+            </div>
+          </div>
+        </div>
         <div class="section"><h3>Configuración del contenido</h3><div id="contentFields"></div></div>
         <div class="section"><h3>Estilo visual</h3><div class="row2"><div class="field"><label>Color de trazo</label><input id="lineColor" type="color" value="#94a3b8"></div><div class="field"><label>Grosor visual</label><input id="strokeWidth" type="number" min="0.1" max="2.5" step="0.1" value="0.2"></div></div></div>
       </div>
@@ -253,6 +280,7 @@ const USAGE_PRESETS={
   general:{format:"pdf",quality:"high",title:"Uso general",note:"Cómodo para compartir, revisar e imprimir sin complicaciones."},
   manual:{format:"pdf",quality:"high",title:"Configuración manual",note:"Elegiste el formato y la calidad directamente."}
 };
+const SPLIT_ZONE_GAP_MM=2;
 const state={
   projectName:"Mi hoja base",
   sizePreset:"A5",
@@ -270,7 +298,11 @@ const state={
   marginRight:7,
   marginOuter:8,
   marginCenter:10,
+  layoutMode:"single",
   sheetType:"rayada",
+  splitTopSheetType:"rayada",
+  splitBottomSheetType:"punteada",
+  splitRatio:50,
   lineSpacing:7,
   showTopGuide:false,
   firstLineGap:0.5,
@@ -548,6 +580,23 @@ function drawList(svg,rect){
     addRule(svg,x1,y,rect.x+rect.width,y,state.lineColor,state.strokeWidth);
   }
 }
+function drawSheetByType(svg,rect,sheetType){
+  if(sheetType==="rayada") drawLined(svg,rect);
+  if(sheetType==="punteada") drawDots(svg,rect);
+  if(sheetType==="cuadriculada") drawGridSheet(svg,rect);
+  if(sheetType==="lista") drawList(svg,rect);
+}
+function getSplitRects(rect){
+  const safeGap=Math.min(SPLIT_ZONE_GAP_MM,Math.max(0,rect.height-2));
+  const totalHeight=Math.max(0,rect.height-safeGap);
+  const ratio=clamp((+state.splitRatio||50)/100,0.2,0.8);
+  const topHeight=roundMm(totalHeight*ratio);
+  const bottomHeight=Math.max(0,roundMm(totalHeight-topHeight));
+  return {
+    top:{x:rect.x,y:rect.y,width:rect.width,height:topHeight},
+    bottom:{x:rect.x,y:rect.y+topHeight+safeGap,width:rect.width,height:bottomHeight}
+  };
+}
 
 function getExportLayoutState(face="front"){
   if(face!=="back") return state;
@@ -575,14 +624,21 @@ function configureSvgCanvas(svg,pageSize){
 }
 function buildSheetContent(svg,rectInfo){
   rectInfo.usableRects.forEach(rect=>{
-    if(state.sheetType==="rayada") drawLined(svg,rect);
-    if(state.sheetType==="punteada") drawDots(svg,rect);
-    if(state.sheetType==="cuadriculada") drawGridSheet(svg,rect);
-    if(state.sheetType==="lista") drawList(svg,rect);
+    if(state.layoutMode==="single"){
+      drawSheetByType(svg,rect,state.sheetType);
+      return;
+    }
+    const splitRects=getSplitRects(rect);
+    if(splitRects.top.height>0) drawSheetByType(svg,splitRects.top,state.splitTopSheetType);
+    if(splitRects.bottom.height>0) drawSheetByType(svg,splitRects.bottom,state.splitBottomSheetType);
   });
 }
 function renderPreview(){
-  const pageSize=getPageSize(),previewLayoutState=getExportLayoutState(state.previewFace),rectInfo=getRects(pageSize,previewLayoutState),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta",sheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
+  const pageSize=getPageSize(),previewLayoutState=getExportLayoutState(state.previewFace),rectInfo=getRects(pageSize,previewLayoutState),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta";
+  const singleSheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
+  const topSheetLabel=(SHEETS.find(([id])=>id===state.splitTopSheetType)||[])[1]||"Rayada";
+  const bottomSheetLabel=(SHEETS.find(([id])=>id===state.splitBottomSheetType)||[])[1]||"Punteada";
+  const sheetLabel=state.layoutMode==="single"?singleSheetLabel:`Dividida (${topSheetLabel} / ${bottomSheetLabel})`;
   const printModeLabel=state.printMode==="duplex"?"Ambas caras":"Una cara";
   const previewFaceLabel=state.printMode==="duplex"?(state.previewFace==="back"?" · Reverso":" · Frente"):"";
   document.getElementById("previewMeta").textContent=`${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · ${armadoLabel} · ${printModeLabel}`;
@@ -618,6 +674,19 @@ function renderPreview(){
     addLine(previewSvg,rectInfo.foldX,0,rectInfo.foldX,pageSize.height,"#fb7185",0.6,{"stroke-dasharray":"7 6"});
   }
   rectInfo.usableRects.forEach(rect=>addRect(previewSvg,rect.x,rect.y,rect.width,rect.height,{fill:"#ecfdf5",stroke:"#bbf7d0","stroke-width":0.35,"fill-opacity":"0.45"}));
+  if(state.layoutMode==="split"){
+    rectInfo.usableRects.forEach(rect=>{
+      const splitRects=getSplitRects(rect);
+      if(splitRects.top.height>0){
+        addRect(previewSvg,splitRects.top.x,splitRects.top.y,splitRects.top.width,splitRects.top.height,{fill:"#ecfeff",stroke:"#99f6e4","stroke-width":0.25,"fill-opacity":"0.18"});
+      }
+      if(splitRects.bottom.height>0){
+        addRect(previewSvg,splitRects.bottom.x,splitRects.bottom.y,splitRects.bottom.width,splitRects.bottom.height,{fill:"#f5f3ff",stroke:"#c4b5fd","stroke-width":0.25,"fill-opacity":"0.18"});
+      }
+      const dividerY=splitRects.top.y+splitRects.top.height+(SPLIT_ZONE_GAP_MM/2);
+      addLine(previewSvg,rect.x,dividerY,rect.x+rect.width,dividerY,"#a78bfa",0.35,{"stroke-dasharray":"3 2"});
+    });
+  }
   Array.from(exportSvg.childNodes).forEach(node=>previewSvg.appendChild(cloneNodeForPreview(node,previewScale)));
   updateExportSummary();
 }
@@ -626,6 +695,22 @@ function populateChoices(){
   document.getElementById("sizePreset").innerHTML=Object.keys(SIZE_PRESETS).map(k=>`<option ${state.sizePreset===k?'selected':''}>${k}</option>`).join("");
   document.getElementById("armadoChoices").innerHTML=ARMADOS.map(([id,label])=>`<button class="choice ${state.armado===id?'active-rose':''}" data-armado="${id}">${label}</button>`).join("");
   document.getElementById("sheetChoices").innerHTML=SHEETS.map(([id,label])=>`<button class="choice ${state.sheetType===id?'active-green':''}" data-sheet="${id}">${label}</button>`).join("");
+  document.getElementById("splitTopSheetType").innerHTML=SHEETS.map(([id,label])=>`<option value="${id}" ${state.splitTopSheetType===id?'selected':''}>${label}</option>`).join("");
+  document.getElementById("splitBottomSheetType").innerHTML=SHEETS.map(([id,label])=>`<option value="${id}" ${state.splitBottomSheetType===id?'selected':''}>${label}</option>`).join("");
+}
+function renderLayoutModeFields(){
+  const isSplit=state.layoutMode==="split";
+  const single=document.getElementById("singleSheetConfig");
+  const split=document.getElementById("splitSheetConfig");
+  if(single) single.hidden=isSplit;
+  if(split) split.hidden=!isSplit;
+  const ratioInput=document.getElementById("splitRatio");
+  const ratioLabel=document.getElementById("splitRatioLabel");
+  if(ratioInput) ratioInput.value=String(state.splitRatio);
+  if(ratioLabel){
+    const top=clamp(+state.splitRatio||50,20,80);
+    ratioLabel.textContent=`${top}% / ${100-top}%`;
+  }
 }
 function renderArmadoExtra(){
   const div=document.getElementById("armadoExtra");
@@ -681,10 +766,13 @@ function syncBasic(){
   if(printModeConfig) printModeConfig.value=state.printMode;
   const printMode=document.getElementById('printMode');
   if(printMode) printMode.value=state.printMode;
+  const layoutMode=document.getElementById('layoutMode');
+  if(layoutMode) layoutMode.value=state.layoutMode;
 }
 function updateUI(){
   if(state.printMode!=="duplex") state.previewFace="front";
   populateChoices();
+  renderLayoutModeFields();
   renderArmadoExtra();
   renderMarginsExtra();
   renderContentFields();
@@ -1182,6 +1270,10 @@ function bindStatic(){
   document.getElementById('exportQuality').addEventListener('change',e=>{state.exportQuality=e.target.value; state.exportUsage='manual'; updateExportSummary();});
   document.getElementById('printModeConfig').addEventListener('change',e=>{state.printMode=e.target.value; updateUI();});
   document.getElementById('printMode').addEventListener('change',e=>{state.printMode=e.target.value; if(state.printMode!=='duplex') state.previewFace='front'; syncBasic(); renderPreview(); updateExportSummary();});
+  document.getElementById('layoutMode').addEventListener('change',e=>{state.layoutMode=e.target.value; if(state.layoutMode==="split") state.sheetType=state.splitTopSheetType; updateUI();});
+  document.getElementById('splitTopSheetType').addEventListener('change',e=>{state.splitTopSheetType=e.target.value; if(state.layoutMode==="split") state.sheetType=state.splitTopSheetType; updateUI();});
+  document.getElementById('splitBottomSheetType').addEventListener('change',e=>{state.splitBottomSheetType=e.target.value; updateUI();});
+  document.getElementById('splitRatio').addEventListener('input',e=>{state.splitRatio=clamp(+e.target.value,20,80); renderLayoutModeFields(); renderPreview();});
   document.getElementById('previewFrontBtn').addEventListener('click',()=>{state.previewFace='front'; renderPreview();});
   document.getElementById('previewBackBtn').addEventListener('click',()=>{if(state.printMode!=='duplex') return; state.previewFace='back'; renderPreview();});
   document.getElementById('confirmExportBtn').addEventListener('click',runExport);
@@ -1194,6 +1286,7 @@ function bindStatic(){
 function bindDynamic(){
   document.querySelectorAll('[data-armado]').forEach(btn=>btn.onclick=()=>setArmado(btn.dataset.armado));
   document.querySelectorAll('[data-sheet]').forEach(btn=>btn.onclick=()=>{
+    if(state.layoutMode!=="single") return;
     state.sheetType=btn.dataset.sheet;
     if(state.sheetType==='rayada'){state.lineSpacing=7; state.showTopGuide=false; state.firstLineGap=0.5; state.fitLinesToSpace=true; state.lineColor='#94a3b8';}
     if(state.sheetType==='punteada'){state.dotGapX=5; state.dotGapY=5; state.dotSize=0.2; state.fitDotsToSpace=true; state.lineColor='#000000';}
