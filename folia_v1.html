@@ -121,6 +121,16 @@
           <div class="field"><label>Orientación</label><select id="orientation"><option>Vertical</option><option>Horizontal</option></select></div>
         </div>
         <div class="section"><h3>Tipo de armado</h3><div class="choice-grid" id="armadoChoices"></div><div id="armadoExtra" style="margin-top:12px"></div></div>
+        <div class="section">
+          <h3>Impresión</h3>
+          <div class="field">
+            <label>Modo de impresión</label>
+            <select id="printModeConfig">
+              <option value="single">Una cara</option>
+              <option value="duplex">Ambas caras</option>
+            </select>
+          </div>
+        </div>
         <div class="section"><h3>Márgenes</h3><div class="row2"><div class="field"><label>Superior (mm)</label><input id="marginTop" type="number" min="0" max="50" value="10"></div><div class="field"><label>Inferior (mm)</label><input id="marginBottom" type="number" min="0" max="50" value="10"></div></div><div id="marginsExtra"></div></div>
         <div class="section"><h3>Tipo de hoja</h3><div class="choice-grid" id="sheetChoices"></div></div>
         <div class="section"><h3>Configuración del contenido</h3><div id="contentFields"></div></div>
@@ -565,10 +575,11 @@ function buildSheetContent(svg,rectInfo){
 }
 function renderPreview(){
   const pageSize=getPageSize(),rectInfo=getRects(pageSize),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta",sheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
-  document.getElementById("previewMeta").textContent=`${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · ${armadoLabel}`;
+  const printModeLabel=state.printMode==="duplex"?"Ambas caras":"Una cara";
+  document.getElementById("previewMeta").textContent=`${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · ${armadoLabel} · ${printModeLabel}`;
   const previewSummary=document.getElementById("previewSummary");
   if(previewSummary){
-    previewSummary.innerHTML=`<div><strong>Proyecto:</strong> ${state.projectName} · <strong>Formato:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · <strong>Hoja:</strong> ${sheetLabel}</div><div><strong>Armado:</strong> ${armadoLabel} · <strong>Márgenes:</strong> ${state.marginTop}/${state.marginBottom}/${state.marginLeft}/${state.marginRight} mm</div>`;
+    previewSummary.innerHTML=`<div><strong>Proyecto:</strong> ${state.projectName} · <strong>Formato:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · <strong>Hoja:</strong> ${sheetLabel}</div><div><strong>Armado:</strong> ${armadoLabel} · <strong>Impresión:</strong> ${printModeLabel} · <strong>Márgenes:</strong> ${state.marginTop}/${state.marginBottom}/${state.marginLeft}/${state.marginRight} mm</div>`;
   }
   const zoomLabel=document.getElementById("zoomLabel");
   if(zoomLabel) zoomLabel.textContent=`${Math.round(state.previewZoom*100)}%`;
@@ -651,6 +662,8 @@ function syncBasic(){
   const exportQuality=document.getElementById('exportQuality');
   if(exportFormat) exportFormat.value=state.exportFormat;
   if(exportQuality) exportQuality.value=state.exportQuality;
+  const printModeConfig=document.getElementById('printModeConfig');
+  if(printModeConfig) printModeConfig.value=state.printMode;
   const printMode=document.getElementById('printMode');
   if(printMode) printMode.value=state.printMode;
 }
@@ -1151,7 +1164,8 @@ function bindStatic(){
   document.getElementById('exportModal').addEventListener('click',e=>{if(e.target.id==='exportModal') closeExportModal();});
   document.getElementById('exportFormat').addEventListener('change',e=>{state.exportFormat=e.target.value; state.exportUsage='manual'; updateExportSummary();});
   document.getElementById('exportQuality').addEventListener('change',e=>{state.exportQuality=e.target.value; state.exportUsage='manual'; updateExportSummary();});
-  document.getElementById('printMode').addEventListener('change',e=>{state.printMode=e.target.value; updateExportSummary();});
+  document.getElementById('printModeConfig').addEventListener('change',e=>{state.printMode=e.target.value; updateUI();});
+  document.getElementById('printMode').addEventListener('change',e=>{state.printMode=e.target.value; syncBasic(); updateExportSummary();});
   document.getElementById('confirmExportBtn').addEventListener('click',runExport);
   document.querySelectorAll('[data-usage]').forEach(btn=>btn.addEventListener('click',()=>applyUsagePreset(btn.dataset.usage)));
   window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('exportModal').hidden) closeExportModal();});
