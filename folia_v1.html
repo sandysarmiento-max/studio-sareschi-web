@@ -80,6 +80,9 @@
     .usage-card strong{font-size:14px}
     .usage-card span{font-size:12px;line-height:1.4;color:var(--muted)}
     .usage-card.active{border-color:var(--accent);background:var(--accent-soft)}
+    .face-toggle{display:flex;gap:6px}
+    .face-toggle[hidden]{display:none}
+    .face-toggle .btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
     .export-notes,.export-summary{border:1px solid var(--border);background:var(--soft);border-radius:14px;padding:12px;font-size:12.5px;line-height:1.5;color:var(--muted)}
     .export-notes strong,.export-summary strong{color:var(--text)}
     .modal-actions{display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:linear-gradient(180deg,rgba(255,255,255,0.88),#fff 28%);padding-top:6px}
@@ -150,6 +153,10 @@
                 <div><span class="sw" style="background:#ecfdf5;border:1px solid #bbf7d0"></span>Área útil</div>
               </div>
               <div class="actions">
+                <div class="face-toggle" id="previewFaceToggle" hidden>
+                  <button class="btn active" id="previewFrontBtn" type="button">Frente</button>
+                  <button class="btn" id="previewBackBtn" type="button">Reverso</button>
+                </div>
                 <div class="zoom-controls">
                   <button class="btn icon" id="zoomOutBtn" type="button">−</button>
                   <span class="zoom-label" id="zoomLabel">100%</span>
@@ -290,7 +297,8 @@ const state={
   exportFormat:"pdf",
   exportQuality:"high",
   exportUsage:"general",
-  printMode:"single"
+  printMode:"single",
+  previewFace:"front"
 };
 
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -574,12 +582,19 @@ function buildSheetContent(svg,rectInfo){
   });
 }
 function renderPreview(){
-  const pageSize=getPageSize(),rectInfo=getRects(pageSize),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta",sheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
+  const pageSize=getPageSize(),previewLayoutState=getExportLayoutState(state.previewFace),rectInfo=getRects(pageSize,previewLayoutState),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta",sheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
   const printModeLabel=state.printMode==="duplex"?"Ambas caras":"Una cara";
+  const previewFaceLabel=state.printMode==="duplex"?(state.previewFace==="back"?" · Reverso":" · Frente"):"";
   document.getElementById("previewMeta").textContent=`${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · ${armadoLabel} · ${printModeLabel}`;
+  const previewFaceToggle=document.getElementById("previewFaceToggle");
+  if(previewFaceToggle) previewFaceToggle.hidden=state.printMode!=="duplex";
+  const previewFrontBtn=document.getElementById("previewFrontBtn");
+  const previewBackBtn=document.getElementById("previewBackBtn");
+  if(previewFrontBtn) previewFrontBtn.classList.toggle("active",state.previewFace==="front");
+  if(previewBackBtn) previewBackBtn.classList.toggle("active",state.previewFace==="back");
   const previewSummary=document.getElementById("previewSummary");
   if(previewSummary){
-    previewSummary.innerHTML=`<div><strong>Proyecto:</strong> ${state.projectName} · <strong>Formato:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · <strong>Hoja:</strong> ${sheetLabel}</div><div><strong>Armado:</strong> ${armadoLabel} · <strong>Impresión:</strong> ${printModeLabel} · <strong>Márgenes:</strong> ${state.marginTop}/${state.marginBottom}/${state.marginLeft}/${state.marginRight} mm</div>`;
+    previewSummary.innerHTML=`<div><strong>Proyecto:</strong> ${state.projectName} · <strong>Formato:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · <strong>Hoja:</strong> ${sheetLabel}</div><div><strong>Armado:</strong> ${armadoLabel} · <strong>Impresión:</strong> ${printModeLabel}${previewFaceLabel} · <strong>Márgenes:</strong> ${previewLayoutState.marginTop}/${previewLayoutState.marginBottom}/${previewLayoutState.marginLeft}/${previewLayoutState.marginRight} mm</div>`;
   }
   const zoomLabel=document.getElementById("zoomLabel");
   if(zoomLabel) zoomLabel.textContent=`${Math.round(state.previewZoom*100)}%`;
@@ -668,6 +683,7 @@ function syncBasic(){
   if(printMode) printMode.value=state.printMode;
 }
 function updateUI(){
+  if(state.printMode!=="duplex") state.previewFace="front";
   populateChoices();
   renderArmadoExtra();
   renderMarginsExtra();
@@ -1165,7 +1181,9 @@ function bindStatic(){
   document.getElementById('exportFormat').addEventListener('change',e=>{state.exportFormat=e.target.value; state.exportUsage='manual'; updateExportSummary();});
   document.getElementById('exportQuality').addEventListener('change',e=>{state.exportQuality=e.target.value; state.exportUsage='manual'; updateExportSummary();});
   document.getElementById('printModeConfig').addEventListener('change',e=>{state.printMode=e.target.value; updateUI();});
-  document.getElementById('printMode').addEventListener('change',e=>{state.printMode=e.target.value; syncBasic(); updateExportSummary();});
+  document.getElementById('printMode').addEventListener('change',e=>{state.printMode=e.target.value; if(state.printMode!=='duplex') state.previewFace='front'; syncBasic(); renderPreview(); updateExportSummary();});
+  document.getElementById('previewFrontBtn').addEventListener('click',()=>{state.previewFace='front'; renderPreview();});
+  document.getElementById('previewBackBtn').addEventListener('click',()=>{if(state.printMode!=='duplex') return; state.previewFace='back'; renderPreview();});
   document.getElementById('confirmExportBtn').addEventListener('click',runExport);
   document.querySelectorAll('[data-usage]').forEach(btn=>btn.addEventListener('click',()=>applyUsagePreset(btn.dataset.usage)));
   window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('exportModal').hidden) closeExportModal();});
