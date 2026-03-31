@@ -49,6 +49,10 @@
     .choice.active-green{border-color:#A9D4B9;background:#EDF7F0;color:#39634A}
     .preview{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:10px;box-shadow:0 2px 8px rgba(15,23,42,.04)}
     .preview-top{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;margin-bottom:8px}
+    .preview-head{display:grid;gap:6px}
+    .face-toggle{display:inline-flex;gap:4px;padding:3px;border:1px solid var(--border);border-radius:11px;background:#fff}
+    .face-btn{border:0;background:transparent;color:#64748b;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+    .face-btn.active{background:var(--accent-soft);color:var(--accent-text)}
     .meta{color:var(--muted);font-size:12px}
     .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted);justify-content:flex-end}
     .legend span.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
@@ -129,8 +133,12 @@
       <div class="right">
         <div class="preview">
           <div class="preview-top">
-            <div>
+            <div class="preview-head">
               <div style="font-size:18px;font-weight:700">Vista previa en vivo</div>
+              <div class="face-toggle" id="previewFaceToggle" hidden>
+                <button class="face-btn active" id="previewFrontBtn" type="button">Frente</button>
+                <button class="face-btn" id="previewBackBtn" type="button">Reverso</button>
+              </div>
               <div class="meta" id="previewMeta"></div>
             </div>
             <div style="display:grid;gap:6px;justify-items:end">
@@ -280,7 +288,8 @@ const state={
   exportFormat:"pdf",
   exportQuality:"high",
   exportUsage:"general",
-  printMode:"single"
+  printMode:"single",
+  previewFace:"front"
 };
 
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -548,6 +557,10 @@ function buildSheetSvg(face="front"){
   buildSheetContent(svg,getRects(pageSize,getExportLayoutState(face)));
   return svg;
 }
+function getActivePreviewFace(){
+  if(state.printMode!=="duplex") return "front";
+  return state.previewFace==="back"?"back":"front";
+}
 
 function configureSvgCanvas(svg,pageSize){
   svg.setAttribute("xmlns","http://www.w3.org/2000/svg");
@@ -564,11 +577,20 @@ function buildSheetContent(svg,rectInfo){
   });
 }
 function renderPreview(){
-  const pageSize=getPageSize(),rectInfo=getRects(pageSize),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta",sheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
-  document.getElementById("previewMeta").textContent=`${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · ${armadoLabel}`;
+  const pageSize=getPageSize(),face=getActivePreviewFace(),layoutState=getExportLayoutState(face),rectInfo=getRects(pageSize,layoutState),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta",sheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
+  const faceLabel=face==="back"?"Reverso":"Frente";
+  document.getElementById("previewMeta").textContent=`${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · ${armadoLabel} · ${faceLabel}`;
+  const faceToggle=document.getElementById("previewFaceToggle");
+  const frontBtn=document.getElementById("previewFrontBtn");
+  const backBtn=document.getElementById("previewBackBtn");
+  if(faceToggle){
+    faceToggle.hidden=state.printMode!=="duplex";
+    if(frontBtn) frontBtn.classList.toggle("active",face==="front");
+    if(backBtn) backBtn.classList.toggle("active",face==="back");
+  }
   const previewSummary=document.getElementById("previewSummary");
   if(previewSummary){
-    previewSummary.innerHTML=`<div><strong>Proyecto:</strong> ${state.projectName} · <strong>Formato:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · <strong>Hoja:</strong> ${sheetLabel}</div><div><strong>Armado:</strong> ${armadoLabel} · <strong>Márgenes:</strong> ${state.marginTop}/${state.marginBottom}/${state.marginLeft}/${state.marginRight} mm</div>`;
+    previewSummary.innerHTML=`<div><strong>Proyecto:</strong> ${state.projectName} · <strong>Formato:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · <strong>Hoja:</strong> ${sheetLabel}</div><div><strong>Armado:</strong> ${armadoLabel} · <strong>Cara:</strong> ${faceLabel} · <strong>Márgenes:</strong> ${layoutState.marginTop}/${layoutState.marginBottom}/${layoutState.marginLeft}/${layoutState.marginRight} mm</div>`;
   }
   const zoomLabel=document.getElementById("zoomLabel");
   if(zoomLabel) zoomLabel.textContent=`${Math.round(state.previewZoom*100)}%`;
@@ -1151,7 +1173,21 @@ function bindStatic(){
   document.getElementById('exportModal').addEventListener('click',e=>{if(e.target.id==='exportModal') closeExportModal();});
   document.getElementById('exportFormat').addEventListener('change',e=>{state.exportFormat=e.target.value; state.exportUsage='manual'; updateExportSummary();});
   document.getElementById('exportQuality').addEventListener('change',e=>{state.exportQuality=e.target.value; state.exportUsage='manual'; updateExportSummary();});
-  document.getElementById('printMode').addEventListener('change',e=>{state.printMode=e.target.value; updateExportSummary();});
+  document.getElementById('printMode').addEventListener('change',e=>{
+    state.printMode=e.target.value;
+    if(state.printMode!=="duplex") state.previewFace="front";
+    updateExportSummary();
+    renderPreview();
+  });
+  document.getElementById('previewFrontBtn').addEventListener('click',()=>{
+    state.previewFace="front";
+    renderPreview();
+  });
+  document.getElementById('previewBackBtn').addEventListener('click',()=>{
+    if(state.printMode!=="duplex") return;
+    state.previewFace="back";
+    renderPreview();
+  });
   document.getElementById('confirmExportBtn').addEventListener('click',runExport);
   document.querySelectorAll('[data-usage]').forEach(btn=>btn.addEventListener('click',()=>applyUsagePreset(btn.dataset.usage)));
   window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('exportModal').hidden) closeExportModal();});
