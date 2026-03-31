@@ -183,6 +183,13 @@
                     <option value="print">Imprenta</option>
                   </select>
                 </div>
+                <div class="field">
+                  <label>Modo de impresión</label>
+                  <select id="printMode">
+                    <option value="single">Una cara</option>
+                    <option value="duplex">Ambas caras</option>
+                  </select>
+                </div>
                 <div class="export-notes" id="formatHelp"></div>
               </div>
               <div class="modal-column wide">
@@ -272,7 +279,8 @@ const state={
   strokeWidth:0.2,
   exportFormat:"pdf",
   exportQuality:"high",
-  exportUsage:"general"
+  exportUsage:"general",
+  printMode:"single"
 };
 
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -290,18 +298,18 @@ function getPageSize(){
   const height=state.sizePreset==="Personalizado"?Number(state.customHeight):preset.height;
   return state.orientation==="Horizontal"?{width:height,height:width}:{width,height};
 }
-function getRects(pageSize){
-  const top=clamp(+state.marginTop,0,999),bottom=clamp(+state.marginBottom,0,999);
-  if(state.armado==="cuadernillo"){
-    const foldX=pageSize.width/2,outer=clamp(+state.marginOuter,0,999),center=clamp(+state.marginCenter,0,999);
+function getRects(pageSize,layoutState=state){
+  const top=clamp(+layoutState.marginTop,0,999),bottom=clamp(+layoutState.marginBottom,0,999);
+  if(layoutState.armado==="cuadernillo"){
+    const foldX=pageSize.width/2,outer=clamp(+layoutState.marginOuter,0,999),center=clamp(+layoutState.marginCenter,0,999);
     return {foldX,reserved:[{x:foldX-center,y:0,width:center*2,height:pageSize.height}],usableRects:[{x:outer,y:top,width:Math.max(0,foldX-center-outer),height:Math.max(0,pageSize.height-top-bottom),side:"left"},{x:foldX+center,y:top,width:Math.max(0,pageSize.width-(foldX+center)-outer),height:Math.max(0,pageSize.height-top-bottom),side:"right"}]};
   }
-  if(state.armado==="block"){
-    const left=clamp(+state.marginLeft,0,999),right=clamp(+state.marginRight,0,999),reserveTop=clamp(+state.blockTopReserve,0,999);
+  if(layoutState.armado==="block"){
+    const left=clamp(+layoutState.marginLeft,0,999),right=clamp(+layoutState.marginRight,0,999),reserveTop=clamp(+layoutState.blockTopReserve,0,999);
     return {reserved:[{x:0,y:0,width:pageSize.width,height:reserveTop}],usableRects:[{x:left,y:reserveTop+top,width:Math.max(0,pageSize.width-left-right),height:Math.max(0,pageSize.height-reserveTop-top-bottom),side:"single"}]};
   }
-  if(state.armado==="anillado"){
-    const reserve=clamp(+state.bindingReserve,0,999),left=clamp(+state.marginLeft,0,999),right=clamp(+state.marginRight,0,999),side=state.bindingSide;
+  if(layoutState.armado==="anillado"){
+    const reserve=clamp(+layoutState.bindingReserve,0,999),left=clamp(+layoutState.marginLeft,0,999),right=clamp(+layoutState.marginRight,0,999),side=layoutState.bindingSide;
     let x=left,y=top,width=pageSize.width-left-right,height=pageSize.height-top-bottom;
     const reserved=[];
     if(side==="left"){
@@ -314,7 +322,7 @@ function getRects(pageSize){
     }
     return {reserved,usableRects:[{x,y,width:Math.max(0,width),height:Math.max(0,height),side:"single"}]};
   }
-  const left=clamp(+state.marginLeft,0,999),right=clamp(+state.marginRight,0,999);
+  const left=clamp(+layoutState.marginLeft,0,999),right=clamp(+layoutState.marginRight,0,999);
   return {reserved:[],usableRects:[{x:left,y:top,width:Math.max(0,pageSize.width-left-right),height:Math.max(0,pageSize.height-top-bottom),side:"single"}]};
 }
 
@@ -523,6 +531,24 @@ function drawList(svg,rect){
   }
 }
 
+function getExportLayoutState(face="front"){
+  if(face!=="back") return state;
+  if(state.armado!=="anillado") return state;
+  return {
+    ...state,
+    bindingSide:state.bindingSide==="left"?"right":"left",
+    marginLeft:state.marginRight,
+    marginRight:state.marginLeft
+  };
+}
+function buildSheetSvg(face="front"){
+  const pageSize=getPageSize();
+  const svg=el("svg");
+  configureSvgCanvas(svg,pageSize);
+  buildSheetContent(svg,getRects(pageSize,getExportLayoutState(face)));
+  return svg;
+}
+
 function configureSvgCanvas(svg,pageSize){
   svg.setAttribute("xmlns","http://www.w3.org/2000/svg");
   svg.setAttribute("viewBox",`0 0 ${roundMm(pageSize.width)} ${roundMm(pageSize.height)}`);
@@ -625,6 +651,8 @@ function syncBasic(){
   const exportQuality=document.getElementById('exportQuality');
   if(exportFormat) exportFormat.value=state.exportFormat;
   if(exportQuality) exportQuality.value=state.exportQuality;
+  const printMode=document.getElementById('printMode');
+  if(printMode) printMode.value=state.printMode;
 }
 function updateUI(){
   populateChoices();
@@ -772,12 +800,10 @@ function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=fa
   });
   return svg;
 }
-function buildExportSvgElement({includeBackground=false,optimizeForRaster=false,dpi=300}={}){
-  const clone=document.getElementById('exportSvg').cloneNode(true);
-  clone.removeAttribute('style');
-  clone.removeAttribute('aria-hidden');
-  if(!optimizeForRaster) convertRuleRectsToLines(clone);
-  return normalizeSvgForExport(clone,{forRaster:optimizeForRaster,dpi,includeBackground});
+function buildExportSvgElement({includeBackground=false,optimizeForRaster=false,dpi=300,face="front"}={}){
+  const svg=buildSheetSvg(face);
+  if(!optimizeForRaster) convertRuleRectsToLines(svg);
+  return normalizeSvgForExport(svg,{forRaster:optimizeForRaster,dpi,includeBackground});
 }
 function svgElementToMarkup(svg){
   const markup=new XMLSerializer().serializeToString(svg);
@@ -793,11 +819,11 @@ function downloadBlob(blob,filename){
   a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),600);
 }
-async function exportSvgToCanvas({transparent=true,dpi=300}={}){
+async function exportSvgToCanvas({transparent=true,dpi=300,face="front"}={}){
   const pageSize=getPageSize();
   const targetWidth=mmToPx(pageSize.width,dpi);
   const targetHeight=mmToPx(pageSize.height,dpi);
-  const svg=buildExportSvgElement({includeBackground:!transparent,optimizeForRaster:true,dpi});
+  const svg=buildExportSvgElement({includeBackground:!transparent,optimizeForRaster:true,dpi,face});
   const markup=svgElementToMarkup(svg);
   const blob=new Blob([markup],{type:'image/svg+xml;charset=utf-8'});
   const url=URL.createObjectURL(blob);
@@ -885,11 +911,15 @@ async function exportPng(dpi){
 async function exportPdfRaster(dpi){
   const pageSize=getPageSize();
   if(!window.jspdf||!window.jspdf.jsPDF) throw new Error('El motor PDF no está disponible en esta sesión.');
-  const canvas=await exportSvgToCanvas({transparent:false,dpi});
   const { jsPDF } = window.jspdf;
   const pdf=new jsPDF({orientation:pageSize.width>pageSize.height?'landscape':'portrait',unit:'mm',format:[pageSize.width,pageSize.height],compress:true,precision:12});
-  const img=canvas.toDataURL('image/png');
-  pdf.addImage(img,'PNG',0,0,pageSize.width,pageSize.height,undefined,'NONE');
+  const frontCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"front"});
+  pdf.addImage(frontCanvas.toDataURL('image/png'),'PNG',0,0,pageSize.width,pageSize.height,undefined,'NONE');
+  if(state.printMode==="duplex"){
+    const backCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"back"});
+    pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
+    pdf.addImage(backCanvas.toDataURL('image/png'),'PNG',0,0,pageSize.width,pageSize.height,undefined,'NONE');
+  }
   pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
 }
 function parseColorValue(value){
@@ -1002,22 +1032,31 @@ async function exportPdfVector(){
   if(!window.jspdf||!window.jspdf.jsPDF) throw new Error('El motor PDF no está disponible en esta sesión.');
   const { jsPDF } = window.jspdf;
   const pdf=new jsPDF({orientation:pageSize.width>pageSize.height?'landscape':'portrait',unit:'mm',format:[pageSize.width,pageSize.height],compress:true,precision:12});
-  const svg=buildExportSvgElement({includeBackground:true,optimizeForRaster:false});
+  const frontSvg=buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"front"});
+  const backSvg=state.printMode==="duplex"?buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"back"}):null;
   if(typeof pdf.svg==='function'){
-    await pdf.svg(svg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
+    await pdf.svg(frontSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
+    if(backSvg){
+      pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
+      await pdf.svg(backSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
+    }
     pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
     return;
   }
   pdfCurrent=pdf;
   try{
-    drawSvgNodeToPdf(svg);
+    drawSvgNodeToPdf(frontSvg);
+    if(backSvg){
+      pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
+      drawSvgNodeToPdf(backSvg);
+    }
     pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
   } finally {
     pdfCurrent=null;
   }
 }
 async function exportSvgFile(){
-  const svg=buildExportSvgElement({includeBackground:false,optimizeForRaster:false});
+  const svg=buildExportSvgElement({includeBackground:false,optimizeForRaster:false,face:"front"});
   const blob=new Blob([svgElementToMarkup(svg)],{type:'image/svg+xml;charset=utf-8'});
   downloadBlob(blob,`${sanitizeFileName(state.projectName)}.svg`);
 }
@@ -1032,13 +1071,14 @@ function updateExportSummary(){
   const exportSummary=document.getElementById('exportSummary');
   const pxW=mmToPx(pageSize.width,quality.dpi),pxH=mmToPx(pageSize.height,quality.dpi);
   const usage=USAGE_PRESETS[state.exportUsage]||USAGE_PRESETS.general;
+  const pagesInfo=(format.extension==="pdf"&&state.printMode==="duplex")?"2 páginas (frente y reverso automático).":"1 página.";
   const rasterInfo=format.raster?`<strong>Resolución final:</strong> ${pxW} × ${pxH} px a ${quality.dpi} dpi.`:`<strong>Salida vectorial:</strong> mantiene líneas y formas sin rasterizar de forma innecesaria.`;
   if(formatHelp){
     formatHelp.innerHTML=`<strong>${format.label}</strong><br>${format.description}<br><br><strong>Calidad ${quality.label.toLowerCase()}</strong><br>${quality.description}`;
   }
   if(exportSummary){
     const extraCanvaNote=(state.exportUsage==='canva')?'<br><strong>Nota Canva:</strong> el PNG sale sin metadato de dpi porque Canva a veces lo interpreta y reduce la hoja. Si quieres máxima fidelidad de medida en Canva, sigue siendo mejor PDF de imprenta.':'';
-    exportSummary.innerHTML=`<strong>Tamaño final:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm.<br>${rasterInfo}<br><strong>Sugerencia activa:</strong> ${usage.title}. ${usage.note}${extraCanvaNote}`;
+    exportSummary.innerHTML=`<strong>Tamaño final:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm.<br><strong>Salida:</strong> ${pagesInfo}<br>${rasterInfo}<br><strong>Sugerencia activa:</strong> ${usage.title}. ${usage.note}${extraCanvaNote}`;
   }
   document.querySelectorAll('[data-usage]').forEach(btn=>btn.classList.toggle('active',btn.dataset.usage===state.exportUsage));
 }
@@ -1111,6 +1151,7 @@ function bindStatic(){
   document.getElementById('exportModal').addEventListener('click',e=>{if(e.target.id==='exportModal') closeExportModal();});
   document.getElementById('exportFormat').addEventListener('change',e=>{state.exportFormat=e.target.value; state.exportUsage='manual'; updateExportSummary();});
   document.getElementById('exportQuality').addEventListener('change',e=>{state.exportQuality=e.target.value; state.exportUsage='manual'; updateExportSummary();});
+  document.getElementById('printMode').addEventListener('change',e=>{state.printMode=e.target.value; updateExportSummary();});
   document.getElementById('confirmExportBtn').addEventListener('click',runExport);
   document.querySelectorAll('[data-usage]').forEach(btn=>btn.addEventListener('click',()=>applyUsagePreset(btn.dataset.usage)));
   window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('exportModal').hidden) closeExportModal();});
