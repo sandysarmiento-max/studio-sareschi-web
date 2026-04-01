@@ -487,7 +487,8 @@ function drawGrid(svg,rect,options={}){
 }
 function drawGridSheet(svg,rect){
   const radius=state.gridRoundedCorners?2.5:0;
-  const frameStroke=Math.max(Number(state.strokeWidth)||0.2,0.28);
+  const baseStroke=Number(state.strokeWidth)||0.2;
+  const frameStroke=Math.max(0.42,baseStroke+0.18);
   function appendClippedGrid(targetRect){
     if(!radius){
       drawGrid(svg,targetRect,{skipOuter:true});
@@ -518,7 +519,7 @@ function drawGridSheet(svg,rect){
 function drawList(svg,rect){
   const spacing=Math.max(7,+state.listSpacing),fit=!!state.fitListToSpace,rowCount=fit?Math.max(1,Math.floor(rect.height/spacing)):Math.max(1,Math.floor(rect.height/spacing)-1),step=fit?rect.height/rowCount:spacing;
   function drawMarker(x,lineY,index){
-    const style=state.listMarkerStyle,size=+state.listMarkerSize,top=lineY-size,cx=x+size/2,cy=top+size/2,markerColor=state.listMarkerColor||state.lineColor,markerStrokeWidth=Math.max(0.3,(Number(state.strokeWidth)||0.2)+0.08);
+    const style=state.listMarkerStyle,size=+state.listMarkerSize,top=lineY-size,cx=x+size/2,cy=top+size/2,markerColor=state.listMarkerColor||state.lineColor,markerStrokeWidth=Math.max(0.42,(Number(state.strokeWidth)||0.2)+0.18);
     if(style==="numerado"){
       const fontSize=+state.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*1.15,fontSize*(maxDigits*0.62+0.62)),gap=Math.max(1.2,fontSize*0.18),textX=x+numberBoxWidth;
       addText(svg,textX,lineY-0.35,label,{fill:markerColor,"font-size":roundMm(fontSize),"text-anchor":"end"});
