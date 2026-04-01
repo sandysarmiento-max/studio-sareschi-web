@@ -213,10 +213,9 @@
                 <div class="field">
                   <label>Formato</label>
                   <select id="exportFormat">
-                    <option value="png">PNG</option>
-                    <option value="pdf">PDF</option>
                     <option value="pdf-vector">PDF vectorial</option>
                     <option value="svg">SVG</option>
+                    <option value="png">PNG transparente</option>
                   </select>
                 </div>
                 <div class="field">
@@ -224,7 +223,7 @@
                   <select id="exportQuality">
                     <option value="standard">Estándar</option>
                     <option value="high">Alta</option>
-                    <option value="print">Imprenta</option>
+                    <option value="max">Máxima</option>
                   </select>
                 </div>
                 <div class="field">
@@ -239,10 +238,10 @@
               <div class="modal-column wide">
                 <div class="modal-section-title">Sugerencias de uso</div>
                 <div class="usage-grid" id="usagePresetGrid">
-                  <button class="usage-card" type="button" data-usage="canva"><strong>Canva</strong><span>PDF en imprenta para mantener mejor el tamaño de página y evitar diferencias de grosor que a veces aparecen con vectores dentro de Canva.</span></button>
+                  <button class="usage-card" type="button" data-usage="png"><strong>Imagen</strong><span>PNG transparente en máxima calidad para colocar sobre diseños con buena definición.</span></button>
                   <button class="usage-card" type="button" data-usage="powerpoint"><strong>PowerPoint</strong><span>SVG para conservar escalabilidad y líneas limpias.</span></button>
-                  <button class="usage-card" type="button" data-usage="print"><strong>Impresión</strong><span>PDF vectorial para máxima limpieza y tamaño exacto.</span></button>
-                  <button class="usage-card" type="button" data-usage="general"><strong>Uso general</strong><span>PDF de alta calidad para compartir e imprimir fácil.</span></button>
+                  <button class="usage-card" type="button" data-usage="print"><strong>Impresión</strong><span>PDF vectorial con máxima precisión para líneas nítidas y tamaño exacto.</span></button>
+                  <button class="usage-card" type="button" data-usage="general"><strong>Uso general</strong><span>PDF vectorial en máxima calidad como opción principal.</span></button>
                 </div>
                 <div class="export-summary" id="exportSummary"></div>
               </div>
@@ -253,7 +252,7 @@
             </div>
           </div>
         </div>
-        <div class="foot"><div style="font-size:20px;font-weight:700">Qué conserva esta versión</div><div class="chips"><div class="chip">Hojas rayadas con margen superior para escribir</div><div class="chip">Punteadas y cuadriculadas ajustables al área útil</div><div class="chip">Listas con marcador cuadrado, círculo, corazón o numerado</div><div class="chip">Anillado, cuadernillo, anillado superior y hoja suelta</div><div class="chip">Exportación PNG, PDF, PDF vectorial y SVG</div><div class="chip">Base mucho más estable para seguir creciendo</div></div></div>
+        <div class="foot"><div style="font-size:20px;font-weight:700">Qué conserva esta versión</div><div class="chips"><div class="chip">Hojas rayadas con margen superior para escribir</div><div class="chip">Punteadas y cuadriculadas ajustables al área útil</div><div class="chip">Listas con marcador cuadrado, círculo, corazón o numerado</div><div class="chip">Anillado, cuadernillo, anillado superior y hoja suelta</div><div class="chip">Exportación PNG transparente, PDF vectorial y SVG</div><div class="chip">Base mucho más estable para seguir creciendo</div></div></div>
       </div>
     </div>
   </div>
@@ -262,23 +261,23 @@
 const SIZE_PRESETS={A4:{width:210,height:297},A5:{width:148,height:210},A6:{width:105,height:148},Carta:{width:216,height:279},"Media carta":{width:140,height:216},B5:{width:176,height:250},Personalizado:{width:148,height:210}};
 const ARMADOS=[["suelta","Hoja suelta"],["anillado","Anillado lateral"],["cuadernillo","Cuadernillo al centro"],["block","Anillado superior"]];
 const SHEETS=[["rayada","Rayada"],["punteada","Punteada"],["cuadriculada","Cuadriculada"],["lista","Lista"]];
+const PNG_BASE_DPI=300;
 const QUALITY_PRESETS={
-  standard:{label:"Estándar",dpi:300,description:"Buena para uso general y archivos livianos."},
-  high:{label:"Alta",dpi:450,description:"Mejor equilibrio entre nitidez y peso del archivo."},
-  print:{label:"Imprenta",dpi:600,description:"Pensada para máxima limpieza en impresión y montaje."}
+  standard:{label:"Estándar",pngScale:2,description:"Archivo más liviano con definición correcta para pantalla."},
+  high:{label:"Alta",pngScale:3,description:"Buena definición manteniendo un peso intermedio."},
+  max:{label:"Máxima",pngScale:4,description:"Mejor resultado para impresión o edición detallada."}
 };
 const FORMAT_META={
-  png:{label:"PNG",extension:"png",raster:true,transparent:true,description:"Imagen raster pensada para edición; en Canva puede requerir ajuste manual porque se inserta como imagen y no como página."},
-  pdf:{label:"PDF",extension:"pdf",raster:true,transparent:false,description:"PDF de alta calidad con la página al tamaño final exacto."},
+  png:{label:"PNG transparente",extension:"png",raster:true,transparent:true,description:"Imagen raster con fondo transparente para superponer en otros diseños."},
   "pdf-vector":{label:"PDF vectorial",extension:"pdf",raster:false,transparent:false,description:"Conserva líneas y formas como vectores reales para imprimir mejor, sin depender de rasterización."},
   svg:{label:"SVG",extension:"svg",raster:false,transparent:true,description:"Archivo escalable, útil para PowerPoint y flujos que aceptan vectores."}
 };
 const USAGE_PRESETS={
-  canva:{format:"pdf",quality:"print",title:"Canva",note:"PDF raster en imprenta suele verse más uniforme dentro de Canva. El PNG sale sin metadato dpi para evitar reducciones, pero Canva lo sigue tratando como imagen y no siempre llenará la página automáticamente."},
-  powerpoint:{format:"svg",quality:"high",title:"PowerPoint",note:"Mantiene escalabilidad y suele verse mejor que una imagen raster al redimensionar."},
-  print:{format:"pdf-vector",quality:"print",title:"Impresión",note:"La mejor salida para conservar líneas limpias y medidas exactas en papel."},
-  general:{format:"pdf",quality:"high",title:"Uso general",note:"Cómodo para compartir, revisar e imprimir sin complicaciones."},
-  manual:{format:"pdf",quality:"high",title:"Configuración manual",note:"Elegiste el formato y la calidad directamente."}
+  png:{format:"png",quality:"max",title:"Imagen",note:"PNG transparente en máxima calidad para mantener mejor definición en composiciones."},
+  powerpoint:{format:"svg",quality:"max",title:"PowerPoint",note:"SVG conserva escalabilidad y edición sin perder nitidez."},
+  print:{format:"pdf-vector",quality:"max",title:"Impresión",note:"La mejor salida para conservar líneas limpias y medidas exactas en papel."},
+  general:{format:"pdf-vector",quality:"max",title:"Uso general",note:"Formato principal recomendado para descargar con máxima definición."},
+  manual:{format:"pdf-vector",quality:"max",title:"Configuración manual",note:"Elegiste el formato y la calidad directamente."}
 };
 const SPLIT_ZONE_GAP_MM=2;
 const CONTENT_CONFIG_DEFAULTS={
@@ -349,8 +348,8 @@ const state={
   listMarkerColorLinked:true,
   lineColor:"#94a3b8",
   strokeWidth:0.2,
-  exportFormat:"pdf",
-  exportQuality:"high",
+  exportFormat:"pdf-vector",
+  exportQuality:"max",
   exportUsage:"general",
   printMode:"single",
   previewFace:"front"
@@ -1089,8 +1088,8 @@ async function setPngDpi(blob,dpi){
   return new Blob(out,{type:'image/png'});
 }
 
-async function exportPng(dpi){
-  const canvas=await exportSvgToCanvas({transparent:false,dpi});
+async function exportPng(scale=4){
+  const canvas=await exportSvgToCanvas({transparent:true,dpi:PNG_BASE_DPI,renderScale:Math.max(1,Number(scale)||1)});
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
   downloadBlob(blob,`${sanitizeFileName(state.projectName)}.png`);
 }
@@ -1250,24 +1249,24 @@ async function exportSvgFile(){
   downloadBlob(blob,`${sanitizeFileName(state.projectName)}.svg`);
 }
 
-function getSelectedQuality(){return QUALITY_PRESETS[state.exportQuality]||QUALITY_PRESETS.high;}
-function getSelectedFormat(){return FORMAT_META[state.exportFormat]||FORMAT_META.pdf;}
+function getSelectedQuality(){return QUALITY_PRESETS[state.exportQuality]||QUALITY_PRESETS.max;}
+function getSelectedFormat(){return FORMAT_META[state.exportFormat]||FORMAT_META["pdf-vector"];}
 function updateExportSummary(){
   const quality=getSelectedQuality();
   const format=getSelectedFormat();
   const pageSize=getPageSize();
   const formatHelp=document.getElementById('formatHelp');
   const exportSummary=document.getElementById('exportSummary');
-  const pxW=mmToPx(pageSize.width,quality.dpi),pxH=mmToPx(pageSize.height,quality.dpi);
+  const pngDpi=PNG_BASE_DPI*Math.max(1,Number(quality.pngScale)||1);
+  const pxW=mmToPx(pageSize.width,pngDpi),pxH=mmToPx(pageSize.height,pngDpi);
   const usage=USAGE_PRESETS[state.exportUsage]||USAGE_PRESETS.general;
   const pagesInfo=(format.extension==="pdf"&&state.printMode==="duplex")?"2 páginas (frente y reverso automático).":"1 página.";
-  const rasterInfo=format.raster?`<strong>Resolución final:</strong> ${pxW} × ${pxH} px a ${quality.dpi} dpi.`:`<strong>Salida vectorial:</strong> mantiene líneas y formas sin rasterizar de forma innecesaria.`;
+  const rasterInfo=format.raster?`<strong>Resolución final:</strong> ${pxW} × ${pxH} px (escala ${quality.pngScale}x para PNG transparente).`:`<strong>Salida vectorial:</strong> mantiene líneas y formas sin rasterizar de forma innecesaria.`;
   if(formatHelp){
     formatHelp.innerHTML=`<strong>${format.label}</strong><br>${format.description}<br><br><strong>Calidad ${quality.label.toLowerCase()}</strong><br>${quality.description}`;
   }
   if(exportSummary){
-    const extraCanvaNote=(state.exportUsage==='canva')?'<br><strong>Nota Canva:</strong> el PNG sale sin metadato de dpi porque Canva a veces lo interpreta y reduce la hoja. Si quieres máxima fidelidad de medida en Canva, sigue siendo mejor PDF de imprenta.':'';
-    exportSummary.innerHTML=`<strong>Tamaño final:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm.<br><strong>Salida:</strong> ${pagesInfo}<br>${rasterInfo}<br><strong>Sugerencia activa:</strong> ${usage.title}. ${usage.note}${extraCanvaNote}`;
+    exportSummary.innerHTML=`<strong>Tamaño final:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm.<br><strong>Salida:</strong> ${pagesInfo}<br>${rasterInfo}<br><strong>Sugerencia activa:</strong> ${usage.title}. ${usage.note}`;
   }
   document.querySelectorAll('[data-usage]').forEach(btn=>btn.classList.toggle('active',btn.dataset.usage===state.exportUsage));
 }
@@ -1303,8 +1302,7 @@ async function runExport(){
   const originalLabel=confirmBtn.textContent;
   confirmBtn.textContent='Generando...';
   try{
-    if(state.exportFormat==='png') await exportPng(quality.dpi);
-    if(state.exportFormat==='pdf') await exportPdfRaster(quality.dpi);
+    if(state.exportFormat==='png') await exportPng(quality.pngScale);
     if(state.exportFormat==='pdf-vector') await exportPdfVector();
     if(state.exportFormat==='svg') await exportSvgFile();
     closeExportModal();
