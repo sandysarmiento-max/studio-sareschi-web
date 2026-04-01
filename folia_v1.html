@@ -290,7 +290,9 @@ const MARKER_ASSETS={
   numerado:{label:"Numerado"}
 };
 const MARKER_STYLE_ORDER=["cuadrado","circuloContorno","corazonContorno","corazonRelleno","ubicacion","regalo","correo","whatsapp","web","numerado"];
+const MARKER_ASSET_BASE_PATHS=["/icons/markers/","public/icons/markers/"];
 const markerAssetCache=new Map();
+const markerAssetUrlCache=new Map();
 let markerAssetsReady=false;
 let markerAssetsPromise=null;
 const CONTENT_CONFIG_DEFAULTS={
@@ -431,7 +433,10 @@ function markerLabel(style){
 }
 function markerIconHtml(style,color="#334155"){
   const marker=MARKER_ASSETS[style];
-  if(marker?.file) return `<span class="marker-icon"><img src="public/icons/markers/${marker.file}" alt="${marker.label}"></span>`;
+  if(marker?.file){
+    const src=markerAssetUrlCache.get(style)||`${MARKER_ASSET_BASE_PATHS[0]}${marker.file}`;
+    return `<span class="marker-icon"><img src="${src}" alt="${marker.label}"></span>`;
+  }
   return `<span class="marker-icon marker-number" style="color:${color}">1.</span>`;
 }
 function markerPickerHtml(selectedStyle,color,zone="single"){
@@ -440,14 +445,23 @@ function markerPickerHtml(selectedStyle,color,zone="single"){
 async function loadMarkerAsset(style){
   const marker=MARKER_ASSETS[style];
   if(!marker?.file||markerAssetCache.has(style)) return;
-  const response=await fetch(`public/icons/markers/${marker.file}`);
-  if(!response.ok) throw new Error(`No se pudo cargar ${marker.file}`);
-  const source=await response.text();
+  let source="";
+  let loadedUrl="";
+  for(const basePath of MARKER_ASSET_BASE_PATHS){
+    const candidate=`${basePath}${marker.file}`;
+    const response=await fetch(candidate);
+    if(!response.ok) continue;
+    source=await response.text();
+    loadedUrl=candidate;
+    break;
+  }
+  if(!source) throw new Error(`No se pudo cargar ${marker.file}`);
   const doc=new DOMParser().parseFromString(source,"image/svg+xml");
   const svgNode=doc.documentElement;
   const viewBox=svgNode.getAttribute("viewBox")||`0 0 ${svgNode.getAttribute("width")||24} ${svgNode.getAttribute("height")||24}`;
   const content=Array.from(svgNode.children).map(node=>node.outerHTML).join("");
   markerAssetCache.set(style,{viewBox,content});
+  if(loadedUrl) markerAssetUrlCache.set(style,loadedUrl);
 }
 function drawMarkerAsset(svg,style,x,top,size,markerColor){
   const marker=MARKER_ASSETS[style];
