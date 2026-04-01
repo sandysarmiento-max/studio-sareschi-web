@@ -471,6 +471,32 @@ function addText(svg,x,y,text,attrs={}){
 function getPreviewMinMm(previewScale,minPx=0.95){
   return Math.max(0,minPx/Math.max(0.01,previewScale||1));
 }
+function getPreviewStrokeConfig(config=state){
+  const {gridStroke}=getStrokeSet(config);
+  return {
+    gridStrokePreview:gridStroke,
+    frameStrokePreview:Math.max(gridStroke,0.34),
+    iconStrokePreview:Math.max(gridStroke,0.34)
+  };
+}
+function tunePreviewStrokes(root,previewStrokeConfig){
+  if(!root||!previewStrokeConfig) return root;
+  const nodes=[];
+  if(root.nodeType===1&&root.hasAttribute&&root.hasAttribute('stroke-width')) nodes.push(root);
+  if(root.querySelectorAll) nodes.push(...root.querySelectorAll('[stroke-width]'));
+  nodes.forEach(node=>{
+    const role=(node.getAttribute('data-role')||'').toLowerCase();
+    const strokeWidth=Number(node.getAttribute('stroke-width'))||0;
+    if(role==='frame-outline'){
+      node.setAttribute('stroke-width',String(roundMm(Math.max(strokeWidth,previewStrokeConfig.frameStrokePreview))));
+      return;
+    }
+    if(role==='marker-outline'){
+      node.setAttribute('stroke-width',String(roundMm(Math.max(strokeWidth,previewStrokeConfig.iconStrokePreview))));
+    }
+  });
+  return root;
+}
 function tunePreviewRuleRects(root,previewScale){
   const nodes=[];
   if(root&&root.nodeType===1&&root.getAttribute&&root.getAttribute("data-role")==="rule-rect") nodes.push(root);
@@ -498,6 +524,8 @@ function tunePreviewRuleRects(root,previewScale){
 }
 function cloneNodeForPreview(node,previewScale){
   const clone=node.cloneNode(true);
+  const previewStrokeConfig=getPreviewStrokeConfig(state);
+  tunePreviewStrokes(clone,previewStrokeConfig);
   return tunePreviewRuleRects(clone,previewScale);
 }
 
@@ -843,12 +871,11 @@ function snapStrokeWidthMm(value,dpi){const scale=pxPerMm(dpi); return Math.max(
 function getRasterStrokeWidthMm(node,value,dpi,rasterStrokeConfig={}){
   const base=snapStrokeWidthMm(value,dpi);
   const role=(node&&node.getAttribute?node.getAttribute('data-role'):'')||'';
-  const frameBoost=Math.max(1,Number(rasterStrokeConfig.frameBoost)||1);
-  const iconBoost=Math.max(1,Number(rasterStrokeConfig.iconBoost)||1);
-  const minIconStroke=Math.max(0,Number(rasterStrokeConfig.minIconStroke)||0);
+  const frameMin=Math.max(0,Number(rasterStrokeConfig.frameMin)||0);
+  const iconMin=Math.max(0,Number(rasterStrokeConfig.iconMin)||0);
   let boosted=base;
-  if(role==='frame-outline') boosted=Math.max(boosted,roundMm(base*frameBoost));
-  if(role==='marker-outline') boosted=Math.max(boosted,roundMm(Math.max(base*iconBoost,minIconStroke)));
+  if(role==='frame-outline') boosted=Math.max(boosted,roundMm(frameMin));
+  if(role==='marker-outline') boosted=Math.max(boosted,roundMm(iconMin));
   return roundMm(boosted);
 }
 function convertRuleRectsToLines(root){
@@ -1069,7 +1096,8 @@ async function exportPng(dpi){
 }
 async function exportPdfRaster(dpi){
   const rasterRenderScale=3;
-  const rasterStrokeConfig={frameBoost:1.18,iconBoost:1.22,minIconStroke:0.28};
+  const {gridStroke}=getStrokeSet(state);
+  const rasterStrokeConfig={frameMin:Math.max(gridStroke,0.38),iconMin:Math.max(gridStroke,0.40)};
   const pageSize=getPageSize();
   if(!window.jspdf||!window.jspdf.jsPDF) throw new Error('El motor PDF no está disponible en esta sesión.');
   const { jsPDF } = window.jspdf;
