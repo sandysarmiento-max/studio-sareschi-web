@@ -135,7 +135,34 @@
           </div>
         </div>
         <div class="section"><h3>Márgenes</h3><div class="row2"><div class="field"><label>Superior (mm)</label><input id="marginTop" type="number" min="0" max="50" value="10"></div><div class="field"><label>Inferior (mm)</label><input id="marginBottom" type="number" min="0" max="50" value="10"></div></div><div id="marginsExtra"></div></div>
-        <div class="section"><h3>Tipo de hoja</h3><div class="choice-grid" id="sheetChoices"></div></div>
+        <div class="section">
+          <h3>Tipo de hoja</h3>
+          <div class="field">
+            <label>Modo de diseño</label>
+            <select id="layoutMode">
+              <option value="single">Diseño único</option>
+              <option value="split">Diseño dividido arriba / abajo</option>
+            </select>
+          </div>
+          <div id="singleSheetConfig">
+            <div class="choice-grid" id="sheetChoices"></div>
+          </div>
+          <div id="splitSheetConfig" hidden>
+            <div class="field">
+              <label>Diseño superior</label>
+              <select id="splitTopSheetType"></select>
+            </div>
+            <div class="field">
+              <label>Diseño inferior</label>
+              <select id="splitBottomSheetType"></select>
+            </div>
+            <div class="field">
+              <label>Proporción superior / inferior</label>
+              <input id="splitRatio" type="range" min="20" max="80" step="1" value="50">
+              <div class="meta" id="splitRatioLabel">50% / 50%</div>
+            </div>
+          </div>
+        </div>
         <div class="section"><h3>Configuración del contenido</h3><div id="contentFields"></div></div>
         <div class="section"><h3>Estilo visual</h3><div class="row2"><div class="field"><label>Color de trazo</label><input id="lineColor" type="color" value="#94a3b8"></div><div class="field"><label>Grosor visual</label><input id="strokeWidth" type="number" min="0.1" max="2.5" step="0.1" value="0.2"></div></div></div>
       </div>
@@ -253,6 +280,30 @@ const USAGE_PRESETS={
   general:{format:"pdf",quality:"high",title:"Uso general",note:"Cómodo para compartir, revisar e imprimir sin complicaciones."},
   manual:{format:"pdf",quality:"high",title:"Configuración manual",note:"Elegiste el formato y la calidad directamente."}
 };
+const SPLIT_ZONE_GAP_MM=2;
+const CONTENT_CONFIG_DEFAULTS={
+  lineSpacing:7,
+  showTopGuide:false,
+  firstLineGap:0.5,
+  fitLinesToSpace:true,
+  dotGapX:5,
+  dotGapY:5,
+  dotSize:0.2,
+  fitDotsToSpace:true,
+  gridSize:5,
+  fitGridToSpace:true,
+  gridHeaderEnabled:false,
+  gridHeaderHeight:12,
+  gridRoundedCorners:true,
+  listSpacing:9,
+  fitListToSpace:true,
+  checkbox:true,
+  listMarkerStyle:"cuadrado",
+  listMarkerFontSize:4.5,
+  listMarkerSize:4,
+  listMarkerColor:"#94a3b8"
+};
+function createContentConfig(){return {...CONTENT_CONFIG_DEFAULTS};}
 const state={
   projectName:"Mi hoja base",
   sizePreset:"A5",
@@ -270,7 +321,11 @@ const state={
   marginRight:7,
   marginOuter:8,
   marginCenter:10,
+  layoutMode:"single",
   sheetType:"rayada",
+  splitTopSheetType:"rayada",
+  splitBottomSheetType:"punteada",
+  splitRatio:50,
   lineSpacing:7,
   showTopGuide:false,
   firstLineGap:0.5,
@@ -300,6 +355,7 @@ const state={
   printMode:"single",
   previewFace:"front"
 };
+state.splitConfigs={top:createContentConfig(),bottom:createContentConfig()};
 
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const range=n=>Array.from({length:Math.max(0,n)},(_,i)=>i);
@@ -369,9 +425,9 @@ function markerIconHtml(style,color="#334155"){
   if(style==="corazonRelleno") return `<span class="marker-icon marker-heart-fill" style="color:${color}">♥</span>`;
   return `<span class="marker-icon marker-number" style="color:${color}">1.</span>`;
 }
-function markerPickerHtml(selectedStyle,color){
+function markerPickerHtml(selectedStyle,color,zone="single"){
   const styles=["cuadrado","circuloContorno","circuloRelleno","corazonContorno","corazonRelleno","numerado"];
-  return `<details class="icon-select"><summary>${markerIconHtml(selectedStyle,color)}<span>${markerLabel(selectedStyle)}</span><span class="dropdown-caret">▾</span></summary><div class="icon-select-menu">${styles.map(style=>`<button type="button" class="marker-option" data-marker-option="${style}">${markerIconHtml(style,color)}<span>${markerLabel(style)}</span></button>`).join("")}</div></details>`;
+  return `<details class="icon-select"><summary>${markerIconHtml(selectedStyle,color)}<span>${markerLabel(selectedStyle)}</span><span class="dropdown-caret">▾</span></summary><div class="icon-select-menu">${styles.map(style=>`<button type="button" class="marker-option" data-marker-option="${style}" data-marker-zone="${zone}">${markerIconHtml(style,color)}<span>${markerLabel(style)}</span></button>`).join("")}</div></details>`;
 }
 
 function addLine(svg,x1,y1,x2,y2,stroke=state.lineColor,strokeWidth=state.strokeWidth,extra={}){
@@ -438,8 +494,8 @@ function cloneNodeForPreview(node,previewScale){
   return tunePreviewRuleRects(clone,previewScale);
 }
 
-function drawLined(svg,rect){
-  const spacing=Math.max(3,+state.lineSpacing),fit=!!state.fitLinesToSpace,showDouble=!!state.showTopGuide,firstGap=clamp(+state.firstLineGap||0.5,0.5,1);
+function drawLined(svg,rect,config=state){
+  const spacing=Math.max(3,+config.lineSpacing),fit=!!config.fitLinesToSpace,showDouble=!!config.showTopGuide,firstGap=clamp(+config.firstLineGap||0.5,0.5,1);
   const add=y=>addRule(svg,rect.x,y,rect.x+rect.width,y,state.lineColor,state.strokeWidth);
   if(fit){
     const lineCount=Math.max(1,Math.floor(rect.height/spacing));
@@ -459,8 +515,8 @@ function drawLined(svg,rect){
     if(i===0&&showDouble&&y+firstGap<=rect.y+rect.height+0.01) add(y+firstGap);
   });
 }
-function drawDots(svg,rect){
-  const gap=Math.max(3,+state.dotGapX),fit=!!state.fitDotsToSpace,dotSize=+state.dotSize;
+function drawDots(svg,rect,config=state){
+  const gap=Math.max(3,+config.dotGapX),fit=!!config.fitDotsToSpace,dotSize=+config.dotSize;
   const cols=Math.max(1,Math.floor(rect.width/gap)),rows=Math.max(1,Math.floor(rect.height/gap));
   const stepX=fit?rect.width/cols:gap,stepY=fit?rect.height/rows:gap,maxCols=fit?cols:Math.floor(rect.width/gap),maxRows=fit?rows:Math.floor(rect.height/gap);
   for(let row=0;row<=maxRows;row++){
@@ -472,8 +528,8 @@ function drawDots(svg,rect){
     }
   }
 }
-function drawGrid(svg,rect,options={}){
-  const size=Math.max(4,+state.gridSize),fit=!!state.fitGridToSpace,skipOuter=!!options.skipOuter;
+function drawGrid(svg,rect,config=state,options={}){
+  const size=Math.max(4,+config.gridSize),fit=!!config.fitGridToSpace,skipOuter=!!options.skipOuter;
   const cols=Math.max(1,Math.floor(rect.width/size)),rows=Math.max(1,Math.floor(rect.height/size));
   const stepX=fit?rect.width/cols:size,stepY=fit?rect.height/rows:size,maxCols=fit?cols:Math.floor(rect.width/size),maxRows=fit?rows:Math.floor(rect.height/size),startCol=skipOuter?1:0,startRow=skipOuter?1:0,endCol=skipOuter?Math.max(startCol-1,maxCols-1):maxCols,endRow=skipOuter?Math.max(startRow-1,maxRows-1):maxRows;
   for(let col=startCol;col<=endCol;col++){
@@ -485,12 +541,12 @@ function drawGrid(svg,rect,options={}){
     if(y<=rect.y+rect.height+0.01) addRule(svg,rect.x,y,rect.x+rect.width,y,state.lineColor,state.strokeWidth);
   }
 }
-function drawGridSheet(svg,rect){
-  const radius=state.gridRoundedCorners?2.5:0;
-  const frameStroke=Math.max(Number(state.strokeWidth)||0.2,0.28);
+function drawGridSheet(svg,rect,config=state){
+  const radius=config.gridRoundedCorners?2.5:0;
+  const frameStroke=Math.max(Number(state.strokeWidth)||0.2,0.45);
   function appendClippedGrid(targetRect){
     if(!radius){
-      drawGrid(svg,targetRect,{skipOuter:true});
+      drawGrid(svg,targetRect,config,{skipOuter:true});
       return;
     }
     const clipId=uid("gridclip");
@@ -501,26 +557,26 @@ function drawGridSheet(svg,rect){
     svg.appendChild(defs);
     const group=el("g",{"clip-path":`url(#${clipId})`});
     svg.appendChild(group);
-    drawGrid(group,targetRect,{skipOuter:true});
+    drawGrid(group,targetRect,config,{skipOuter:true});
   }
-  if(!state.gridHeaderEnabled){
+  if(!config.gridHeaderEnabled){
     addRect(svg,rect.x,rect.y,rect.width,rect.height,{rx:radius,ry:radius,fill:"none",stroke:state.lineColor,"stroke-width":roundMm(frameStroke),"data-role":"frame-outline"});
     appendClippedGrid(rect);
     return;
   }
-  const headerHeight=clamp(+state.gridHeaderHeight,6,Math.max(8,rect.height*0.3)),gap=4;
+  const headerHeight=clamp(+config.gridHeaderHeight,6,Math.max(8,rect.height*0.3)),gap=4;
   const headerRect={x:rect.x,y:rect.y,width:rect.width,height:Math.min(headerHeight,rect.height*0.35)};
   const bodyRect={x:rect.x,y:rect.y+headerRect.height+gap,width:rect.width,height:Math.max(0,rect.height-headerRect.height-gap)};
   addRect(svg,headerRect.x,headerRect.y,headerRect.width,headerRect.height,{rx:radius,ry:radius,fill:"none",stroke:state.lineColor,"stroke-width":roundMm(frameStroke),"data-role":"frame-outline"});
   addRect(svg,bodyRect.x,bodyRect.y,bodyRect.width,bodyRect.height,{rx:radius,ry:radius,fill:"none",stroke:state.lineColor,"stroke-width":roundMm(frameStroke),"data-role":"frame-outline"});
   appendClippedGrid(bodyRect);
 }
-function drawList(svg,rect){
-  const spacing=Math.max(7,+state.listSpacing),fit=!!state.fitListToSpace,rowCount=fit?Math.max(1,Math.floor(rect.height/spacing)):Math.max(1,Math.floor(rect.height/spacing)-1),step=fit?rect.height/rowCount:spacing;
+function drawList(svg,rect,config=state){
+  const spacing=Math.max(7,+config.listSpacing),fit=!!config.fitListToSpace,rowCount=fit?Math.max(1,Math.floor(rect.height/spacing)):Math.max(1,Math.floor(rect.height/spacing)-1),step=fit?rect.height/rowCount:spacing;
   function drawMarker(x,lineY,index){
-    const style=state.listMarkerStyle,size=+state.listMarkerSize,top=lineY-size,cx=x+size/2,cy=top+size/2,markerColor=state.listMarkerColor||state.lineColor,markerStrokeWidth=Math.max(0.3,(Number(state.strokeWidth)||0.2)+0.08);
+    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,cx=x+size/2,cy=top+size/2,markerColor=config.listMarkerColor||state.lineColor,markerStrokeWidth=Math.max(0.45,(Number(state.strokeWidth)||0.2)+0.22);
     if(style==="numerado"){
-      const fontSize=+state.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*1.15,fontSize*(maxDigits*0.62+0.62)),gap=Math.max(1.2,fontSize*0.18),textX=x+numberBoxWidth;
+      const fontSize=+config.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*1.15,fontSize*(maxDigits*0.62+0.62)),gap=Math.max(1.2,fontSize*0.18),textX=x+numberBoxWidth;
       addText(svg,textX,lineY-0.35,label,{fill:markerColor,"font-size":roundMm(fontSize),"text-anchor":"end"});
       return numberBoxWidth+gap;
     }
@@ -544,9 +600,26 @@ function drawList(svg,rect){
     const y=rect.y+step*(i+1);
     if(y>rect.y+rect.height+0.01) continue;
     let x1=rect.x;
-    if(state.checkbox) x1=rect.x+drawMarker(rect.x,y,i);
+    if(config.checkbox) x1=rect.x+drawMarker(rect.x,y,i);
     addRule(svg,x1,y,rect.x+rect.width,y,state.lineColor,state.strokeWidth);
   }
+}
+function drawSheetByType(svg,rect,sheetType,config=state){
+  if(sheetType==="rayada") drawLined(svg,rect,config);
+  if(sheetType==="punteada") drawDots(svg,rect,config);
+  if(sheetType==="cuadriculada") drawGridSheet(svg,rect,config);
+  if(sheetType==="lista") drawList(svg,rect,config);
+}
+function getSplitRects(rect){
+  const safeGap=Math.min(SPLIT_ZONE_GAP_MM,Math.max(0,rect.height-2));
+  const totalHeight=Math.max(0,rect.height-safeGap);
+  const ratio=clamp((+state.splitRatio||50)/100,0.2,0.8);
+  const topHeight=roundMm(totalHeight*ratio);
+  const bottomHeight=Math.max(0,roundMm(totalHeight-topHeight));
+  return {
+    top:{x:rect.x,y:rect.y,width:rect.width,height:topHeight},
+    bottom:{x:rect.x,y:rect.y+topHeight+safeGap,width:rect.width,height:bottomHeight}
+  };
 }
 
 function getExportLayoutState(face="front"){
@@ -575,14 +648,21 @@ function configureSvgCanvas(svg,pageSize){
 }
 function buildSheetContent(svg,rectInfo){
   rectInfo.usableRects.forEach(rect=>{
-    if(state.sheetType==="rayada") drawLined(svg,rect);
-    if(state.sheetType==="punteada") drawDots(svg,rect);
-    if(state.sheetType==="cuadriculada") drawGridSheet(svg,rect);
-    if(state.sheetType==="lista") drawList(svg,rect);
+    if(state.layoutMode==="single"){
+      drawSheetByType(svg,rect,state.sheetType,state);
+      return;
+    }
+    const splitRects=getSplitRects(rect);
+    if(splitRects.top.height>0) drawSheetByType(svg,splitRects.top,state.splitTopSheetType,state.splitConfigs.top);
+    if(splitRects.bottom.height>0) drawSheetByType(svg,splitRects.bottom,state.splitBottomSheetType,state.splitConfigs.bottom);
   });
 }
 function renderPreview(){
-  const pageSize=getPageSize(),previewLayoutState=getExportLayoutState(state.previewFace),rectInfo=getRects(pageSize,previewLayoutState),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta",sheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
+  const pageSize=getPageSize(),previewLayoutState=getExportLayoutState(state.previewFace),rectInfo=getRects(pageSize,previewLayoutState),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta";
+  const singleSheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
+  const topSheetLabel=(SHEETS.find(([id])=>id===state.splitTopSheetType)||[])[1]||"Rayada";
+  const bottomSheetLabel=(SHEETS.find(([id])=>id===state.splitBottomSheetType)||[])[1]||"Punteada";
+  const sheetLabel=state.layoutMode==="single"?singleSheetLabel:`Dividida (${topSheetLabel} / ${bottomSheetLabel})`;
   const printModeLabel=state.printMode==="duplex"?"Ambas caras":"Una cara";
   const previewFaceLabel=state.printMode==="duplex"?(state.previewFace==="back"?" · Reverso":" · Frente"):"";
   document.getElementById("previewMeta").textContent=`${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · ${armadoLabel} · ${printModeLabel}`;
@@ -618,6 +698,19 @@ function renderPreview(){
     addLine(previewSvg,rectInfo.foldX,0,rectInfo.foldX,pageSize.height,"#fb7185",0.6,{"stroke-dasharray":"7 6"});
   }
   rectInfo.usableRects.forEach(rect=>addRect(previewSvg,rect.x,rect.y,rect.width,rect.height,{fill:"#ecfdf5",stroke:"#bbf7d0","stroke-width":0.35,"fill-opacity":"0.45"}));
+  if(state.layoutMode==="split"){
+    rectInfo.usableRects.forEach(rect=>{
+      const splitRects=getSplitRects(rect);
+      if(splitRects.top.height>0){
+        addRect(previewSvg,splitRects.top.x,splitRects.top.y,splitRects.top.width,splitRects.top.height,{fill:"#ecfeff",stroke:"#99f6e4","stroke-width":0.25,"fill-opacity":"0.18"});
+      }
+      if(splitRects.bottom.height>0){
+        addRect(previewSvg,splitRects.bottom.x,splitRects.bottom.y,splitRects.bottom.width,splitRects.bottom.height,{fill:"#f5f3ff",stroke:"#c4b5fd","stroke-width":0.25,"fill-opacity":"0.18"});
+      }
+      const dividerY=splitRects.top.y+splitRects.top.height+(SPLIT_ZONE_GAP_MM/2);
+      addLine(previewSvg,rect.x,dividerY,rect.x+rect.width,dividerY,"#a78bfa",0.35,{"stroke-dasharray":"3 2"});
+    });
+  }
   Array.from(exportSvg.childNodes).forEach(node=>previewSvg.appendChild(cloneNodeForPreview(node,previewScale)));
   updateExportSummary();
 }
@@ -626,6 +719,22 @@ function populateChoices(){
   document.getElementById("sizePreset").innerHTML=Object.keys(SIZE_PRESETS).map(k=>`<option ${state.sizePreset===k?'selected':''}>${k}</option>`).join("");
   document.getElementById("armadoChoices").innerHTML=ARMADOS.map(([id,label])=>`<button class="choice ${state.armado===id?'active-rose':''}" data-armado="${id}">${label}</button>`).join("");
   document.getElementById("sheetChoices").innerHTML=SHEETS.map(([id,label])=>`<button class="choice ${state.sheetType===id?'active-green':''}" data-sheet="${id}">${label}</button>`).join("");
+  document.getElementById("splitTopSheetType").innerHTML=SHEETS.map(([id,label])=>`<option value="${id}" ${state.splitTopSheetType===id?'selected':''}>${label}</option>`).join("");
+  document.getElementById("splitBottomSheetType").innerHTML=SHEETS.map(([id,label])=>`<option value="${id}" ${state.splitBottomSheetType===id?'selected':''}>${label}</option>`).join("");
+}
+function renderLayoutModeFields(){
+  const isSplit=state.layoutMode==="split";
+  const single=document.getElementById("singleSheetConfig");
+  const split=document.getElementById("splitSheetConfig");
+  if(single) single.hidden=isSplit;
+  if(split) split.hidden=!isSplit;
+  const ratioInput=document.getElementById("splitRatio");
+  const ratioLabel=document.getElementById("splitRatioLabel");
+  if(ratioInput) ratioInput.value=String(state.splitRatio);
+  if(ratioLabel){
+    const top=clamp(+state.splitRatio||50,20,80);
+    ratioLabel.textContent=`${top}% / ${100-top}%`;
+  }
 }
 function renderArmadoExtra(){
   const div=document.getElementById("armadoExtra");
@@ -646,21 +755,26 @@ function renderMarginsExtra(){
     div.innerHTML=`<div class="row2"><div class="field"><label>Izquierdo (mm)</label><input id="marginLeftExtra" type="number" min="0" max="50" value="${state.marginLeft}"></div><div class="field"><label>Derecho (mm)</label><input id="marginRightExtra" type="number" min="0" max="50" value="${state.marginRight}"></div></div>`;
   }
 }
+function contentFieldsByType(sheetType,config,prefix,zoneLabel=""){
+  const title=zoneLabel?`<div class="modal-section-title" style="margin:2px 0 6px">${zoneLabel}</div>`:"";
+  if(sheetType==="rayada"){
+    return `${title}<div class="field"><label>Separación entre líneas (mm)</label><input id="${prefix}lineSpacingExtra" type="number" min="3" max="20" value="${config.lineSpacing}"></div><label class="toggle"><span>Mostrar primera línea doble</span><input id="${prefix}showTopGuideExtra" type="checkbox" ${config.showTopGuide?'checked':''}></label>${config.showTopGuide?`<div class="field"><label>Separación de línea doble</label><select id="${prefix}firstLineGapExtra"><option value="0.5" ${String(config.firstLineGap)==='0.5'?'selected':''}>0.5 mm</option><option value="1" ${String(config.firstLineGap)==='1'?'selected':''}>1 mm</option></select></div>`:''}<label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitLinesToSpaceExtra" type="checkbox" ${config.fitLinesToSpace?'checked':''}></label>`;
+  }
+  if(sheetType==="punteada"){
+    return `${title}<div class="field"><label>Separación entre puntos (mm)</label><input id="${prefix}dotGapExtra" type="number" min="3" max="20" value="${config.dotGapX}"></div><div class="field"><label>Tamaño del punto</label><input id="${prefix}dotSizeExtra" type="number" min="0.05" max="2" step="0.05" value="${config.dotSize}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitDotsToSpaceExtra" type="checkbox" ${config.fitDotsToSpace?'checked':''}></label>`;
+  }
+  if(sheetType==="cuadriculada"){
+    return `${title}<div class="field"><label>Tamaño del cuadro (mm)</label><input id="${prefix}gridSizeExtra" type="number" min="4" max="20" value="${config.gridSize}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitGridToSpaceExtra" type="checkbox" ${config.fitGridToSpace?'checked':''}></label><label class="toggle"><span>Espacio superior para fecha o datos</span><input id="${prefix}gridHeaderEnabledExtra" type="checkbox" ${config.gridHeaderEnabled?'checked':''}></label>${config.gridHeaderEnabled?`<div class="field"><label>Altura del espacio superior (mm)</label><input id="${prefix}gridHeaderHeightExtra" type="number" min="6" max="40" value="${config.gridHeaderHeight}"></div>`:''}<label class="toggle"><span>Usar esquinas boleadas</span><input id="${prefix}gridRoundedCornersExtra" type="checkbox" ${config.gridRoundedCorners?'checked':''}></label>`;
+  }
+  return `${title}<div class="field"><label>Separación entre renglones (mm)</label><input id="${prefix}listSpacingExtra" type="number" min="6" max="20" value="${config.listSpacing}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitListToSpaceExtra" type="checkbox" ${config.fitListToSpace?'checked':''}></label><label class="toggle"><span>Incluir marcador</span><input id="${prefix}checkboxExtra" type="checkbox" ${config.checkbox?'checked':''}></label>${config.checkbox?`<div class="field"><label>Tipo de marcador</label>${markerPickerHtml(config.listMarkerStyle,config.listMarkerColor,prefix||"single")}</div>${config.listMarkerStyle==='numerado'?`<div class="field"><label>Tamaño del número</label><input id="${prefix}listMarkerFontSizeExtra" type="number" min="3" max="18" step="0.5" value="${config.listMarkerFontSize}"></div><div class="field"><label>Color del número</label><input id="${prefix}listMarkerColorExtra" type="color" value="${config.listMarkerColor}"></div>`:`<div class="field"><label>Tamaño del ícono (mm)</label><input id="${prefix}listMarkerSizeExtra" type="number" min="2" max="10" step="0.5" value="${config.listMarkerSize}"></div><div class="field"><label>Color del ícono</label><input id="${prefix}listMarkerColorExtra" type="color" value="${config.listMarkerColor}"></div>`}`:''}`;
+}
 function renderContentFields(){
   const div=document.getElementById("contentFields");
-  if(state.sheetType==="rayada"){
-    div.innerHTML=`<div class="field"><label>Separación entre líneas (mm)</label><input id="lineSpacingExtra" type="number" min="3" max="20" value="${state.lineSpacing}"></div><label class="toggle"><span>Mostrar primera línea doble</span><input id="showTopGuideExtra" type="checkbox" ${state.showTopGuide?'checked':''}></label>${state.showTopGuide?`<div class="field"><label>Separación de línea doble</label><select id="firstLineGapExtra"><option value="0.5" ${String(state.firstLineGap)==='0.5'?'selected':''}>0.5 mm</option><option value="1" ${String(state.firstLineGap)==='1'?'selected':''}>1 mm</option></select></div>`:''}<label class="toggle"><span>Ajustar al espacio útil</span><input id="fitLinesToSpaceExtra" type="checkbox" ${state.fitLinesToSpace?'checked':''}></label>`;
+  if(state.layoutMode==="single"){
+    div.innerHTML=contentFieldsByType(state.sheetType,state,"");
     return;
   }
-  if(state.sheetType==="punteada"){
-    div.innerHTML=`<div class="field"><label>Separación entre puntos (mm)</label><input id="dotGapExtra" type="number" min="3" max="20" value="${state.dotGapX}"></div><div class="field"><label>Tamaño del punto</label><input id="dotSizeExtra" type="number" min="0.05" max="2" step="0.05" value="${state.dotSize}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="fitDotsToSpaceExtra" type="checkbox" ${state.fitDotsToSpace?'checked':''}></label>`;
-    return;
-  }
-  if(state.sheetType==="cuadriculada"){
-    div.innerHTML=`<div class="field"><label>Tamaño del cuadro (mm)</label><input id="gridSizeExtra" type="number" min="4" max="20" value="${state.gridSize}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="fitGridToSpaceExtra" type="checkbox" ${state.fitGridToSpace?'checked':''}></label><label class="toggle"><span>Espacio superior para fecha o datos</span><input id="gridHeaderEnabledExtra" type="checkbox" ${state.gridHeaderEnabled?'checked':''}></label>${state.gridHeaderEnabled?`<div class="field"><label>Altura del espacio superior (mm)</label><input id="gridHeaderHeightExtra" type="number" min="6" max="40" value="${state.gridHeaderHeight}"></div>`:''}<label class="toggle"><span>Usar esquinas boleadas</span><input id="gridRoundedCornersExtra" type="checkbox" ${state.gridRoundedCorners?'checked':''}></label>`;
-    return;
-  }
-  div.innerHTML=`<div class="field"><label>Separación entre renglones (mm)</label><input id="listSpacingExtra" type="number" min="6" max="20" value="${state.listSpacing}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="fitListToSpaceExtra" type="checkbox" ${state.fitListToSpace?'checked':''}></label><label class="toggle"><span>Incluir marcador</span><input id="checkboxExtra" type="checkbox" ${state.checkbox?'checked':''}></label>${state.checkbox?`<div class="field"><label>Tipo de marcador</label>${markerPickerHtml(state.listMarkerStyle,state.listMarkerColor)}</div>${state.listMarkerStyle==='numerado'?`<div class="field"><label>Tamaño del número</label><input id="listMarkerFontSizeExtra" type="number" min="3" max="18" step="0.5" value="${state.listMarkerFontSize}"></div><div class="field"><label>Color del número</label><input id="listMarkerColorExtra" type="color" value="${state.listMarkerColor}"></div>`:`<div class="field"><label>Tamaño del ícono (mm)</label><input id="listMarkerSizeExtra" type="number" min="2" max="10" step="0.5" value="${state.listMarkerSize}"></div><div class="field"><label>Color del ícono</label><input id="listMarkerColorExtra" type="color" value="${state.listMarkerColor}"></div>`}`:''}`;
+  div.innerHTML=`${contentFieldsByType(state.splitTopSheetType,state.splitConfigs.top,"top","Zona superior")}<div style="height:8px"></div>${contentFieldsByType(state.splitBottomSheetType,state.splitConfigs.bottom,"bottom","Zona inferior")}`;
 }
 function syncBasic(){
   document.getElementById('projectName').value=state.projectName;
@@ -681,10 +795,13 @@ function syncBasic(){
   if(printModeConfig) printModeConfig.value=state.printMode;
   const printMode=document.getElementById('printMode');
   if(printMode) printMode.value=state.printMode;
+  const layoutMode=document.getElementById('layoutMode');
+  if(layoutMode) layoutMode.value=state.layoutMode;
 }
 function updateUI(){
   if(state.printMode!=="duplex") state.previewFace="front";
   populateChoices();
+  renderLayoutModeFields();
   renderArmadoExtra();
   renderMarginsExtra();
   renderContentFields();
@@ -719,8 +836,8 @@ function getRasterStrokeWidthMm(node,value,dpi){
   const role=(node&&node.getAttribute?node.getAttribute('data-role'):'')||'';
   let min=value;
   if(role==='rule-rect'||role==='rule-line') min=Math.max(value,0.22);
-  else if(role==='marker-outline') min=Math.max(value,0.34);
-  else if(role==='frame-outline') min=Math.max(value,0.32);
+  else if(role==='marker-outline') min=Math.max(value,0.55);
+  else if(role==='frame-outline') min=Math.max(value,0.5);
   return roundMm(Math.max(base,min));
 }
 function convertRuleRectsToLines(root){
@@ -1182,6 +1299,10 @@ function bindStatic(){
   document.getElementById('exportQuality').addEventListener('change',e=>{state.exportQuality=e.target.value; state.exportUsage='manual'; updateExportSummary();});
   document.getElementById('printModeConfig').addEventListener('change',e=>{state.printMode=e.target.value; updateUI();});
   document.getElementById('printMode').addEventListener('change',e=>{state.printMode=e.target.value; if(state.printMode!=='duplex') state.previewFace='front'; syncBasic(); renderPreview(); updateExportSummary();});
+  document.getElementById('layoutMode').addEventListener('change',e=>{state.layoutMode=e.target.value; if(state.layoutMode==="split") state.sheetType=state.splitTopSheetType; updateUI();});
+  document.getElementById('splitTopSheetType').addEventListener('change',e=>{state.splitTopSheetType=e.target.value; if(state.layoutMode==="split") state.sheetType=state.splitTopSheetType; updateUI();});
+  document.getElementById('splitBottomSheetType').addEventListener('change',e=>{state.splitBottomSheetType=e.target.value; updateUI();});
+  document.getElementById('splitRatio').addEventListener('input',e=>{state.splitRatio=clamp(+e.target.value,20,80); renderLayoutModeFields(); renderPreview();});
   document.getElementById('previewFrontBtn').addEventListener('click',()=>{state.previewFace='front'; renderPreview();});
   document.getElementById('previewBackBtn').addEventListener('click',()=>{if(state.printMode!=='duplex') return; state.previewFace='back'; renderPreview();});
   document.getElementById('confirmExportBtn').addEventListener('click',runExport);
@@ -1194,6 +1315,7 @@ function bindStatic(){
 function bindDynamic(){
   document.querySelectorAll('[data-armado]').forEach(btn=>btn.onclick=()=>setArmado(btn.dataset.armado));
   document.querySelectorAll('[data-sheet]').forEach(btn=>btn.onclick=()=>{
+    if(state.layoutMode!=="single") return;
     state.sheetType=btn.dataset.sheet;
     if(state.sheetType==='rayada'){state.lineSpacing=7; state.showTopGuide=false; state.firstLineGap=0.5; state.fitLinesToSpace=true; state.lineColor='#94a3b8';}
     if(state.sheetType==='punteada'){state.dotGapX=5; state.dotGapY=5; state.dotSize=0.2; state.fitDotsToSpace=true; state.lineColor='#000000';}
@@ -1214,43 +1336,59 @@ function bindDynamic(){
   if(marginCenter) marginCenter.oninput=e=>{state.marginCenter=+e.target.value; updateUI();};
   const blockTop=document.getElementById('blockTopReserveExtra');
   if(blockTop) blockTop.oninput=e=>{state.blockTopReserve=+e.target.value; updateUI();};
-  const lineSpacing=document.getElementById('lineSpacingExtra');
-  if(lineSpacing) lineSpacing.oninput=e=>{state.lineSpacing=+e.target.value; updateUI();};
-  const showTop=document.getElementById('showTopGuideExtra');
-  if(showTop) showTop.onchange=e=>{state.showTopGuide=e.target.checked; updateUI();};
-  const firstGap=document.getElementById('firstLineGapExtra');
-  if(firstGap) firstGap.onchange=e=>{state.firstLineGap=+e.target.value; updateUI();};
-  const fitLines=document.getElementById('fitLinesToSpaceExtra');
-  if(fitLines) fitLines.onchange=e=>{state.fitLinesToSpace=e.target.checked; updateUI();};
-  const dotGap=document.getElementById('dotGapExtra');
-  if(dotGap) dotGap.oninput=e=>{state.dotGapX=+e.target.value; state.dotGapY=+e.target.value; updateUI();};
-  const dotSize=document.getElementById('dotSizeExtra');
-  if(dotSize) dotSize.oninput=e=>{state.dotSize=+e.target.value; updateUI();};
-  const fitDots=document.getElementById('fitDotsToSpaceExtra');
-  if(fitDots) fitDots.onchange=e=>{state.fitDotsToSpace=e.target.checked; updateUI();};
-  const gridSize=document.getElementById('gridSizeExtra');
-  if(gridSize) gridSize.oninput=e=>{state.gridSize=+e.target.value; updateUI();};
-  const fitGrid=document.getElementById('fitGridToSpaceExtra');
-  if(fitGrid) fitGrid.onchange=e=>{state.fitGridToSpace=e.target.checked; updateUI();};
-  const headerEnabled=document.getElementById('gridHeaderEnabledExtra');
-  if(headerEnabled) headerEnabled.onchange=e=>{state.gridHeaderEnabled=e.target.checked; updateUI();};
-  const headerHeight=document.getElementById('gridHeaderHeightExtra');
-  if(headerHeight) headerHeight.oninput=e=>{state.gridHeaderHeight=+e.target.value; updateUI();};
-  const rounded=document.getElementById('gridRoundedCornersExtra');
-  if(rounded) rounded.onchange=e=>{state.gridRoundedCorners=e.target.checked; updateUI();};
-  const listSpacing=document.getElementById('listSpacingExtra');
-  if(listSpacing) listSpacing.oninput=e=>{state.listSpacing=+e.target.value; updateUI();};
-  const fitList=document.getElementById('fitListToSpaceExtra');
-  if(fitList) fitList.onchange=e=>{state.fitListToSpace=e.target.checked; updateUI();};
-  const checkbox=document.getElementById('checkboxExtra');
-  if(checkbox) checkbox.onchange=e=>{state.checkbox=e.target.checked; updateUI();};
-  document.querySelectorAll('[data-marker-option]').forEach(btn=>btn.onclick=e=>{e.preventDefault(); state.listMarkerStyle=btn.dataset.markerOption; const details=btn.closest('details'); if(details) details.open=false; updateUI();});
-  const markerFont=document.getElementById('listMarkerFontSizeExtra');
-  if(markerFont) markerFont.oninput=e=>{state.listMarkerFontSize=+e.target.value; updateUI();};
-  const markerSize=document.getElementById('listMarkerSizeExtra');
-  if(markerSize) markerSize.oninput=e=>{state.listMarkerSize=+e.target.value; updateUI();};
-  const markerColor=document.getElementById('listMarkerColorExtra');
-  if(markerColor) markerColor.oninput=e=>{state.listMarkerColor=e.target.value; state.listMarkerColorLinked=(state.listMarkerColor===state.lineColor); updateUI();};
+  function bindContentConfig(prefix,target){
+    const lineSpacing=document.getElementById(`${prefix}lineSpacingExtra`);
+    if(lineSpacing) lineSpacing.oninput=e=>{target.lineSpacing=+e.target.value; updateUI();};
+    const showTop=document.getElementById(`${prefix}showTopGuideExtra`);
+    if(showTop) showTop.onchange=e=>{target.showTopGuide=e.target.checked; updateUI();};
+    const firstGap=document.getElementById(`${prefix}firstLineGapExtra`);
+    if(firstGap) firstGap.onchange=e=>{target.firstLineGap=+e.target.value; updateUI();};
+    const fitLines=document.getElementById(`${prefix}fitLinesToSpaceExtra`);
+    if(fitLines) fitLines.onchange=e=>{target.fitLinesToSpace=e.target.checked; updateUI();};
+    const dotGap=document.getElementById(`${prefix}dotGapExtra`);
+    if(dotGap) dotGap.oninput=e=>{target.dotGapX=+e.target.value; target.dotGapY=+e.target.value; updateUI();};
+    const dotSize=document.getElementById(`${prefix}dotSizeExtra`);
+    if(dotSize) dotSize.oninput=e=>{target.dotSize=+e.target.value; updateUI();};
+    const fitDots=document.getElementById(`${prefix}fitDotsToSpaceExtra`);
+    if(fitDots) fitDots.onchange=e=>{target.fitDotsToSpace=e.target.checked; updateUI();};
+    const gridSize=document.getElementById(`${prefix}gridSizeExtra`);
+    if(gridSize) gridSize.oninput=e=>{target.gridSize=+e.target.value; updateUI();};
+    const fitGrid=document.getElementById(`${prefix}fitGridToSpaceExtra`);
+    if(fitGrid) fitGrid.onchange=e=>{target.fitGridToSpace=e.target.checked; updateUI();};
+    const headerEnabled=document.getElementById(`${prefix}gridHeaderEnabledExtra`);
+    if(headerEnabled) headerEnabled.onchange=e=>{target.gridHeaderEnabled=e.target.checked; updateUI();};
+    const headerHeight=document.getElementById(`${prefix}gridHeaderHeightExtra`);
+    if(headerHeight) headerHeight.oninput=e=>{target.gridHeaderHeight=+e.target.value; updateUI();};
+    const rounded=document.getElementById(`${prefix}gridRoundedCornersExtra`);
+    if(rounded) rounded.onchange=e=>{target.gridRoundedCorners=e.target.checked; updateUI();};
+    const listSpacing=document.getElementById(`${prefix}listSpacingExtra`);
+    if(listSpacing) listSpacing.oninput=e=>{target.listSpacing=+e.target.value; updateUI();};
+    const fitList=document.getElementById(`${prefix}fitListToSpaceExtra`);
+    if(fitList) fitList.onchange=e=>{target.fitListToSpace=e.target.checked; updateUI();};
+    const checkbox=document.getElementById(`${prefix}checkboxExtra`);
+    if(checkbox) checkbox.onchange=e=>{target.checkbox=e.target.checked; updateUI();};
+    const markerFont=document.getElementById(`${prefix}listMarkerFontSizeExtra`);
+    if(markerFont) markerFont.oninput=e=>{target.listMarkerFontSize=+e.target.value; updateUI();};
+    const markerSize=document.getElementById(`${prefix}listMarkerSizeExtra`);
+    if(markerSize) markerSize.oninput=e=>{target.listMarkerSize=+e.target.value; updateUI();};
+    const markerColor=document.getElementById(`${prefix}listMarkerColorExtra`);
+    if(markerColor) markerColor.oninput=e=>{target.listMarkerColor=e.target.value; if(target===state){state.listMarkerColorLinked=(state.listMarkerColor===state.lineColor);} updateUI();};
+  }
+  bindContentConfig("",state);
+  if(state.layoutMode==="split"){
+    bindContentConfig("top",state.splitConfigs.top);
+    bindContentConfig("bottom",state.splitConfigs.bottom);
+  }
+  document.querySelectorAll('[data-marker-option]').forEach(btn=>btn.onclick=e=>{
+    e.preventDefault();
+    const zone=btn.dataset.markerZone||"single";
+    if(zone==="single") state.listMarkerStyle=btn.dataset.markerOption;
+    if(zone==="top") state.splitConfigs.top.listMarkerStyle=btn.dataset.markerOption;
+    if(zone==="bottom") state.splitConfigs.bottom.listMarkerStyle=btn.dataset.markerOption;
+    const details=btn.closest('details');
+    if(details) details.open=false;
+    updateUI();
+  });
 }
 
 bindStatic();
