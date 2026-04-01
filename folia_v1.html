@@ -33,15 +33,20 @@
     .icon-select{position:relative}
     .icon-select summary{list-style:none;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:8px 10px;font-size:12.5px;color:var(--text);cursor:pointer}
     .icon-select summary::-webkit-details-marker{display:none}
-    .icon-select-menu{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:40;border:1px solid var(--border);border-radius:12px;background:#fff;padding:6px;display:grid;gap:4px;box-shadow:0 12px 28px rgba(15,23,42,.08)}
-    .marker-option{width:100%;display:flex;align-items:center;gap:10px;padding:8px 9px;border:0;background:#fff;border-radius:9px;font-size:12.5px;color:var(--text);cursor:pointer;text-align:left}
-    .marker-option:hover{background:#F7F8FA}
-    .marker-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 18px;width:18px;height:18px}
-    .marker-square{border:1.5px solid currentColor;border-radius:0}
-    .marker-circle-outline{border:1.5px solid currentColor;border-radius:999px}
-    .marker-circle-fill{background:currentColor;border-radius:999px}
-    .marker-heart-outline,.marker-heart-fill{font-size:16px;line-height:1;width:18px;height:18px}
-    .marker-number{font-size:14px;font-weight:600;line-height:1;width:auto;height:auto}
+    .icon-select-menu{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:40;border:1px solid var(--border);border-radius:14px;background:#fff;padding:10px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;box-shadow:0 14px 30px rgba(15,23,42,.09)}
+    .marker-option{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;padding:0;border:1px solid transparent;background:#fff;border-radius:12px;color:var(--text);cursor:pointer;transition:background .16s ease,border-color .16s ease,transform .16s ease,box-shadow .16s ease}
+    .marker-option:hover{background:#FDF4F7;border-color:#F2CAD5;transform:translateY(-1px)}
+    .marker-option.is-selected{border-color:#E8B8C4;background:#FAEEF1;box-shadow:0 0 0 1px rgba(232,154,174,.15) inset}
+    .marker-option .marker-icon{width:22px;height:22px}
+    .marker-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px;width:20px;height:20px;color:inherit}
+    .marker-icon svg{width:100%;height:100%;display:block;overflow:visible}
+    .marker-icon path,.marker-icon circle,.marker-icon rect,.marker-icon line,.marker-icon polyline{vector-effect:non-scaling-stroke}
+    .marker-value{display:inline-flex;align-items:center;gap:8px}
+    .marker-value .marker-icon{width:18px;height:18px}
+    .marker-value-label{font-size:12.5px;color:var(--text)}
+    @media (max-width:1200px){
+      .icon-select-menu{grid-template-columns:repeat(5,minmax(0,1fr))}
+    }
     .dropdown-caret{margin-left:auto;color:var(--muted)}
     .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;grid-auto-rows:1fr}
     .choice{border:1px solid var(--border);background:#fff;color:#475569;border-radius:12px;padding:8px 9px;font-size:12.5px;font-weight:600;cursor:pointer;min-height:42px;display:flex;align-items:center;justify-content:center;text-align:center}
@@ -413,20 +418,44 @@ function el(name,attrs={}){
   return node;
 }
 function uid(prefix="id"){return `${prefix}-${Math.random().toString(36).slice(2,10)}`;}
+const MARKER_OPTIONS=[
+  {id:"cuadrado",label:"Cuadrado"},
+  {id:"circuloContorno",label:"Círculo contorno"},
+  {id:"circuloRelleno",label:"Círculo relleno"},
+  {id:"corazonContorno",label:"Corazón contorno"},
+  {id:"corazonRelleno",label:"Corazón relleno"},
+  {id:"numerado",label:"Numerado"},
+  {id:"telefono",label:"Teléfono"},
+  {id:"whatsapp",label:"WhatsApp"},
+  {id:"correo",label:"Correo"},
+  {id:"paginaWeb",label:"Página web"},
+  {id:"ubicacion",label:"Ubicación"},
+  {id:"cumpleanos",label:"Cumpleaños / Torta"}
+];
 function markerLabel(style){
-  return ({cuadrado:"Cuadrado",circuloContorno:"Círculo contorno",circuloRelleno:"Círculo relleno",corazonContorno:"Corazón contorno",corazonRelleno:"Corazón relleno",numerado:"Numerado"})[style]||"Cuadrado";
+  return MARKER_OPTIONS.find(option=>option.id===style)?.label||"Cuadrado";
+}
+function markerIconSvg(style,color="#334155"){
+  const stroke=`stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"`;
+  const fill=`fill="${color}"`;
+  if(style==="cuadrado") return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" fill="none" ${stroke}/></svg>`;
+  if(style==="circuloContorno") return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" ${stroke}/></svg>`;
+  if(style==="circuloRelleno") return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" ${fill}/></svg>`;
+  if(style==="corazonContorno") return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19.5l-6.2-5.9C3.8 11.7 4 8.6 6.4 7.2c1.8-1.1 4.1-.6 5.6 1.1 1.5-1.7 3.8-2.2 5.6-1.1 2.4 1.4 2.6 4.5.6 6.4z" fill="none" ${stroke}/></svg>`;
+  if(style==="corazonRelleno") return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20l-6.4-6.1c-2-1.9-1.7-5.1.6-6.5 1.8-1.1 4.1-.6 5.8 1.2 1.7-1.8 4-2.3 5.8-1.2 2.3 1.4 2.6 4.6.6 6.5z" ${fill}/></svg>`;
+  if(style==="numerado") return `<svg viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="16.2" text-anchor="middle" font-size="12" font-weight="700" fill="${color}" font-family="Inter, Arial, sans-serif">1.</text></svg>`;
+  if(style==="telefono") return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 4.8c-.6.6-1.4 2-.9 4.1.5 2 2.1 4.6 4.3 6.8 2.2 2.2 4.8 3.8 6.8 4.3 2.1.5 3.5-.3 4.1-.9l-2.4-2.4c-.4-.4-.9-.6-1.5-.4l-1.8.6c-.5.2-1.1.1-1.5-.3l-2-2c-.4-.4-.5-1-.3-1.5l.6-1.8c.2-.5 0-1.1-.4-1.5z" fill="none" ${stroke}/></svg>`;
+  if(style==="whatsapp") return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.4c4.2 0 7.6 3.2 7.6 7.2 0 4-3.4 7.2-7.6 7.2-1.2 0-2.3-.3-3.3-.8l-3.5.8.9-3.2c-.8-1.2-1.3-2.5-1.3-4 0-4 3.4-7.2 7.2-7.2z" fill="none" ${stroke}/><path d="M9.4 9.6c-.3.4-.6 1.1-.2 2 .5 1.2 1.5 2.3 2.8 3.2 1.3.9 2.6 1.3 3.6 1.2.8-.1 1.3-.6 1.6-1l-1.2-1c-.2-.2-.6-.2-.8-.1l-.8.4c-.3.1-.7.1-.9-.1l-1-.7c-.2-.2-.3-.5-.2-.9l.2-.7c.1-.3 0-.6-.2-.8z" fill="none" ${stroke}/></svg>`;
+  if(style==="correo") return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6.5" width="16" height="11" rx="2.2" fill="none" ${stroke}/><polyline points="4.8,8.3 12,13.4 19.2,8.3" fill="none" ${stroke}/></svg>`;
+  if(style==="paginaWeb") return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.6" fill="none" ${stroke}/><path d="M4.8 12h14.4M12 4.4c2.1 2.2 3.3 4.9 3.3 7.6 0 2.7-1.2 5.4-3.3 7.6-2.1-2.2-3.3-4.9-3.3-7.6 0-2.7 1.2-5.4 3.3-7.6z" fill="none" ${stroke}/></svg>`;
+  if(style==="ubicacion") return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.1c3.6-4.2 5.4-7.1 5.4-9.6 0-2.9-2.4-5.3-5.4-5.3s-5.4 2.4-5.4 5.3c0 2.5 1.8 5.4 5.4 9.6z" fill="none" ${stroke}/><circle cx="12" cy="10.5" r="1.8" fill="none" ${stroke}/></svg>`;
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="11" width="15" height="7.8" rx="1.8" fill="none" ${stroke}/><rect x="9.3" y="8" width="5.4" height="3" rx="1" fill="none" ${stroke}/><line x1="12" y1="5.2" x2="12" y2="8" ${stroke}/><line x1="8" y1="14.8" x2="16" y2="14.8" ${stroke}/></svg>`;
 }
 function markerIconHtml(style,color="#334155"){
-  if(style==="cuadrado") return `<span class="marker-icon marker-square" style="color:${color}"></span>`;
-  if(style==="circuloContorno") return `<span class="marker-icon marker-circle-outline" style="color:${color}"></span>`;
-  if(style==="circuloRelleno") return `<span class="marker-icon marker-circle-fill" style="color:${color}"></span>`;
-  if(style==="corazonContorno") return `<span class="marker-icon marker-heart-outline" style="color:${color}">♡</span>`;
-  if(style==="corazonRelleno") return `<span class="marker-icon marker-heart-fill" style="color:${color}">♥</span>`;
-  return `<span class="marker-icon marker-number" style="color:${color}">1.</span>`;
+  return `<span class="marker-icon" style="color:${color}">${markerIconSvg(style,color)}</span>`;
 }
 function markerPickerHtml(selectedStyle,color,zone="single"){
-  const styles=["cuadrado","circuloContorno","circuloRelleno","corazonContorno","corazonRelleno","numerado"];
-  return `<details class="icon-select"><summary>${markerIconHtml(selectedStyle,color)}<span>${markerLabel(selectedStyle)}</span><span class="dropdown-caret">▾</span></summary><div class="icon-select-menu">${styles.map(style=>`<button type="button" class="marker-option" data-marker-option="${style}" data-marker-zone="${zone}">${markerIconHtml(style,color)}<span>${markerLabel(style)}</span></button>`).join("")}</div></details>`;
+  return `<details class="icon-select"><summary><span class="marker-value">${markerIconHtml(selectedStyle,color)}<span class="marker-value-label">${markerLabel(selectedStyle)}</span></span><span class="dropdown-caret">▾</span></summary><div class="icon-select-menu">${MARKER_OPTIONS.map(option=>`<button type="button" class="marker-option ${option.id===selectedStyle?'is-selected':''}" data-marker-option="${option.id}" data-marker-zone="${zone}" title="${option.label}" aria-label="${option.label}">${markerIconHtml(option.id,color)}</button>`).join("")}</div></details>`;
 }
 
 function addLine(svg,x1,y1,x2,y2,stroke=state.lineColor,strokeWidth=state.strokeWidth,extra={}){
@@ -609,6 +638,42 @@ function drawGridSheet(svg,rect,config=state){
 function drawList(svg,rect,config=state){
   const {gridStroke,iconStroke}=getStrokeSet(config);
   const spacing=Math.max(7,+config.listSpacing),fit=!!config.fitListToSpace,rowCount=fit?Math.max(1,Math.floor(rect.height/spacing)):Math.max(1,Math.floor(rect.height/spacing)-1),step=fit?rect.height/rowCount:spacing;
+  function drawSimpleIcon(style,x,top,size,markerColor,markerStrokeWidth){
+    const cx=x+size/2,cy=top+size/2;
+    if(style==="telefono"){
+      const phone=`M ${roundMm(x+size*0.22)} ${roundMm(top+size*0.12)} C ${roundMm(x+size*0.08)} ${roundMm(top+size*0.22)}, ${roundMm(x+size*0.08)} ${roundMm(top+size*0.45)}, ${roundMm(x+size*0.2)} ${roundMm(top+size*0.63)} C ${roundMm(x+size*0.3)} ${roundMm(top+size*0.8)}, ${roundMm(x+size*0.5)} ${roundMm(top+size*0.93)}, ${roundMm(x+size*0.72)} ${roundMm(top+size*0.88)} L ${roundMm(x+size*0.6)} ${roundMm(top+size*0.68)} C ${roundMm(x+size*0.46)} ${roundMm(top+size*0.72)}, ${roundMm(x+size*0.38)} ${roundMm(top+size*0.67)}, ${roundMm(x+size*0.3)} ${roundMm(top+size*0.56)} C ${roundMm(x+size*0.22)} ${roundMm(top+size*0.45)}, ${roundMm(x+size*0.18)} ${roundMm(top+size*0.35)}, ${roundMm(x+size*0.25)} ${roundMm(top+size*0.24)} Z`;
+      svg.appendChild(el("path",{d:phone,fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"stroke-linejoin":"round","stroke-linecap":"round","data-role":"marker-outline"}));
+      return;
+    }
+    if(style==="whatsapp"){
+      addCircle(svg,cx,cy,size*0.42,{fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"data-role":"marker-outline"});
+      const tail=`M ${roundMm(x+size*0.36)} ${roundMm(top+size*0.82)} L ${roundMm(x+size*0.26)} ${roundMm(top+size*1.02)} L ${roundMm(x+size*0.47)} ${roundMm(top+size*0.9)} Z`;
+      svg.appendChild(el("path",{d:tail,fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"stroke-linejoin":"round","data-role":"marker-outline"}));
+      const handset=`M ${roundMm(x+size*0.42)} ${roundMm(top+size*0.38)} C ${roundMm(x+size*0.34)} ${roundMm(top+size*0.48)}, ${roundMm(x+size*0.4)} ${roundMm(top+size*0.64)}, ${roundMm(x+size*0.52)} ${roundMm(top+size*0.72)} C ${roundMm(x+size*0.62)} ${roundMm(top+size*0.79)}, ${roundMm(x+size*0.72)} ${roundMm(top+size*0.78)}, ${roundMm(x+size*0.8)} ${roundMm(top+size*0.68)}`;
+      svg.appendChild(el("path",{d:handset,fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"stroke-linejoin":"round","stroke-linecap":"round","data-role":"marker-outline"}));
+      return;
+    }
+    if(style==="correo"){
+      addRect(svg,x+size*0.1,top+size*0.2,size*0.8,size*0.6,{rx:roundMm(size*0.09),fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"data-role":"marker-outline"});
+      svg.appendChild(el("path",{d:`M ${roundMm(x+size*0.12)} ${roundMm(top+size*0.25)} L ${roundMm(cx)} ${roundMm(top+size*0.56)} L ${roundMm(x+size*0.88)} ${roundMm(top+size*0.25)}`,fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"stroke-linecap":"round","stroke-linejoin":"round","data-role":"marker-outline"}));
+      return;
+    }
+    if(style==="paginaWeb"){
+      addCircle(svg,cx,cy,size*0.42,{fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"data-role":"marker-outline"});
+      addLine(svg,x+size*0.14,cy,x+size*0.86,cy,markerColor,markerStrokeWidth,{"data-role":"marker-outline"});
+      svg.appendChild(el("path",{d:`M ${roundMm(cx)} ${roundMm(top+size*0.08)} C ${roundMm(x+size*0.66)} ${roundMm(top+size*0.31)}, ${roundMm(x+size*0.66)} ${roundMm(top+size*0.69)}, ${roundMm(cx)} ${roundMm(top+size*0.92)} C ${roundMm(x+size*0.34)} ${roundMm(top+size*0.69)}, ${roundMm(x+size*0.34)} ${roundMm(top+size*0.31)}, ${roundMm(cx)} ${roundMm(top+size*0.08)} Z`,fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"data-role":"marker-outline"}));
+      return;
+    }
+    if(style==="ubicacion"){
+      svg.appendChild(el("path",{d:`M ${roundMm(cx)} ${roundMm(top+size*0.95)} C ${roundMm(cx+size*0.3)} ${roundMm(top+size*0.62)}, ${roundMm(x+size*0.72)} ${roundMm(top+size*0.43)}, ${roundMm(x+size*0.72)} ${roundMm(top+size*0.26)} C ${roundMm(x+size*0.72)} ${roundMm(top+size*0.1)}, ${roundMm(x+size*0.56)} ${roundMm(top+size*0.03)}, ${roundMm(cx)} ${roundMm(top+size*0.03)} C ${roundMm(x+size*0.44)} ${roundMm(top+size*0.03)}, ${roundMm(x+size*0.28)} ${roundMm(top+size*0.1)}, ${roundMm(x+size*0.28)} ${roundMm(top+size*0.26)} C ${roundMm(x+size*0.28)} ${roundMm(top+size*0.43)}, ${roundMm(cx-size*0.3)} ${roundMm(top+size*0.62)}, ${roundMm(cx)} ${roundMm(top+size*0.95)} Z`,fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"stroke-linejoin":"round","data-role":"marker-outline"}));
+      addCircle(svg,cx,top+size*0.25,size*0.11,{fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"data-role":"marker-outline"});
+      return;
+    }
+    addRect(svg,x+size*0.12,top+size*0.42,size*0.76,size*0.42,{rx:roundMm(size*0.08),fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"data-role":"marker-outline"});
+    addRect(svg,x+size*0.34,top+size*0.22,size*0.32,size*0.2,{rx:roundMm(size*0.06),fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"data-role":"marker-outline"});
+    addLine(svg,cx,top+size*0.06,cx,top+size*0.22,markerColor,markerStrokeWidth,{"data-role":"marker-outline"});
+    addLine(svg,x+size*0.26,top+size*0.57,x+size*0.74,top+size*0.57,markerColor,markerStrokeWidth,{"data-role":"marker-outline"});
+  }
   function drawMarker(x,lineY,index){
     const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,cx=x+size/2,cy=top+size/2,markerColor=config.listMarkerColor||state.lineColor,markerStrokeWidth=iconStroke;
     if(style==="numerado"){
@@ -628,8 +693,12 @@ function drawList(svg,rect,config=state){
       addCircle(svg,cx,cy,size/2,{fill:markerColor,stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"data-role":"marker-outline"});
       return size+2.2;
     }
-    const heart=`M ${roundMm(cx)} ${roundMm(top+size*0.92)} C ${roundMm(cx-size*0.6)} ${roundMm(top+size*0.58)}, ${roundMm(x)} ${roundMm(top+size*0.38)}, ${roundMm(x)} ${roundMm(top+size*0.14)} C ${roundMm(x)} ${roundMm(top-size*0.02)}, ${roundMm(cx-size*0.18)} ${roundMm(top)}, ${roundMm(cx)} ${roundMm(top+size*0.22)} C ${roundMm(cx+size*0.18)} ${roundMm(top)}, ${roundMm(x+size)} ${roundMm(top-size*0.02)}, ${roundMm(x+size)} ${roundMm(top+size*0.14)} C ${roundMm(x+size)} ${roundMm(top+size*0.38)}, ${roundMm(cx+size*0.6)} ${roundMm(top+size*0.58)}, ${roundMm(cx)} ${roundMm(top+size*0.92)} Z`;
-    svg.appendChild(el("path",{d:heart,fill:style==="corazonRelleno"?markerColor:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"stroke-linecap":"round","stroke-linejoin":"round","data-role":"marker-outline"}));
+    if(style==="corazonContorno"||style==="corazonRelleno"){
+      const heart=`M ${roundMm(cx)} ${roundMm(top+size*0.92)} C ${roundMm(cx-size*0.6)} ${roundMm(top+size*0.58)}, ${roundMm(x)} ${roundMm(top+size*0.38)}, ${roundMm(x)} ${roundMm(top+size*0.14)} C ${roundMm(x)} ${roundMm(top-size*0.02)}, ${roundMm(cx-size*0.18)} ${roundMm(top)}, ${roundMm(cx)} ${roundMm(top+size*0.22)} C ${roundMm(cx+size*0.18)} ${roundMm(top)}, ${roundMm(x+size)} ${roundMm(top-size*0.02)}, ${roundMm(x+size)} ${roundMm(top+size*0.14)} C ${roundMm(x+size)} ${roundMm(top+size*0.38)}, ${roundMm(cx+size*0.6)} ${roundMm(top+size*0.58)}, ${roundMm(cx)} ${roundMm(top+size*0.92)} Z`;
+      svg.appendChild(el("path",{d:heart,fill:style==="corazonRelleno"?markerColor:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"stroke-linecap":"round","stroke-linejoin":"round","data-role":"marker-outline"}));
+      return size+2.2;
+    }
+    drawSimpleIcon(style,x,top,size,markerColor,markerStrokeWidth);
     return size+2.2;
   }
   for(let i=0;i<rowCount;i++){
