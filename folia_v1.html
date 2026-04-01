@@ -543,7 +543,7 @@ function drawGrid(svg,rect,config=state,options={}){
 }
 function drawGridSheet(svg,rect,config=state){
   const radius=config.gridRoundedCorners?2.5:0;
-  const frameStroke=Math.max(Number(state.strokeWidth)||0.2,0.45);
+  const frameStroke=Math.max(Number(state.strokeWidth)||0.2,0.65);
   function appendClippedGrid(targetRect){
     if(!radius){
       drawGrid(svg,targetRect,config,{skipOuter:true});
@@ -574,7 +574,7 @@ function drawGridSheet(svg,rect,config=state){
 function drawList(svg,rect,config=state){
   const spacing=Math.max(7,+config.listSpacing),fit=!!config.fitListToSpace,rowCount=fit?Math.max(1,Math.floor(rect.height/spacing)):Math.max(1,Math.floor(rect.height/spacing)-1),step=fit?rect.height/rowCount:spacing;
   function drawMarker(x,lineY,index){
-    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,cx=x+size/2,cy=top+size/2,markerColor=config.listMarkerColor||state.lineColor,markerStrokeWidth=Math.max(0.45,(Number(state.strokeWidth)||0.2)+0.22);
+    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,cx=x+size/2,cy=top+size/2,markerColor=config.listMarkerColor||state.lineColor,markerStrokeWidth=Math.max(0.65,(Number(state.strokeWidth)||0.2)+0.32);
     if(style==="numerado"){
       const fontSize=+config.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*1.15,fontSize*(maxDigits*0.62+0.62)),gap=Math.max(1.2,fontSize*0.18),textX=x+numberBoxWidth;
       addText(svg,textX,lineY-0.35,label,{fill:markerColor,"font-size":roundMm(fontSize),"text-anchor":"end"});
@@ -836,8 +836,8 @@ function getRasterStrokeWidthMm(node,value,dpi){
   const role=(node&&node.getAttribute?node.getAttribute('data-role'):'')||'';
   let min=value;
   if(role==='rule-rect'||role==='rule-line') min=Math.max(value,0.22);
-  else if(role==='marker-outline') min=Math.max(value,0.55);
-  else if(role==='frame-outline') min=Math.max(value,0.5);
+  else if(role==='marker-outline') min=Math.max(value,0.7);
+  else if(role==='frame-outline') min=Math.max(value,0.68);
   return roundMm(Math.max(base,min));
 }
 function convertRuleRectsToLines(root){
