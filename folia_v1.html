@@ -291,6 +291,8 @@ const MARKER_ASSETS={
 };
 const MARKER_STYLE_ORDER=["cuadrado","circuloContorno","corazonContorno","corazonRelleno","ubicacion","regalo","correo","whatsapp","web","numerado"];
 const markerAssetCache=new Map();
+let markerAssetsReady=false;
+let markerAssetsPromise=null;
 const CONTENT_CONFIG_DEFAULTS={
   lineSpacing:7,
   showTopGuide:false,
@@ -473,12 +475,26 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
 }
 async function preloadMarkerAssets(){
   const styles=MARKER_STYLE_ORDER.filter(style=>MARKER_ASSETS[style]?.file);
-  try{
-    await Promise.all(styles.map(loadMarkerAsset));
-    updateUI();
-  } catch(error){
-    console.error("No se pudieron cargar algunos marcadores SVG",error);
+  await Promise.all(styles.map(loadMarkerAsset));
+  markerAssetsReady=true;
+}
+function ensureMarkerAssetsReady(){
+  if(markerAssetsReady) return Promise.resolve();
+  if(!markerAssetsPromise){
+    markerAssetsPromise=preloadMarkerAssets().catch(error=>{
+      console.error("No se pudieron cargar algunos marcadores SVG",error);
+      throw error;
+    });
   }
+  return markerAssetsPromise;
+}
+function sheetConfigNeedsMarkerAssets(sheetType,config){
+  return sheetType==="lista" && !!config?.checkbox && config?.listMarkerStyle!=="numerado";
+}
+function stateNeedsMarkerAssets(layoutState=state){
+  if(layoutState.layoutMode==="single") return sheetConfigNeedsMarkerAssets(layoutState.sheetType,layoutState);
+  return sheetConfigNeedsMarkerAssets(layoutState.splitTopSheetType,layoutState.splitConfigs?.top)
+    || sheetConfigNeedsMarkerAssets(layoutState.splitBottomSheetType,layoutState.splitConfigs?.bottom);
 }
 
 function addLine(svg,x1,y1,x2,y2,stroke=state.lineColor,strokeWidth=state.strokeWidth,extra={}){
@@ -659,18 +675,16 @@ function drawGridSheet(svg,rect,config=state){
   appendClippedGrid(bodyRect);
 }
 function drawList(svg,rect,config=state){
-  const {gridStroke,iconStroke}=getStrokeSet(config);
+  const {gridStroke}=getStrokeSet(config);
   const spacing=Math.max(7,+config.listSpacing),fit=!!config.fitListToSpace,rowCount=fit?Math.max(1,Math.floor(rect.height/spacing)):Math.max(1,Math.floor(rect.height/spacing)-1),step=fit?rect.height/rowCount:spacing;
   function drawMarker(x,lineY,index){
-    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,cx=x+size/2,cy=top+size/2,markerColor=config.listMarkerColor||state.lineColor,markerStrokeWidth=iconStroke;
+    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,markerColor=config.listMarkerColor||state.lineColor;
     if(style==="numerado"){
       const fontSize=+config.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*1.15,fontSize*(maxDigits*0.62+0.62)),gap=Math.max(1.2,fontSize*0.18),textX=x+numberBoxWidth;
       addText(svg,textX,lineY-0.35,label,{fill:markerColor,"font-size":roundMm(fontSize),"text-anchor":"end"});
       return numberBoxWidth+gap;
     }
-    if(!drawMarkerAsset(svg,style,x,top,size,markerColor)){
-      addCircle(svg,cx,cy,size/2,{fill:"none",stroke:markerColor,"stroke-width":roundMm(markerStrokeWidth),"data-role":"marker-outline"});
-    }
+    drawMarkerAsset(svg,style,x,top,size,markerColor);
     return size+2.2;
   }
   for(let i=0;i<rowCount;i++){
@@ -735,6 +749,10 @@ function buildSheetContent(svg,rectInfo){
   });
 }
 function renderPreview(){
+  if(stateNeedsMarkerAssets()&&!markerAssetsReady){
+    ensureMarkerAssetsReady().then(()=>renderPreview());
+    return;
+  }
   const pageSize=getPageSize(),previewLayoutState=getExportLayoutState(state.previewFace),rectInfo=getRects(pageSize,previewLayoutState),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta";
   const singleSheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
   const topSheetLabel=(SHEETS.find(([id])=>id===state.splitTopSheetType)||[])[1]||"Rayada";
@@ -1130,6 +1148,7 @@ async function setPngDpi(blob,dpi){
 }
 
 async function exportPng(scale=4){
+  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
   const canvas=await exportSvgToCanvas({transparent:true,dpi:PNG_BASE_DPI,renderScale:Math.max(1,Number(scale)||1)});
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
   downloadBlob(blob,`${sanitizeFileName(state.projectName)}.png`);
@@ -1257,6 +1276,7 @@ function drawSvgNodeToPdf(node){
   }
 }
 async function exportPdfVector(){
+  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
   const pageSize=getPageSize();
   if(!window.jspdf||!window.jspdf.jsPDF) throw new Error('El motor PDF no está disponible en esta sesión.');
   const { jsPDF } = window.jspdf;
@@ -1285,6 +1305,7 @@ async function exportPdfVector(){
   }
 }
 async function exportSvgFile(){
+  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
   const svg=buildExportSvgElement({includeBackground:false,optimizeForRaster:false,face:"front"});
   const blob=new Blob([svgElementToMarkup(svg)],{type:'image/svg+xml;charset=utf-8'});
   downloadBlob(blob,`${sanitizeFileName(state.projectName)}.svg`);
@@ -1473,10 +1494,13 @@ function bindDynamic(){
   });
 }
 
-bindStatic();
-updateUI();
-applyUsagePreset('general');
-preloadMarkerAssets();
+async function initApp(){
+  bindStatic();
+  applyUsagePreset('general');
+  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
+  updateUI();
+}
+initApp();
 </script>
 
 </body>
