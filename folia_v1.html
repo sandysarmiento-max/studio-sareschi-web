@@ -213,10 +213,9 @@
                 <div class="field">
                   <label>Formato</label>
                   <select id="exportFormat">
-                    <option value="png">PNG</option>
-                    <option value="pdf">PDF</option>
                     <option value="pdf-vector">PDF vectorial</option>
                     <option value="svg">SVG</option>
+                    <option value="png">PNG transparente</option>
                   </select>
                 </div>
                 <div class="field">
@@ -224,7 +223,7 @@
                   <select id="exportQuality">
                     <option value="standard">Estándar</option>
                     <option value="high">Alta</option>
-                    <option value="print">Imprenta</option>
+                    <option value="max">Máxima</option>
                   </select>
                 </div>
                 <div class="field">
@@ -239,10 +238,10 @@
               <div class="modal-column wide">
                 <div class="modal-section-title">Sugerencias de uso</div>
                 <div class="usage-grid" id="usagePresetGrid">
-                  <button class="usage-card" type="button" data-usage="canva"><strong>Canva</strong><span>PDF en imprenta para mantener mejor el tamaño de página y evitar diferencias de grosor que a veces aparecen con vectores dentro de Canva.</span></button>
+                  <button class="usage-card" type="button" data-usage="png"><strong>Imagen</strong><span>PNG transparente en máxima calidad para colocar sobre diseños con buena definición.</span></button>
                   <button class="usage-card" type="button" data-usage="powerpoint"><strong>PowerPoint</strong><span>SVG para conservar escalabilidad y líneas limpias.</span></button>
-                  <button class="usage-card" type="button" data-usage="print"><strong>Impresión</strong><span>PDF vectorial para máxima limpieza y tamaño exacto.</span></button>
-                  <button class="usage-card" type="button" data-usage="general"><strong>Uso general</strong><span>PDF de alta calidad para compartir e imprimir fácil.</span></button>
+                  <button class="usage-card" type="button" data-usage="print"><strong>Impresión</strong><span>PDF vectorial con máxima precisión para líneas nítidas y tamaño exacto.</span></button>
+                  <button class="usage-card" type="button" data-usage="general"><strong>Uso general</strong><span>PDF vectorial en máxima calidad como opción principal.</span></button>
                 </div>
                 <div class="export-summary" id="exportSummary"></div>
               </div>
@@ -253,7 +252,7 @@
             </div>
           </div>
         </div>
-        <div class="foot"><div style="font-size:20px;font-weight:700">Qué conserva esta versión</div><div class="chips"><div class="chip">Hojas rayadas con margen superior para escribir</div><div class="chip">Punteadas y cuadriculadas ajustables al área útil</div><div class="chip">Listas con marcador cuadrado, círculo, corazón o numerado</div><div class="chip">Anillado, cuadernillo, anillado superior y hoja suelta</div><div class="chip">Exportación PNG, PDF, PDF vectorial y SVG</div><div class="chip">Base mucho más estable para seguir creciendo</div></div></div>
+        <div class="foot"><div style="font-size:20px;font-weight:700">Qué conserva esta versión</div><div class="chips"><div class="chip">Hojas rayadas con margen superior para escribir</div><div class="chip">Punteadas y cuadriculadas ajustables al área útil</div><div class="chip">Listas con marcador cuadrado, círculo, corazón o numerado</div><div class="chip">Anillado, cuadernillo, anillado superior y hoja suelta</div><div class="chip">Exportación PNG transparente, PDF vectorial y SVG</div><div class="chip">Base mucho más estable para seguir creciendo</div></div></div>
       </div>
     </div>
   </div>
@@ -262,23 +261,23 @@
 const SIZE_PRESETS={A4:{width:210,height:297},A5:{width:148,height:210},A6:{width:105,height:148},Carta:{width:216,height:279},"Media carta":{width:140,height:216},B5:{width:176,height:250},Personalizado:{width:148,height:210}};
 const ARMADOS=[["suelta","Hoja suelta"],["anillado","Anillado lateral"],["cuadernillo","Cuadernillo al centro"],["block","Anillado superior"]];
 const SHEETS=[["rayada","Rayada"],["punteada","Punteada"],["cuadriculada","Cuadriculada"],["lista","Lista"]];
+const PNG_BASE_DPI=300;
 const QUALITY_PRESETS={
-  standard:{label:"Estándar",dpi:300,description:"Buena para uso general y archivos livianos."},
-  high:{label:"Alta",dpi:450,description:"Mejor equilibrio entre nitidez y peso del archivo."},
-  print:{label:"Imprenta",dpi:600,description:"Pensada para máxima limpieza en impresión y montaje."}
+  standard:{label:"Estándar",pngScale:2,description:"Archivo más liviano con definición correcta para pantalla."},
+  high:{label:"Alta",pngScale:3,description:"Buena definición manteniendo un peso intermedio."},
+  max:{label:"Máxima",pngScale:4,description:"Mejor resultado para impresión o edición detallada."}
 };
 const FORMAT_META={
-  png:{label:"PNG",extension:"png",raster:true,transparent:true,description:"Imagen raster pensada para edición; en Canva puede requerir ajuste manual porque se inserta como imagen y no como página."},
-  pdf:{label:"PDF",extension:"pdf",raster:true,transparent:false,description:"PDF de alta calidad con la página al tamaño final exacto."},
+  png:{label:"PNG transparente",extension:"png",raster:true,transparent:true,description:"Imagen raster con fondo transparente para superponer en otros diseños."},
   "pdf-vector":{label:"PDF vectorial",extension:"pdf",raster:false,transparent:false,description:"Conserva líneas y formas como vectores reales para imprimir mejor, sin depender de rasterización."},
   svg:{label:"SVG",extension:"svg",raster:false,transparent:true,description:"Archivo escalable, útil para PowerPoint y flujos que aceptan vectores."}
 };
 const USAGE_PRESETS={
-  canva:{format:"pdf",quality:"print",title:"Canva",note:"PDF raster en imprenta suele verse más uniforme dentro de Canva. El PNG sale sin metadato dpi para evitar reducciones, pero Canva lo sigue tratando como imagen y no siempre llenará la página automáticamente."},
-  powerpoint:{format:"svg",quality:"high",title:"PowerPoint",note:"Mantiene escalabilidad y suele verse mejor que una imagen raster al redimensionar."},
-  print:{format:"pdf-vector",quality:"print",title:"Impresión",note:"La mejor salida para conservar líneas limpias y medidas exactas en papel."},
-  general:{format:"pdf",quality:"high",title:"Uso general",note:"Cómodo para compartir, revisar e imprimir sin complicaciones."},
-  manual:{format:"pdf",quality:"high",title:"Configuración manual",note:"Elegiste el formato y la calidad directamente."}
+  png:{format:"png",quality:"max",title:"Imagen",note:"PNG transparente en máxima calidad para mantener mejor definición en composiciones."},
+  powerpoint:{format:"svg",quality:"max",title:"PowerPoint",note:"SVG conserva escalabilidad y edición sin perder nitidez."},
+  print:{format:"pdf-vector",quality:"max",title:"Impresión",note:"La mejor salida para conservar líneas limpias y medidas exactas en papel."},
+  general:{format:"pdf-vector",quality:"max",title:"Uso general",note:"Formato principal recomendado para descargar con máxima definición."},
+  manual:{format:"pdf-vector",quality:"max",title:"Configuración manual",note:"Elegiste el formato y la calidad directamente."}
 };
 const SPLIT_ZONE_GAP_MM=2;
 const CONTENT_CONFIG_DEFAULTS={
@@ -349,8 +348,8 @@ const state={
   listMarkerColorLinked:true,
   lineColor:"#94a3b8",
   strokeWidth:0.2,
-  exportFormat:"pdf",
-  exportQuality:"high",
+  exportFormat:"pdf-vector",
+  exportQuality:"max",
   exportUsage:"general",
   printMode:"single",
   previewFace:"front"
@@ -449,6 +448,13 @@ function addRule(svg,x1,y1,x2,y2,stroke=state.lineColor,strokeWidth=state.stroke
   }
   addLine(svg,x1,y1,x2,y2,stroke,sw,extra);
 }
+function getStrokeSet(config=state){
+  const baseStroke=Number(config.strokeWidth)||0.2;
+  const gridStroke=Math.max(baseStroke,0.2);
+  const frameStroke=gridStroke;
+  const iconStroke=gridStroke;
+  return {baseStroke,gridStroke,frameStroke,iconStroke};
+}
 function addRect(svg,x,y,width,height,attrs={}){
   svg.appendChild(el("rect",{x:roundMm(x),y:roundMm(y),width:roundMm(width),height:roundMm(height),...attrs}));
 }
@@ -463,6 +469,32 @@ function addText(svg,x,y,text,attrs={}){
 }
 function getPreviewMinMm(previewScale,minPx=0.95){
   return Math.max(0,minPx/Math.max(0.01,previewScale||1));
+}
+function getPreviewStrokeConfig(config=state){
+  const {gridStroke}=getStrokeSet(config);
+  return {
+    gridStrokePreview:gridStroke,
+    frameStrokePreview:Math.max(gridStroke,0.34),
+    iconStrokePreview:Math.max(gridStroke,0.34)
+  };
+}
+function tunePreviewStrokes(root,previewStrokeConfig){
+  if(!root||!previewStrokeConfig) return root;
+  const nodes=[];
+  if(root.nodeType===1&&root.hasAttribute&&root.hasAttribute('stroke-width')) nodes.push(root);
+  if(root.querySelectorAll) nodes.push(...root.querySelectorAll('[stroke-width]'));
+  nodes.forEach(node=>{
+    const role=(node.getAttribute('data-role')||'').toLowerCase();
+    const strokeWidth=Number(node.getAttribute('stroke-width'))||0;
+    if(role==='frame-outline'){
+      node.setAttribute('stroke-width',String(roundMm(Math.max(strokeWidth,previewStrokeConfig.frameStrokePreview))));
+      return;
+    }
+    if(role==='marker-outline'){
+      node.setAttribute('stroke-width',String(roundMm(Math.max(strokeWidth,previewStrokeConfig.iconStrokePreview))));
+    }
+  });
+  return root;
 }
 function tunePreviewRuleRects(root,previewScale){
   const nodes=[];
@@ -491,6 +523,8 @@ function tunePreviewRuleRects(root,previewScale){
 }
 function cloneNodeForPreview(node,previewScale){
   const clone=node.cloneNode(true);
+  const previewStrokeConfig=getPreviewStrokeConfig(state);
+  tunePreviewStrokes(clone,previewStrokeConfig);
   return tunePreviewRuleRects(clone,previewScale);
 }
 
@@ -529,21 +563,22 @@ function drawDots(svg,rect,config=state){
   }
 }
 function drawGrid(svg,rect,config=state,options={}){
+  const {gridStroke}=getStrokeSet(config);
   const size=Math.max(4,+config.gridSize),fit=!!config.fitGridToSpace,skipOuter=!!options.skipOuter;
   const cols=Math.max(1,Math.floor(rect.width/size)),rows=Math.max(1,Math.floor(rect.height/size));
   const stepX=fit?rect.width/cols:size,stepY=fit?rect.height/rows:size,maxCols=fit?cols:Math.floor(rect.width/size),maxRows=fit?rows:Math.floor(rect.height/size),startCol=skipOuter?1:0,startRow=skipOuter?1:0,endCol=skipOuter?Math.max(startCol-1,maxCols-1):maxCols,endRow=skipOuter?Math.max(startRow-1,maxRows-1):maxRows;
   for(let col=startCol;col<=endCol;col++){
     const x=rect.x+col*stepX;
-    if(x<=rect.x+rect.width+0.01) addRule(svg,x,rect.y,x,rect.y+rect.height,state.lineColor,state.strokeWidth);
+    if(x<=rect.x+rect.width+0.01) addRule(svg,x,rect.y,x,rect.y+rect.height,state.lineColor,gridStroke);
   }
   for(let row=startRow;row<=endRow;row++){
     const y=rect.y+row*stepY;
-    if(y<=rect.y+rect.height+0.01) addRule(svg,rect.x,y,rect.x+rect.width,y,state.lineColor,state.strokeWidth);
+    if(y<=rect.y+rect.height+0.01) addRule(svg,rect.x,y,rect.x+rect.width,y,state.lineColor,gridStroke);
   }
 }
 function drawGridSheet(svg,rect,config=state){
+  const {gridStroke,frameStroke}=getStrokeSet(config);
   const radius=config.gridRoundedCorners?2.5:0;
-  const frameStroke=Math.max(Number(state.strokeWidth)||0.2,0.45);
   function appendClippedGrid(targetRect){
     if(!radius){
       drawGrid(svg,targetRect,config,{skipOuter:true});
@@ -572,9 +607,10 @@ function drawGridSheet(svg,rect,config=state){
   appendClippedGrid(bodyRect);
 }
 function drawList(svg,rect,config=state){
+  const {gridStroke,iconStroke}=getStrokeSet(config);
   const spacing=Math.max(7,+config.listSpacing),fit=!!config.fitListToSpace,rowCount=fit?Math.max(1,Math.floor(rect.height/spacing)):Math.max(1,Math.floor(rect.height/spacing)-1),step=fit?rect.height/rowCount:spacing;
   function drawMarker(x,lineY,index){
-    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,cx=x+size/2,cy=top+size/2,markerColor=config.listMarkerColor||state.lineColor,markerStrokeWidth=Math.max(0.45,(Number(state.strokeWidth)||0.2)+0.22);
+    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,cx=x+size/2,cy=top+size/2,markerColor=config.listMarkerColor||state.lineColor,markerStrokeWidth=iconStroke;
     if(style==="numerado"){
       const fontSize=+config.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*1.15,fontSize*(maxDigits*0.62+0.62)),gap=Math.max(1.2,fontSize*0.18),textX=x+numberBoxWidth;
       addText(svg,textX,lineY-0.35,label,{fill:markerColor,"font-size":roundMm(fontSize),"text-anchor":"end"});
@@ -601,7 +637,7 @@ function drawList(svg,rect,config=state){
     if(y>rect.y+rect.height+0.01) continue;
     let x1=rect.x;
     if(config.checkbox) x1=rect.x+drawMarker(rect.x,y,i);
-    addRule(svg,x1,y,rect.x+rect.width,y,state.lineColor,state.strokeWidth);
+    addRule(svg,x1,y,rect.x+rect.width,y,state.lineColor,gridStroke);
   }
 }
 function drawSheetByType(svg,rect,sheetType,config=state){
@@ -831,14 +867,15 @@ function setArmado(id){
 function snapRasterEdgeMm(value,dpi){const scale=pxPerMm(dpi); return Math.round(value*scale)/scale;}
 function snapRasterCenterMm(value,dpi){const scale=pxPerMm(dpi); return (Math.round(value*scale-0.5)+0.5)/scale;}
 function snapStrokeWidthMm(value,dpi){const scale=pxPerMm(dpi); return Math.max(1,Math.round(Math.max(value,0.05)*scale))/scale;}
-function getRasterStrokeWidthMm(node,value,dpi){
+function getRasterStrokeWidthMm(node,value,dpi,rasterStrokeConfig={}){
   const base=snapStrokeWidthMm(value,dpi);
   const role=(node&&node.getAttribute?node.getAttribute('data-role'):'')||'';
-  let min=value;
-  if(role==='rule-rect'||role==='rule-line') min=Math.max(value,0.22);
-  else if(role==='marker-outline') min=Math.max(value,0.55);
-  else if(role==='frame-outline') min=Math.max(value,0.5);
-  return roundMm(Math.max(base,min));
+  const frameMin=Math.max(0,Number(rasterStrokeConfig.frameMin)||0);
+  const iconMin=Math.max(0,Number(rasterStrokeConfig.iconMin)||0);
+  let boosted=base;
+  if(role==='frame-outline') boosted=Math.max(boosted,roundMm(frameMin));
+  if(role==='marker-outline') boosted=Math.max(boosted,roundMm(iconMin));
+  return roundMm(boosted);
 }
 function convertRuleRectsToLines(root){
   root.querySelectorAll('rect[data-role="rule-rect"]').forEach(rect=>{
@@ -875,7 +912,7 @@ function convertRuleRectsToLines(root){
   return root;
 }
 
-function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=false}={}){
+function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=false,rasterStrokeConfig=null}={}){
   const pageSize=getPageSize();
   const rasterWidth=mmToPx(pageSize.width,dpi);
   const rasterHeight=mmToPx(pageSize.height,dpi);
@@ -895,7 +932,7 @@ function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=fa
   nodes.forEach(node=>{
     if(node.hasAttribute('stroke-width')){
       const sw=Number(node.getAttribute('stroke-width'))||0;
-      node.setAttribute('stroke-width',String(roundMm(forRaster?getRasterStrokeWidthMm(node,sw,dpi):sw)));
+      node.setAttribute('stroke-width',String(roundMm(forRaster?getRasterStrokeWidthMm(node,sw,dpi,rasterStrokeConfig||{}):sw)));
       node.setAttribute('vector-effect','non-scaling-stroke');
       node.setAttribute('stroke-linecap',node.getAttribute('stroke-linecap')||'butt');
       node.setAttribute('stroke-linejoin',node.getAttribute('stroke-linejoin')||'miter');
@@ -911,7 +948,7 @@ function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=fa
         if(orientation==='h'){
           const left=snapRasterEdgeMm(x,dpi);
           const right=snapRasterEdgeMm(x+w,dpi);
-          const snappedHeight=Math.max(minStep,getRasterStrokeWidthMm(node,h,dpi));
+          const snappedHeight=Math.max(minStep,getRasterStrokeWidthMm(node,h,dpi,rasterStrokeConfig||{}));
           const centerY=snapRasterCenterMm(y+(h/2),dpi);
           node.setAttribute('x',String(roundMm(left)));
           node.setAttribute('y',String(roundMm(centerY-(snappedHeight/2))));
@@ -920,7 +957,7 @@ function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=fa
         } else if(orientation==='v'){
           const top=snapRasterEdgeMm(y,dpi);
           const bottom=snapRasterEdgeMm(y+h,dpi);
-          const snappedWidth=Math.max(minStep,getRasterStrokeWidthMm(node,w,dpi));
+          const snappedWidth=Math.max(minStep,getRasterStrokeWidthMm(node,w,dpi,rasterStrokeConfig||{}));
           const centerX=snapRasterCenterMm(x+(w/2),dpi);
           node.setAttribute('x',String(roundMm(centerX-(snappedWidth/2))));
           node.setAttribute('y',String(roundMm(top)));
@@ -946,10 +983,10 @@ function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=fa
   });
   return svg;
 }
-function buildExportSvgElement({includeBackground=false,optimizeForRaster=false,dpi=300,face="front"}={}){
+function buildExportSvgElement({includeBackground=false,optimizeForRaster=false,dpi=300,face="front",rasterStrokeConfig=null}={}){
   const svg=buildSheetSvg(face);
   if(!optimizeForRaster) convertRuleRectsToLines(svg);
-  return normalizeSvgForExport(svg,{forRaster:optimizeForRaster,dpi,includeBackground});
+  return normalizeSvgForExport(svg,{forRaster:optimizeForRaster,dpi,includeBackground,rasterStrokeConfig});
 }
 function svgElementToMarkup(svg){
   const markup=new XMLSerializer().serializeToString(svg);
@@ -965,11 +1002,13 @@ function downloadBlob(blob,filename){
   a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),600);
 }
-async function exportSvgToCanvas({transparent=true,dpi=300,face="front"}={}){
+async function exportSvgToCanvas({transparent=true,dpi=300,face="front",renderScale=1,rasterStrokeConfig=null}={}){
   const pageSize=getPageSize();
-  const targetWidth=mmToPx(pageSize.width,dpi);
-  const targetHeight=mmToPx(pageSize.height,dpi);
-  const svg=buildExportSvgElement({includeBackground:!transparent,optimizeForRaster:true,dpi,face});
+  const safeRenderScale=Math.max(1,Number(renderScale)||1);
+  const renderDpi=Math.round(dpi*safeRenderScale);
+  const targetWidth=mmToPx(pageSize.width,renderDpi);
+  const targetHeight=mmToPx(pageSize.height,renderDpi);
+  const svg=buildExportSvgElement({includeBackground:!transparent,optimizeForRaster:true,dpi:renderDpi,face,rasterStrokeConfig});
   const markup=svgElementToMarkup(svg);
   const blob=new Blob([markup],{type:'image/svg+xml;charset=utf-8'});
   const url=URL.createObjectURL(blob);
@@ -1049,20 +1088,23 @@ async function setPngDpi(blob,dpi){
   return new Blob(out,{type:'image/png'});
 }
 
-async function exportPng(dpi){
-  const canvas=await exportSvgToCanvas({transparent:false,dpi});
+async function exportPng(scale=4){
+  const canvas=await exportSvgToCanvas({transparent:true,dpi:PNG_BASE_DPI,renderScale:Math.max(1,Number(scale)||1)});
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
   downloadBlob(blob,`${sanitizeFileName(state.projectName)}.png`);
 }
 async function exportPdfRaster(dpi){
+  const rasterRenderScale=3;
+  const {gridStroke}=getStrokeSet(state);
+  const rasterStrokeConfig={frameMin:Math.max(gridStroke,0.38),iconMin:Math.max(gridStroke,0.40)};
   const pageSize=getPageSize();
   if(!window.jspdf||!window.jspdf.jsPDF) throw new Error('El motor PDF no está disponible en esta sesión.');
   const { jsPDF } = window.jspdf;
   const pdf=new jsPDF({orientation:pageSize.width>pageSize.height?'landscape':'portrait',unit:'mm',format:[pageSize.width,pageSize.height],compress:true,precision:12});
-  const frontCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"front"});
+  const frontCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"front",renderScale:rasterRenderScale,rasterStrokeConfig});
   pdf.addImage(frontCanvas.toDataURL('image/png'),'PNG',0,0,pageSize.width,pageSize.height,undefined,'NONE');
   if(state.printMode==="duplex"){
-    const backCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"back"});
+    const backCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"back",renderScale:rasterRenderScale,rasterStrokeConfig});
     pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
     pdf.addImage(backCanvas.toDataURL('image/png'),'PNG',0,0,pageSize.width,pageSize.height,undefined,'NONE');
   }
@@ -1207,24 +1249,24 @@ async function exportSvgFile(){
   downloadBlob(blob,`${sanitizeFileName(state.projectName)}.svg`);
 }
 
-function getSelectedQuality(){return QUALITY_PRESETS[state.exportQuality]||QUALITY_PRESETS.high;}
-function getSelectedFormat(){return FORMAT_META[state.exportFormat]||FORMAT_META.pdf;}
+function getSelectedQuality(){return QUALITY_PRESETS[state.exportQuality]||QUALITY_PRESETS.max;}
+function getSelectedFormat(){return FORMAT_META[state.exportFormat]||FORMAT_META["pdf-vector"];}
 function updateExportSummary(){
   const quality=getSelectedQuality();
   const format=getSelectedFormat();
   const pageSize=getPageSize();
   const formatHelp=document.getElementById('formatHelp');
   const exportSummary=document.getElementById('exportSummary');
-  const pxW=mmToPx(pageSize.width,quality.dpi),pxH=mmToPx(pageSize.height,quality.dpi);
+  const pngDpi=PNG_BASE_DPI*Math.max(1,Number(quality.pngScale)||1);
+  const pxW=mmToPx(pageSize.width,pngDpi),pxH=mmToPx(pageSize.height,pngDpi);
   const usage=USAGE_PRESETS[state.exportUsage]||USAGE_PRESETS.general;
   const pagesInfo=(format.extension==="pdf"&&state.printMode==="duplex")?"2 páginas (frente y reverso automático).":"1 página.";
-  const rasterInfo=format.raster?`<strong>Resolución final:</strong> ${pxW} × ${pxH} px a ${quality.dpi} dpi.`:`<strong>Salida vectorial:</strong> mantiene líneas y formas sin rasterizar de forma innecesaria.`;
+  const rasterInfo=format.raster?`<strong>Resolución final:</strong> ${pxW} × ${pxH} px (escala ${quality.pngScale}x para PNG transparente).`:`<strong>Salida vectorial:</strong> mantiene líneas y formas sin rasterizar de forma innecesaria.`;
   if(formatHelp){
     formatHelp.innerHTML=`<strong>${format.label}</strong><br>${format.description}<br><br><strong>Calidad ${quality.label.toLowerCase()}</strong><br>${quality.description}`;
   }
   if(exportSummary){
-    const extraCanvaNote=(state.exportUsage==='canva')?'<br><strong>Nota Canva:</strong> el PNG sale sin metadato de dpi porque Canva a veces lo interpreta y reduce la hoja. Si quieres máxima fidelidad de medida en Canva, sigue siendo mejor PDF de imprenta.':'';
-    exportSummary.innerHTML=`<strong>Tamaño final:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm.<br><strong>Salida:</strong> ${pagesInfo}<br>${rasterInfo}<br><strong>Sugerencia activa:</strong> ${usage.title}. ${usage.note}${extraCanvaNote}`;
+    exportSummary.innerHTML=`<strong>Tamaño final:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm.<br><strong>Salida:</strong> ${pagesInfo}<br>${rasterInfo}<br><strong>Sugerencia activa:</strong> ${usage.title}. ${usage.note}`;
   }
   document.querySelectorAll('[data-usage]').forEach(btn=>btn.classList.toggle('active',btn.dataset.usage===state.exportUsage));
 }
@@ -1260,8 +1302,7 @@ async function runExport(){
   const originalLabel=confirmBtn.textContent;
   confirmBtn.textContent='Generando...';
   try{
-    if(state.exportFormat==='png') await exportPng(quality.dpi);
-    if(state.exportFormat==='pdf') await exportPdfRaster(quality.dpi);
+    if(state.exportFormat==='png') await exportPng(quality.pngScale);
     if(state.exportFormat==='pdf-vector') await exportPdfVector();
     if(state.exportFormat==='svg') await exportSvgFile();
     closeExportModal();
