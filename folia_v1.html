@@ -543,7 +543,7 @@ function drawGrid(svg,rect,config=state,options={}){
 }
 function drawGridSheet(svg,rect,config=state){
   const radius=config.gridRoundedCorners?2.5:0;
-  const frameStroke=Math.max(Number(state.strokeWidth)||0.2,0.45);
+  const frameStroke=Math.max(Number(state.strokeWidth)||0.2,0.42);
   function appendClippedGrid(targetRect){
     if(!radius){
       drawGrid(svg,targetRect,config,{skipOuter:true});
@@ -831,14 +831,15 @@ function setArmado(id){
 function snapRasterEdgeMm(value,dpi){const scale=pxPerMm(dpi); return Math.round(value*scale)/scale;}
 function snapRasterCenterMm(value,dpi){const scale=pxPerMm(dpi); return (Math.round(value*scale-0.5)+0.5)/scale;}
 function snapStrokeWidthMm(value,dpi){const scale=pxPerMm(dpi); return Math.max(1,Math.round(Math.max(value,0.05)*scale))/scale;}
-function getRasterStrokeWidthMm(node,value,dpi){
+function getRasterStrokeWidthMm(node,value,dpi,strokeBoost=1){
   const base=snapStrokeWidthMm(value,dpi);
+  const boosted=Math.max(base,roundMm(base*Math.max(1,Number(strokeBoost)||1)));
   const role=(node&&node.getAttribute?node.getAttribute('data-role'):'')||'';
   let min=value;
   if(role==='rule-rect'||role==='rule-line') min=Math.max(value,0.22);
   else if(role==='marker-outline') min=Math.max(value,0.55);
   else if(role==='frame-outline') min=Math.max(value,0.5);
-  return roundMm(Math.max(base,min));
+  return roundMm(Math.max(boosted,min));
 }
 function convertRuleRectsToLines(root){
   root.querySelectorAll('rect[data-role="rule-rect"]').forEach(rect=>{
@@ -875,7 +876,7 @@ function convertRuleRectsToLines(root){
   return root;
 }
 
-function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=false}={}){
+function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=false,strokeBoost=1}={}){
   const pageSize=getPageSize();
   const rasterWidth=mmToPx(pageSize.width,dpi);
   const rasterHeight=mmToPx(pageSize.height,dpi);
@@ -895,7 +896,7 @@ function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=fa
   nodes.forEach(node=>{
     if(node.hasAttribute('stroke-width')){
       const sw=Number(node.getAttribute('stroke-width'))||0;
-      node.setAttribute('stroke-width',String(roundMm(forRaster?getRasterStrokeWidthMm(node,sw,dpi):sw)));
+      node.setAttribute('stroke-width',String(roundMm(forRaster?getRasterStrokeWidthMm(node,sw,dpi,strokeBoost):sw)));
       node.setAttribute('vector-effect','non-scaling-stroke');
       node.setAttribute('stroke-linecap',node.getAttribute('stroke-linecap')||'butt');
       node.setAttribute('stroke-linejoin',node.getAttribute('stroke-linejoin')||'miter');
@@ -911,7 +912,7 @@ function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=fa
         if(orientation==='h'){
           const left=snapRasterEdgeMm(x,dpi);
           const right=snapRasterEdgeMm(x+w,dpi);
-          const snappedHeight=Math.max(minStep,getRasterStrokeWidthMm(node,h,dpi));
+          const snappedHeight=Math.max(minStep,getRasterStrokeWidthMm(node,h,dpi,strokeBoost));
           const centerY=snapRasterCenterMm(y+(h/2),dpi);
           node.setAttribute('x',String(roundMm(left)));
           node.setAttribute('y',String(roundMm(centerY-(snappedHeight/2))));
@@ -920,7 +921,7 @@ function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=fa
         } else if(orientation==='v'){
           const top=snapRasterEdgeMm(y,dpi);
           const bottom=snapRasterEdgeMm(y+h,dpi);
-          const snappedWidth=Math.max(minStep,getRasterStrokeWidthMm(node,w,dpi));
+          const snappedWidth=Math.max(minStep,getRasterStrokeWidthMm(node,w,dpi,strokeBoost));
           const centerX=snapRasterCenterMm(x+(w/2),dpi);
           node.setAttribute('x',String(roundMm(centerX-(snappedWidth/2))));
           node.setAttribute('y',String(roundMm(top)));
@@ -946,10 +947,10 @@ function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=fa
   });
   return svg;
 }
-function buildExportSvgElement({includeBackground=false,optimizeForRaster=false,dpi=300,face="front"}={}){
+function buildExportSvgElement({includeBackground=false,optimizeForRaster=false,dpi=300,face="front",strokeBoost=1}={}){
   const svg=buildSheetSvg(face);
   if(!optimizeForRaster) convertRuleRectsToLines(svg);
-  return normalizeSvgForExport(svg,{forRaster:optimizeForRaster,dpi,includeBackground});
+  return normalizeSvgForExport(svg,{forRaster:optimizeForRaster,dpi,includeBackground,strokeBoost});
 }
 function svgElementToMarkup(svg){
   const markup=new XMLSerializer().serializeToString(svg);
@@ -965,11 +966,13 @@ function downloadBlob(blob,filename){
   a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),600);
 }
-async function exportSvgToCanvas({transparent=true,dpi=300,face="front"}={}){
+async function exportSvgToCanvas({transparent=true,dpi=300,face="front",renderScale=1,strokeBoost=1}={}){
   const pageSize=getPageSize();
-  const targetWidth=mmToPx(pageSize.width,dpi);
-  const targetHeight=mmToPx(pageSize.height,dpi);
-  const svg=buildExportSvgElement({includeBackground:!transparent,optimizeForRaster:true,dpi,face});
+  const safeRenderScale=Math.max(1,Number(renderScale)||1);
+  const renderDpi=Math.round(dpi*safeRenderScale);
+  const targetWidth=mmToPx(pageSize.width,renderDpi);
+  const targetHeight=mmToPx(pageSize.height,renderDpi);
+  const svg=buildExportSvgElement({includeBackground:!transparent,optimizeForRaster:true,dpi:renderDpi,face,strokeBoost});
   const markup=svgElementToMarkup(svg);
   const blob=new Blob([markup],{type:'image/svg+xml;charset=utf-8'});
   const url=URL.createObjectURL(blob);
@@ -1055,14 +1058,16 @@ async function exportPng(dpi){
   downloadBlob(blob,`${sanitizeFileName(state.projectName)}.png`);
 }
 async function exportPdfRaster(dpi){
+  const rasterRenderScale=1.15;
+  const rasterStrokeBoost=1.12;
   const pageSize=getPageSize();
   if(!window.jspdf||!window.jspdf.jsPDF) throw new Error('El motor PDF no está disponible en esta sesión.');
   const { jsPDF } = window.jspdf;
   const pdf=new jsPDF({orientation:pageSize.width>pageSize.height?'landscape':'portrait',unit:'mm',format:[pageSize.width,pageSize.height],compress:true,precision:12});
-  const frontCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"front"});
+  const frontCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"front",renderScale:rasterRenderScale,strokeBoost:rasterStrokeBoost});
   pdf.addImage(frontCanvas.toDataURL('image/png'),'PNG',0,0,pageSize.width,pageSize.height,undefined,'NONE');
   if(state.printMode==="duplex"){
-    const backCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"back"});
+    const backCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"back",renderScale:rasterRenderScale,strokeBoost:rasterStrokeBoost});
     pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
     pdf.addImage(backCanvas.toDataURL('image/png'),'PNG',0,0,pageSize.width,pageSize.height,undefined,'NONE');
   }
