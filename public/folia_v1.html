@@ -1363,6 +1363,77 @@ function svgPathToPdfOps(d){
   }
   return ops;
 }
+  function parseInlineSvgStyle(node){
+  const out={};
+  const raw=(node?.getAttribute?.('style')||'').trim();
+  if(!raw) return out;
+  raw.split(';').forEach(entry=>{
+    const part=entry.trim();
+    if(!part) return;
+    const idx=part.indexOf(':');
+    if(idx<0) return;
+    const key=part.slice(0,idx).trim();
+    const value=part.slice(idx+1).trim();
+    if(key) out[key]=value;
+  });
+  return out;
+}
+
+function resolveSvgColorToken(parsed,presentation){
+  if(parsed==='currentColor') return presentation?.color||null;
+  return parsed;
+}
+
+function collectNodePresentation(node,inheritedPresentation={}){
+  const inline=parseInlineSvgStyle(node);
+  const pick=(name,fallback=null)=>{
+    if(node?.hasAttribute?.(name)) return node.getAttribute(name);
+    if(Object.prototype.hasOwnProperty.call(inline,name)) return inline[name];
+    return fallback;
+  };
+
+  const inheritedColorRaw=inheritedPresentation.colorRaw||'#000000';
+  const colorRaw=pick('color',inheritedColorRaw);
+  const colorParsed=parseColorValue(colorRaw);
+  const color=resolveSvgColorToken(colorParsed,inheritedPresentation);
+
+  const strokeRaw=pick('stroke',inheritedPresentation.strokeRaw||'none');
+  const fillRaw=pick('fill',inheritedPresentation.fillRaw||'none');
+  const stroke=resolveSvgColorToken(parseColorValue(strokeRaw),{...inheritedPresentation,color});
+  const fill=resolveSvgColorToken(parseColorValue(fillRaw),{...inheritedPresentation,color});
+
+  const opacityRaw=pick('opacity',inheritedPresentation.opacity??1);
+  const strokeOpacityRaw=pick('stroke-opacity',inheritedPresentation.strokeOpacity??1);
+  const fillOpacityRaw=pick('fill-opacity',inheritedPresentation.fillOpacity??1);
+
+  const toUnitFloat=(value,fallback=1)=>{
+    const n=Number(value);
+    if(!Number.isFinite(n)) return fallback;
+    return Math.max(0,Math.min(1,n));
+  };
+
+  const lineWidthRaw=pick('stroke-width',inheritedPresentation.lineWidth??0.2);
+  const lineWidth=Math.max(0.05,Number(lineWidthRaw)||0.2);
+  const lineCap=pick('stroke-linecap',inheritedPresentation.lineCap||'butt');
+  const lineJoin=pick('stroke-linejoin',inheritedPresentation.lineJoin||'miter');
+  const transform=pick('transform',null);
+
+  return {
+    colorRaw,
+    color,
+    strokeRaw,
+    fillRaw,
+    stroke,
+    fill,
+    opacity:toUnitFloat(opacityRaw,1),
+    strokeOpacity:toUnitFloat(strokeOpacityRaw,1),
+    fillOpacity:toUnitFloat(fillOpacityRaw,1),
+    lineWidth,
+    lineCap,
+    lineJoin,
+    transform
+  };
+}
 function drawSvgNodeToPdf(node,inheritedPresentation={}){
   if(!node||node.nodeType!==1) return;
   const tag=node.tagName.toLowerCase();
