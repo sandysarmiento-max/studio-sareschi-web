@@ -1252,26 +1252,54 @@ function withPdfGraphicsState(cb){
   }
 }
 function applyPdfTransform(transform){
-  if(!transform||typeof pdfCurrent.setCurrentTransformationMatrix!=='function') return;
+  if(!transform||typeof pdfCurrent.setCurrentTransformationMatrix!=='function'){
+    console.warn('[PDF vector export][transform] skip applyPdfTransform',{transform, reason:'missing-transform-or-api'});
+    return;
+  }
   const raw=String(transform).trim();
   const operations=raw.match(/[a-zA-Z]+\([^)]*\)/g)||[];
-  operations.forEach(op=>{
+
+  console.warn('[PDF vector export][transform] begin',{
+    raw,
+    operationCount:operations.length
+  });
+
+  operations.forEach((op,index)=>{
     const match=op.match(/^([a-zA-Z]+)\(([^)]*)\)$/);
-    if(!match) return;
+    if(!match){
+      console.warn('[PDF vector export][transform] invalid-op-format',{index, op});
+      return;
+    }
+
     const kind=match[1].toLowerCase();
-    const params=match[2].split(/[\s,]+/).map(v=>Number(v.trim())).filter(v=>Number.isFinite(v));
+    const rawParams=match[2].split(/[\s,]+/).filter(Boolean);
+    const params=rawParams.map(v=>Number(v.trim()));
+    const hasNaN=params.some(v=>!Number.isFinite(v));
+
+    if(hasNaN){
+      console.warn('[PDF vector export][transform] invalid-params-NaN',{index, op, rawParams, params});
+      return;
+    }
+
     let matrix=null;
-    if(kind==='matrix'&&params.length===6) matrix=params;
+
+    if(kind==='matrix'){
+      if(params.length===6) matrix=params;
+      else console.warn('[PDF vector export][transform] invalid-matrix-length',{index, op, params});
+    }
+
     if(kind==='translate'){
       const tx=params[0]||0;
       const ty=params.length>1?params[1]:0;
       matrix=[1,0,0,1,tx,ty];
     }
+
     if(kind==='scale'){
       const sx=params[0]??1;
       const sy=params.length>1?params[1]:sx;
       matrix=[sx,0,0,sy,0,0];
     }
+
     if(kind==='rotate'){
       const angle=((params[0]||0)*Math.PI)/180;
       const cos=Math.cos(angle), sin=Math.sin(angle);
@@ -1282,36 +1310,97 @@ function applyPdfTransform(transform){
         matrix=[cos,sin,-sin,cos,0,0];
       }
     }
-    if(!matrix) return;
-    try{ pdfCurrent.setCurrentTransformationMatrix(matrix); }catch(_){}
+
+    if(!matrix){
+      console.warn('[PDF vector export][transform] unsupported-kind-or-empty-matrix',{index, kind, op, params});
+      return;
+    }
+
+    const invalidMatrix=matrix.some(v=>!Number.isFinite(v));
+    if(invalidMatrix){
+      console.warn('[PDF vector export][transform] invalid-matrix-NaN',{index, kind, op, matrix});
+      return;
+    }
+
+    console.warn('[PDF vector export][transform] apply-matrix',{index, kind, op, matrix});
+
+    try{
+      pdfCurrent.setCurrentTransformationMatrix(matrix);
+    }catch(error){
+      console.warn('[PDF vector export][transform] setCurrentTransformationMatrix failed',{index, kind, op, matrix, error});
+    }
   });
+
+  console.warn('[PDF vector export][transform] end',{raw});
 }
 function applySvgViewportTransform(node){
-  if(!node||node.tagName.toLowerCase()!=='svg'||typeof pdfCurrent.setCurrentTransformationMatrix!=='function') return;
+  if(!node||node.tagName.toLowerCase()!=='svg'||typeof pdfCurrent.setCurrentTransformationMatrix!=='function'){
+    console.warn('[PDF vector export][viewport] skip',{reason:'invalid-node-or-api', tag:node?.tagName||null});
+    return;
+  }
+
   const x=Number(node.getAttribute('x'))||0;
   const y=Number(node.getAttribute('y'))||0;
   const width=Number(node.getAttribute('width'));
   const height=Number(node.getAttribute('height'));
-  const viewBox=(node.getAttribute('viewBox')||'').trim();
+  const viewBoxRaw=(node.getAttribute('viewBox')||'').trim();
+
+  console.warn('[PDF vector export][viewport] input',{
+    x,y,width,height,viewBox:viewBoxRaw
+  });
+
   if(!(width>0)&&!(height>0)){
-    if(x||y){ try{ pdfCurrent.setCurrentTransformationMatrix([1,0,0,1,x,y]); }catch(_){} }
+    const matrix=[1,0,0,1,x,y];
+    console.warn('[PDF vector export][viewport] no-size fallback-translate',{matrix});
+    if(x||y){
+      try{ pdfCurrent.setCurrentTransformationMatrix(matrix); }
+      catch(error){ console.warn('[PDF vector export][viewport] apply failed',{matrix,error}); }
+    }
     return;
   }
-  if(!viewBox){
-    try{ pdfCurrent.setCurrentTransformationMatrix([1,0,0,1,x,y]); }catch(_){}
+
+  if(!viewBoxRaw){
+    const matrix=[1,0,0,1,x,y];
+    console.warn('[PDF vector export][viewport] no-viewBox translate-only',{matrix});
+    try{ pdfCurrent.setCurrentTransformationMatrix(matrix); }
+    catch(error){ console.warn('[PDF vector export][viewport] apply failed',{matrix,error}); }
     return;
   }
-  const box=viewBox.split(/[\s,]+/).map(v=>Number(v)).filter(v=>Number.isFinite(v));
-  if(box.length!==4||box[2]===0||box[3]===0){
-    try{ pdfCurrent.setCurrentTransformationMatrix([1,0,0,1,x,y]); }catch(_){}
+
+  const rawParts=viewBoxRaw.split(/[\s,]+/).filter(Boolean);
+  const box=rawParts.map(v=>Number(v));
+  const hasNaN=box.some(v=>!Number.isFinite(v));
+
+  if(hasNaN||box.length!==4||box[2]===0||box[3]===0){
+    const matrix=[1,0,0,1,x,y];
+    console.warn('[PDF vector export][viewport] invalid-viewBox fallback-translate',{
+      rawParts, box, hasNaN, matrix
+    });
+    try{ pdfCurrent.setCurrentTransformationMatrix(matrix); }
+    catch(error){ console.warn('[PDF vector export][viewport] apply failed',{matrix,error}); }
     return;
   }
+
   const minX=box[0], minY=box[1], vbW=box[2], vbH=box[3];
   const sx=width/vbW;
   const sy=height/vbH;
   const tx=x-(minX*sx);
   const ty=y-(minY*sy);
-  try{ pdfCurrent.setCurrentTransformationMatrix([sx,0,0,sy,tx,ty]); }catch(_){}
+  const matrix=[sx,0,0,sy,tx,ty];
+  const invalidMatrix=matrix.some(v=>!Number.isFinite(v));
+
+  if(invalidMatrix){
+    console.warn('[PDF vector export][viewport] invalid-matrix-NaN',{matrix, x,y,width,height,box});
+    return;
+  }
+
+  console.warn('[PDF vector export][viewport] apply-matrix',{matrix, minX,minY,vbW,vbH});
+
+  try{
+    pdfCurrent.setCurrentTransformationMatrix(matrix);
+  }catch(error){
+    console.warn('[PDF vector export][viewport] apply failed',{matrix,error});
+  }
 }
 function getPdfPaint(presentation){
   const stroke=presentation.stroke;
