@@ -467,6 +467,75 @@ function markerIconHtml(style,color="#334155"){
 function markerPickerHtml(selectedStyle,color,zone="single"){
   return `<details class="icon-select"><summary>${markerIconHtml(selectedStyle,color)}<span>${markerLabel(selectedStyle)}</span><span class="dropdown-caret">▾</span></summary><div class="icon-select-menu">${MARKER_STYLE_ORDER.map(style=>`<button type="button" class="marker-option" data-marker-option="${style}" data-marker-zone="${zone}">${markerIconHtml(style,color)}<span>${markerLabel(style)}</span></button>`).join("")}</div></details>`;
 }
+  function formatPathNumber(value){
+  const n=Number(value)||0;
+  return String(roundMm(n,4));
+}
+function transformPathData(pathData,tx,ty,scale){
+  const tokens=String(pathData||"").match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g)||[];
+  let i=0;
+  let cmd="";
+  const out=[];
+  const pushNum=n=>out.push(formatPathNumber(n));
+  while(i<tokens.length){
+    const token=tokens[i++];
+    if(/[a-zA-Z]/.test(token)){
+      cmd=token;
+      out.push(cmd);
+    } else {
+      i--;
+    }
+    if(!cmd) continue;
+    const up=cmd.toUpperCase();
+    const rel=cmd!==up;
+    if(up==="Z"){ continue; }
+    if(up==="M"||up==="L"||up==="T"){
+      const x=Number(tokens[i++]), y=Number(tokens[i++]);
+      if(rel){ pushNum(x*scale); pushNum(y*scale); }
+      else { pushNum((x*scale)+tx); pushNum((y*scale)+ty); }
+      continue;
+    }
+    if(up==="H"){
+      const x=Number(tokens[i++]);
+      if(rel) pushNum(x*scale);
+      else pushNum((x*scale)+tx);
+      continue;
+    }
+    if(up==="V"){
+      const y=Number(tokens[i++]);
+      if(rel) pushNum(y*scale);
+      else pushNum((y*scale)+ty);
+      continue;
+    }
+    if(up==="C"){
+      const x1=Number(tokens[i++]), y1=Number(tokens[i++]), x2=Number(tokens[i++]), y2=Number(tokens[i++]), x=Number(tokens[i++]), y=Number(tokens[i++]);
+      if(rel){
+        pushNum(x1*scale); pushNum(y1*scale); pushNum(x2*scale); pushNum(y2*scale); pushNum(x*scale); pushNum(y*scale);
+      } else {
+        pushNum((x1*scale)+tx); pushNum((y1*scale)+ty); pushNum((x2*scale)+tx); pushNum((y2*scale)+ty); pushNum((x*scale)+tx); pushNum((y*scale)+ty);
+      }
+      continue;
+    }
+    if(up==="S"||up==="Q"){
+      const x1=Number(tokens[i++]), y1=Number(tokens[i++]), x=Number(tokens[i++]), y=Number(tokens[i++]);
+      if(rel){
+        pushNum(x1*scale); pushNum(y1*scale); pushNum(x*scale); pushNum(y*scale);
+      } else {
+        pushNum((x1*scale)+tx); pushNum((y1*scale)+ty); pushNum((x*scale)+tx); pushNum((y*scale)+ty);
+      }
+      continue;
+    }
+    if(up==="A"){
+      const rx=Number(tokens[i++]), ry=Number(tokens[i++]), rot=Number(tokens[i++]), laf=Number(tokens[i++]), sf=Number(tokens[i++]), x=Number(tokens[i++]), y=Number(tokens[i++]);
+      pushNum(rx*scale); pushNum(ry*scale); pushNum(rot); pushNum(laf); pushNum(sf);
+      if(rel){ pushNum(x*scale); pushNum(y*scale); }
+      else { pushNum((x*scale)+tx); pushNum((y*scale)+ty); }
+      continue;
+    }
+    return String(pathData||"");
+  }
+  return out.join(" ");
+}
 async function loadMarkerAsset(style){
   const marker=MARKER_ASSETS[style];
   if(!marker?.file||markerAssetCache.has(style)) return;
@@ -497,7 +566,6 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
   const iconX=x+offset;
   const iconY=top+offset;
   const strokeWidth=Math.max(0.14,size*0.045);
-
   if(marker.kind==="square"){
     addRect(svg,iconX,iconY,iconSize,iconSize,{fill:"none",stroke:markerColor,"stroke-width":roundMm(strokeWidth),"data-role":"marker-outline"});
     return true;
@@ -506,13 +574,12 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
     addCircle(svg,iconX+(iconSize/2),iconY+(iconSize/2),iconSize/2,{fill:"none",stroke:markerColor,"stroke-width":roundMm(strokeWidth),"data-role":"marker-outline"});
     return true;
   }
-
   const pathData=INTERNAL_MARKER_PATHS[marker.kind];
   if(!pathData) return false;
   const scale=iconSize/MARKER_BASE_VIEWBOX;
+  const finalPathData=transformPathData(pathData,iconX,iconY,scale);
   const path=el("path",{
-    d:pathData,
-    transform:`translate(${roundMm(iconX)} ${roundMm(iconY)}) scale(${roundMm(scale,5)})`,
+    d:finalPathData,
     fill:marker.kind==="heart-filled"?markerColor:"none",
     stroke:marker.kind==="heart-filled"?"none":markerColor,
     "stroke-width":marker.kind==="heart-filled"?0:roundMm(Math.max(0.85,strokeWidth/scale),4),
