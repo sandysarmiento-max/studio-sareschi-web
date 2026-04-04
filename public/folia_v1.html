@@ -1442,26 +1442,34 @@ async function exportPdfVector(){
   const pdf=new jsPDF({orientation:pageSize.width>pageSize.height?'landscape':'portrait',unit:'mm',format:[pageSize.width,pageSize.height],compress:true,precision:12});
   const frontSvg=buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"front"});
   const backSvg=state.printMode==="duplex"?buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"back"}):null;
-  if(typeof pdf.svg==='function'){
-    await pdf.svg(frontSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
-    if(backSvg){
-      pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
-      await pdf.svg(backSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
+  const requiresMarkerFallback=stateNeedsMarkerAssets();
+  const renderWithManualFallback=()=>{
+    pdfCurrent=pdf;
+    try{
+      drawSvgNodeToPdf(frontSvg);
+      if(backSvg){
+        pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
+        drawSvgNodeToPdf(backSvg);
+      }
+    } finally {
+      pdfCurrent=null;
     }
-    pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
-    return;
-  }
-  pdfCurrent=pdf;
-  try{
-    drawSvgNodeToPdf(frontSvg);
-    if(backSvg){
-      pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
-      drawSvgNodeToPdf(backSvg);
+  };
+  if(typeof pdf.svg==='function'&&!requiresMarkerFallback){
+    try{
+      await pdf.svg(frontSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
+      if(backSvg){
+        pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
+        await pdf.svg(backSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
+      }
+    } catch(error){
+      console.warn('Fallback manual SVG->PDF por incompatibilidad en pdf.svg',error);
+      renderWithManualFallback();
     }
-    pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
-  } finally {
-    pdfCurrent=null;
+  } else {
+    renderWithManualFallback();
   }
+  pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
 }
 async function exportSvgFile(){
   if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
