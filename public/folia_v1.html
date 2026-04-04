@@ -292,9 +292,9 @@ const MARKER_ASSETS={
 const MARKER_STYLE_ORDER=["cuadrado","circuloContorno","corazonContorno","corazonRelleno","ubicacion","regalo","correo","whatsapp","web","numerado"];
 const MARKER_BASE_VIEWBOX=24;
 const INTERNAL_MARKER_PATHS={
-  "heart-outline":"M12 21c-0.3 0-0.6-0.1-0.9-0.3C6.2 17.7 3 14.8 3 10.9C3 7.9 5.3 5.7 8.2 5.7c1.6 0 3 0.7 3.8 1.9c0.8-1.2 2.3-1.9 3.8-1.9c2.9 0 5.2 2.3 5.2 5.2c0 3.9-3.2 6.8-8.1 9.8c-0.3 0.2-0.6 0.3-0.9 0.3z",
-  "heart-filled":"M12 21c-0.3 0-0.6-0.1-0.9-0.3C6.2 17.7 3 14.8 3 10.9C3 7.9 5.3 5.7 8.2 5.7c1.6 0 3 0.7 3.8 1.9c0.8-1.2 2.3-1.9 3.8-1.9c2.9 0 5.2 2.3 5.2 5.2c0 3.9-3.2 6.8-8.1 9.8c-0.3 0.2-0.6 0.3-0.9 0.3z",
-  gift:"M4 10h16v10H4z M2.8 8h18.4v2H2.8z M12 8V5 M9.2 8c-1.5 0-2.7-1.2-2.7-2.6C6.5 3.8 8 2.8 9.7 3.3c1.4 0.4 2.3 1.9 2.3 3.4V8z M14.8 8c1.5 0 2.7-1.2 2.7-2.6c0-1.6-1.5-2.6-3.2-2.1c-1.4 0.4-2.3 1.9-2.3 3.4V8z",
+  "heart-outline":"M12 20 C11.8 20 11.6 19.95 11.4 19.85 C6.7 16.9 4 14.3 4 10.8 C4 8.3 5.9 6.4 8.3 6.4 C9.9 6.4 11.3 7.2 12 8.5 C12.7 7.2 14.1 6.4 15.7 6.4 C18.1 6.4 20 8.3 20 10.8 C20 14.3 17.3 16.9 12.6 19.85 C12.4 19.95 12.2 20 12 20 Z",
+  "heart-filled":"M12 20 C11.8 20 11.6 19.95 11.4 19.85 C6.7 16.9 4 14.3 4 10.8 C4 8.3 5.9 6.4 8.3 6.4 C9.9 6.4 11.3 7.2 12 8.5 C12.7 7.2 14.1 6.4 15.7 6.4 C18.1 6.4 20 8.3 20 10.8 C20 14.3 17.3 16.9 12.6 19.85 C12.4 19.95 12.2 20 12 20 Z",
+  gift:"M4 10 L20 10 L20 20 L4 20 Z M3 8 L21 8 L21 10 L3 10 Z M12 8 L12 20 M12 8 C12 6.6 12.9 5.1 14.4 4.6 C15.9 4.1 17.2 5 17.2 6.4 C17.2 7.3 16.3 8 15.1 8 Z M12 8 C12 6.6 11.1 5.1 9.6 4.6 C8.1 4.1 6.8 5 6.8 6.4 C6.8 7.3 7.7 8 8.9 8 Z",
   location:"M12 21s6-5.7 6-10.3C18 7.2 15.3 4.5 12 4.5S6 7.2 6 10.7C6 15.3 12 21 12 21z M12 13.4a2.7 2.7 0 1 1 0-5.4a2.7 2.7 0 0 1 0 5.4z",
   envelope:"M3.5 6h17v12h-17z M3.5 7l8.5 6L20.5 7",
   whatsapp:"M12 4.5a7.5 7.5 0 0 0-6.4 11.5L5 20l4.2-1.3A7.5 7.5 0 1 0 12 4.5z M9.1 8.7c0.2-0.5 0.5-0.5 0.8-0.5h0.7c0.2 0 0.4 0.1 0.5 0.4l0.8 2c0.1 0.2 0 0.4-0.1 0.6l-0.5 0.6c-0.1 0.1-0.1 0.2 0 0.4c0.4 0.8 1.1 1.5 1.9 2c0.2 0.1 0.3 0.1 0.4 0l0.7-0.8c0.1-0.2 0.4-0.2 0.6-0.1l1.9 0.9c0.3 0.1 0.4 0.3 0.3 0.6l-0.3 1.2c-0.1 0.5-0.6 0.8-1.1 0.8c-3.4-0.1-6.6-3.4-6.9-6.8c0-0.3 0.1-0.6 0.2-0.9z",
@@ -471,8 +471,81 @@ function markerPickerHtml(selectedStyle,color,zone="single"){
   const n=Number(value)||0;
   return String(roundMm(n,4));
 }
-function transformPathData(pathData,tx,ty,scale){
+function normalizePathToPdfSafe(pathData){
   const tokens=String(pathData||"").match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g)||[];
+  let i=0,cmd="";
+  let cx=0,cy=0,startX=0,startY=0;
+  const out=[];
+  const push=(c,...nums)=>{out.push(c,...nums.map(formatPathNumber));};
+  while(i<tokens.length){
+    const token=tokens[i++];
+    if(/[a-zA-Z]/.test(token)){ cmd=token; }
+    else { i--; }
+    if(!cmd) continue;
+    const up=cmd.toUpperCase();
+    const rel=cmd!==up;
+    if(up==="Z"){
+      out.push("Z");
+      cx=startX; cy=startY;
+      continue;
+    }
+    if(up==="M"){
+      let x=Number(tokens[i++]), y=Number(tokens[i++]);
+      if(rel){ x+=cx; y+=cy; }
+      cx=x; cy=y; startX=x; startY=y;
+      push("M",x,y);
+      while(i<tokens.length && !/[a-zA-Z]/.test(tokens[i])){
+        x=Number(tokens[i++]); y=Number(tokens[i++]);
+        if(rel){ x+=cx; y+=cy; }
+        cx=x; cy=y;
+        push("L",x,y);
+      }
+      continue;
+    }
+    if(up==="L"){
+      while(i<tokens.length && !/[a-zA-Z]/.test(tokens[i])){
+        let x=Number(tokens[i++]), y=Number(tokens[i++]);
+        if(rel){ x+=cx; y+=cy; }
+        cx=x; cy=y;
+        push("L",x,y);
+      }
+      continue;
+    }
+    if(up==="H"){
+      while(i<tokens.length && !/[a-zA-Z]/.test(tokens[i])){
+        let x=Number(tokens[i++]);
+        if(rel) x+=cx;
+        cx=x;
+        push("L",cx,cy);
+      }
+      continue;
+    }
+    if(up==="V"){
+      while(i<tokens.length && !/[a-zA-Z]/.test(tokens[i])){
+        let y=Number(tokens[i++]);
+        if(rel) y+=cy;
+        cy=y;
+        push("L",cx,cy);
+      }
+      continue;
+    }
+    if(up==="C"){
+      while(i<tokens.length && !/[a-zA-Z]/.test(tokens[i])){
+        let x1=Number(tokens[i++]), y1=Number(tokens[i++]), x2=Number(tokens[i++]), y2=Number(tokens[i++]), x=Number(tokens[i++]), y=Number(tokens[i++]);
+        if(rel){ x1+=cx; y1+=cy; x2+=cx; y2+=cy; x+=cx; y+=cy; }
+        cx=x; cy=y;
+        push("C",x1,y1,x2,y2,x,y);
+      }
+      continue;
+    }
+    return "";
+  }
+  return out.join(" ");
+}
+function transformPathData(pathData,tx,ty,scale){
+  const normalized=normalizePathToPdfSafe(pathData);
+  if(!normalized) return "";
+  const tokens=normalized.match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g)||[];
   let i=0;
   let cmd="";
   const out=[];
@@ -487,52 +560,18 @@ function transformPathData(pathData,tx,ty,scale){
     }
     if(!cmd) continue;
     const up=cmd.toUpperCase();
-    const rel=cmd!==up;
     if(up==="Z"){ continue; }
-    if(up==="M"||up==="L"||up==="T"){
+    if(up==="M"||up==="L"){
       const x=Number(tokens[i++]), y=Number(tokens[i++]);
-      if(rel){ pushNum(x*scale); pushNum(y*scale); }
-      else { pushNum((x*scale)+tx); pushNum((y*scale)+ty); }
-      continue;
-    }
-    if(up==="H"){
-      const x=Number(tokens[i++]);
-      if(rel) pushNum(x*scale);
-      else pushNum((x*scale)+tx);
-      continue;
-    }
-    if(up==="V"){
-      const y=Number(tokens[i++]);
-      if(rel) pushNum(y*scale);
-      else pushNum((y*scale)+ty);
+      pushNum((x*scale)+tx); pushNum((y*scale)+ty);
       continue;
     }
     if(up==="C"){
       const x1=Number(tokens[i++]), y1=Number(tokens[i++]), x2=Number(tokens[i++]), y2=Number(tokens[i++]), x=Number(tokens[i++]), y=Number(tokens[i++]);
-      if(rel){
-        pushNum(x1*scale); pushNum(y1*scale); pushNum(x2*scale); pushNum(y2*scale); pushNum(x*scale); pushNum(y*scale);
-      } else {
-        pushNum((x1*scale)+tx); pushNum((y1*scale)+ty); pushNum((x2*scale)+tx); pushNum((y2*scale)+ty); pushNum((x*scale)+tx); pushNum((y*scale)+ty);
-      }
+      pushNum((x1*scale)+tx); pushNum((y1*scale)+ty); pushNum((x2*scale)+tx); pushNum((y2*scale)+ty); pushNum((x*scale)+tx); pushNum((y*scale)+ty);
       continue;
     }
-    if(up==="S"||up==="Q"){
-      const x1=Number(tokens[i++]), y1=Number(tokens[i++]), x=Number(tokens[i++]), y=Number(tokens[i++]);
-      if(rel){
-        pushNum(x1*scale); pushNum(y1*scale); pushNum(x*scale); pushNum(y*scale);
-      } else {
-        pushNum((x1*scale)+tx); pushNum((y1*scale)+ty); pushNum((x*scale)+tx); pushNum((y*scale)+ty);
-      }
-      continue;
-    }
-    if(up==="A"){
-      const rx=Number(tokens[i++]), ry=Number(tokens[i++]), rot=Number(tokens[i++]), laf=Number(tokens[i++]), sf=Number(tokens[i++]), x=Number(tokens[i++]), y=Number(tokens[i++]);
-      pushNum(rx*scale); pushNum(ry*scale); pushNum(rot); pushNum(laf); pushNum(sf);
-      if(rel){ pushNum(x*scale); pushNum(y*scale); }
-      else { pushNum((x*scale)+tx); pushNum((y*scale)+ty); }
-      continue;
-    }
-    return String(pathData||"");
+    return "";
   }
   return out.join(" ");
 }
@@ -575,20 +614,21 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
     return true;
   }
   const pathData=INTERNAL_MARKER_PATHS[marker.kind];
-  if(!pathData) return false;
-  const scale=iconSize/MARKER_BASE_VIEWBOX;
-  const finalPathData=transformPathData(pathData,iconX,iconY,scale);
-  const path=el("path",{
-    d:finalPathData,
-    fill:marker.kind==="heart-filled"?markerColor:"none",
-    stroke:marker.kind==="heart-filled"?"none":markerColor,
-    "stroke-width":marker.kind==="heart-filled"?0:roundMm(Math.max(0.85,strokeWidth/scale),4),
-    "stroke-linecap":"round",
-    "stroke-linejoin":"round",
-    "data-role":"marker-outline"
-  });
-  svg.appendChild(path);
-  return true;
+if(!pathData) return false;
+const scale=iconSize/MARKER_BASE_VIEWBOX;
+const finalPathData=transformPathData(pathData,iconX,iconY,scale);
+if(!finalPathData) return false;
+const path=el("path",{
+  d:finalPathData,
+  fill:marker.kind==="heart-filled"?markerColor:"none",
+  stroke:marker.kind==="heart-filled"?"none":markerColor,
+  "stroke-width":marker.kind==="heart-filled"?0:roundMm(Math.max(0.85,strokeWidth/scale),4),
+  "stroke-linecap":"round",
+  "stroke-linejoin":"round",
+  "data-role":"marker-outline"
+});
+svg.appendChild(path);
+return true;
 }
 function drawList(svg,rect,config=state){
   const {gridStroke}=getStrokeSet(config);
