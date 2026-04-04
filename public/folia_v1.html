@@ -1367,12 +1367,18 @@ function drawSvgNodeToPdf(node,inheritedPresentation={}){
   if(!node||node.nodeType!==1) return;
   const tag=node.tagName.toLowerCase();
   if(tag==='defs'||tag==='clippath') return;
-  const presentation=getNodePresentation(node,inheritedPresentation);
+  const presentation=collectNodePresentation(node,inheritedPresentation);
   if(tag==='svg'||tag==='g'){
     withPdfGraphicsState(()=>{
       applyPdfTransform(presentation.transform);
       if(tag==='svg') applySvgViewportTransform(node);
-      Array.from(node.childNodes).forEach(child=>drawSvgNodeToPdf(child,presentation));
+      Array.from(node.childNodes).forEach(child=>{
+        try{
+          drawSvgNodeToPdf(child,presentation);
+        } catch(error){
+          console.warn('[PDF vector export] child node skipped in svg/g recursion',child?.tagName||'unknown',error);
+        }
+      });
     });
     return;
   }
