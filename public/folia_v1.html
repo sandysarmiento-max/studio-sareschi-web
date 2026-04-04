@@ -1317,27 +1317,58 @@ function getPdfPaint(presentation){
   const stroke=presentation.stroke;
   const fill=presentation.fill;
   const lineWidth=presentation.lineWidth;
+
   if(stroke){
     try{ pdfCurrent.setDrawColor(stroke.r,stroke.g,stroke.b); }catch(_){}
     try{ pdfCurrent.setLineWidth(lineWidth); }catch(_){}
     try{ pdfCurrent.setLineCap(presentation.lineCap||'butt'); }catch(_){}
     try{ pdfCurrent.setLineJoin(presentation.lineJoin||'miter'); }catch(_){}
   }
+
   if(fill){
     try{ pdfCurrent.setFillColor(fill.r,fill.g,fill.b); }catch(_){}
   }
+
   const effectiveFillOpacity=Math.max(0,Math.min(1,(presentation.opacity??1)*(presentation.fillOpacity??1)));
   const effectiveStrokeOpacity=Math.max(0,Math.min(1,(presentation.opacity??1)*(presentation.strokeOpacity??1)));
+
   if(typeof pdfCurrent.setGState==='function'){
     try{
       pdfCurrent.setGState(new pdfCurrent.GState({opacity:effectiveFillOpacity,strokeOpacity:effectiveStrokeOpacity}));
     }catch(_){}
   }
+
   let mode='S';
   if(fill&&stroke) mode='FD';
   else if(fill) mode='F';
   else if(stroke) mode='S';
   else mode=null;
+
+  console.warn('[PDF vector export][paint:presentation]',{
+    mode,
+    stroke,
+    fill,
+    lineWidth,
+    lineCap:presentation.lineCap,
+    lineJoin:presentation.lineJoin,
+    opacity:presentation.opacity,
+    fillOpacity:presentation.fillOpacity,
+    strokeOpacity:presentation.strokeOpacity,
+    effectiveFillOpacity,
+    effectiveStrokeOpacity,
+    transform:presentation.transform||null
+  });
+
+  if(!mode){
+    console.warn('[PDF vector export][paint:presentation] empty-mode -> node may be skipped',{
+      stroke,
+      fill,
+      opacity:presentation.opacity,
+      fillOpacity:presentation.fillOpacity,
+      strokeOpacity:presentation.strokeOpacity
+    });
+  }
+
   return {stroke,fill,lineWidth,mode};
 }
 let pdfCurrent=null;
@@ -1345,13 +1376,21 @@ function tokenizeSvgPath(d){
   return String(d||'').match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g)||[];
 }
 function svgPathToPdfOps(d){
-  const tokens=tokenizeSvgPath(d);
+  const raw=String(d||'');
+  const tokens=tokenizeSvgPath(raw);
   const ops=[];
   let i=0, cmd='';
+
+  console.warn('[PDF vector export][path] start',{
+    dLength:raw.length,
+    tokenCount:tokens.length
+  });
+
   while(i<tokens.length){
     const token=tokens[i++];
     if(/[a-zA-Z]/.test(token)){ cmd=token; }
     else { i--; }
+
     if(cmd==='M'){ const x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'m', c:[x,y]}); cmd='L'; continue; }
     if(cmd==='L'){ const x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'l', c:[x,y]}); continue; }
     if(cmd==='C'){ const x1=Number(tokens[i++]), y1=Number(tokens[i++]), x2=Number(tokens[i++]), y2=Number(tokens[i++]), x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'c', c:[x1,y1,x2,y2,x,y]}); continue; }
@@ -1359,8 +1398,16 @@ function svgPathToPdfOps(d){
     if(cmd==='m'){ const x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'m', c:[x,y]}); cmd='l'; continue; }
     if(cmd==='l'){ const x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'l', c:[x,y]}); continue; }
     if(cmd==='c'){ const x1=Number(tokens[i++]), y1=Number(tokens[i++]), x2=Number(tokens[i++]), y2=Number(tokens[i++]), x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'c', c:[x1,y1,x2,y2,x,y]}); continue; }
+
+    console.warn('[PDF vector export][path] unsupported command break',{cmd, index:i});
     break;
   }
+
+  console.warn('[PDF vector export][path] done',{
+    dLength:raw.length,
+    opCount:ops.length
+  });
+
   return ops;
 }
   function parseInlineSvgStyle(node){
