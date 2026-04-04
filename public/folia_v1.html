@@ -545,9 +545,7 @@ function drawList(svg,rect,config=state){
   }
 }
 function stateNeedsMarkerAssets(layoutState=state){
-  if(layoutState.layoutMode==="single") return sheetConfigNeedsMarkerAssets(layoutState.sheetType,layoutState);
-  return sheetConfigNeedsMarkerAssets(layoutState.splitTopSheetType,layoutState.splitConfigs?.top)
-    || sheetConfigNeedsMarkerAssets(layoutState.splitBottomSheetType,layoutState.splitConfigs?.bottom);
+  return false;
 }
 
 function addLine(svg,x1,y1,x2,y2,stroke=state.lineColor,strokeWidth=state.strokeWidth,extra={}){
