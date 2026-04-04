@@ -1187,6 +1187,7 @@ async function exportPdfRaster(dpi){
 function parseColorValue(value){
   if(!value||value==='none'||value==='transparent') return null;
   const raw=String(value).trim();
+  if(raw==='currentColor') return 'currentColor';
   if(raw.startsWith('#')){
     const hex=raw.slice(1);
     if(hex.length===3){
@@ -1203,18 +1204,134 @@ function parseColorValue(value){
   }
   return null;
 }
-function getPdfPaint(node){
-  const stroke=parseColorValue(node.getAttribute('stroke'));
-  const fill=parseColorValue(node.getAttribute('fill'));
-  const lineWidth=Math.max(0.05,Number(node.getAttribute('stroke-width'))||0.2);
+function parseNodeStyleAttribute(node){
+  const out={};
+  const raw=(node.getAttribute('style')||'').trim();
+  if(!raw) return out;
+  raw.split(';').forEach(entry=>{
+    const part=entry.trim();
+    if(!part) return;
+    const idx=part.indexOf(':');
+    if(idx<0) return;
+    const key=part.slice(0,idx).trim();
+    const value=part.slice(idx+1).trim();
+    if(key) out[key]=value;
+  });
+  return out;
+}
+function resolveInheritedColor(parsed,presentation){
+  if(parsed==='currentColor') return presentation.color||null;
+  return parsed;
+}
+function getNodePresentation(node,inherited={}){
+  const inline=parseNodeStyleAttribute(node);
+  const pick=(name,fallback=null)=>{
+    if(node.hasAttribute(name)) return node.getAttribute(name);
+    if(Object.prototype.hasOwnProperty.call(inline,name)) return inline[name];
+    return fallback;
+  };
+  const colorRaw=pick('color',inherited.colorRaw||'#000000');
+  const color=resolveInheritedColor(parseColorValue(colorRaw),inherited);
+  const stroke=resolveInheritedColor(parseColorValue(pick('stroke',inherited.strokeRaw||'none')),{...inherited,color});
+  const fill=resolveInheritedColor(parseColorValue(pick('fill',inherited.fillRaw||'none')),{...inherited,color});
+  const opacity=Math.max(0,Math.min(1,Number(pick('opacity',inherited.opacity??1))||1));
+  const strokeOpacity=Math.max(0,Math.min(1,Number(pick('stroke-opacity',inherited.strokeOpacity??1))||1));
+  const fillOpacity=Math.max(0,Math.min(1,Number(pick('fill-opacity',inherited.fillOpacity??1))||1));
+  const lineWidth=Math.max(0.05,Number(pick('stroke-width',inherited.lineWidth??0.2))||0.2);
+  const lineCap=pick('stroke-linecap',inherited.lineCap||'butt');
+  const lineJoin=pick('stroke-linejoin',inherited.lineJoin||'miter');
+  const transform=pick('transform',null);
+  return {colorRaw,color,strokeRaw:pick('stroke',null),fillRaw:pick('fill',null),stroke,fill,opacity,strokeOpacity,fillOpacity,lineWidth,lineCap,lineJoin,transform};
+}
+function withPdfGraphicsState(cb){
+  if(typeof pdfCurrent.saveGraphicsState==='function') pdfCurrent.saveGraphicsState();
+  try{
+    cb();
+  } finally {
+    if(typeof pdfCurrent.restoreGraphicsState==='function') pdfCurrent.restoreGraphicsState();
+  }
+}
+function applyPdfTransform(transform){
+  if(!transform||typeof pdfCurrent.setCurrentTransformationMatrix!=='function') return;
+  const raw=String(transform).trim();
+  const operations=raw.match(/[a-zA-Z]+\([^)]*\)/g)||[];
+  operations.forEach(op=>{
+    const match=op.match(/^([a-zA-Z]+)\(([^)]*)\)$/);
+    if(!match) return;
+    const kind=match[1].toLowerCase();
+    const params=match[2].split(/[\s,]+/).map(v=>Number(v.trim())).filter(v=>Number.isFinite(v));
+    let matrix=null;
+    if(kind==='matrix'&&params.length===6) matrix=params;
+    if(kind==='translate'){
+      const tx=params[0]||0;
+      const ty=params.length>1?params[1]:0;
+      matrix=[1,0,0,1,tx,ty];
+    }
+    if(kind==='scale'){
+      const sx=params[0]??1;
+      const sy=params.length>1?params[1]:sx;
+      matrix=[sx,0,0,sy,0,0];
+    }
+    if(kind==='rotate'){
+      const angle=((params[0]||0)*Math.PI)/180;
+      const cos=Math.cos(angle), sin=Math.sin(angle);
+      if(params.length>=3){
+        const cx=params[1], cy=params[2];
+        matrix=[cos,sin,-sin,cos,cx-(cos*cx)+sin*cy,cy-(sin*cx)-cos*cy];
+      } else {
+        matrix=[cos,sin,-sin,cos,0,0];
+      }
+    }
+    if(!matrix) return;
+    try{ pdfCurrent.setCurrentTransformationMatrix(matrix); }catch(_){}
+  });
+}
+function applySvgViewportTransform(node){
+  if(!node||node.tagName.toLowerCase()!=='svg'||typeof pdfCurrent.setCurrentTransformationMatrix!=='function') return;
+  const x=Number(node.getAttribute('x'))||0;
+  const y=Number(node.getAttribute('y'))||0;
+  const width=Number(node.getAttribute('width'));
+  const height=Number(node.getAttribute('height'));
+  const viewBox=(node.getAttribute('viewBox')||'').trim();
+  if(!(width>0)&&!(height>0)){
+    if(x||y){ try{ pdfCurrent.setCurrentTransformationMatrix([1,0,0,1,x,y]); }catch(_){} }
+    return;
+  }
+  if(!viewBox){
+    try{ pdfCurrent.setCurrentTransformationMatrix([1,0,0,1,x,y]); }catch(_){}
+    return;
+  }
+  const box=viewBox.split(/[\s,]+/).map(v=>Number(v)).filter(v=>Number.isFinite(v));
+  if(box.length!==4||box[2]===0||box[3]===0){
+    try{ pdfCurrent.setCurrentTransformationMatrix([1,0,0,1,x,y]); }catch(_){}
+    return;
+  }
+  const minX=box[0], minY=box[1], vbW=box[2], vbH=box[3];
+  const sx=width/vbW;
+  const sy=height/vbH;
+  const tx=x-(minX*sx);
+  const ty=y-(minY*sy);
+  try{ pdfCurrent.setCurrentTransformationMatrix([sx,0,0,sy,tx,ty]); }catch(_){}
+}
+function getPdfPaint(presentation){
+  const stroke=presentation.stroke;
+  const fill=presentation.fill;
+  const lineWidth=presentation.lineWidth;
   if(stroke){
     try{ pdfCurrent.setDrawColor(stroke.r,stroke.g,stroke.b); }catch(_){}
     try{ pdfCurrent.setLineWidth(lineWidth); }catch(_){}
-    try{ pdfCurrent.setLineCap('butt'); }catch(_){}
-    try{ pdfCurrent.setLineJoin('miter'); }catch(_){}
+    try{ pdfCurrent.setLineCap(presentation.lineCap||'butt'); }catch(_){}
+    try{ pdfCurrent.setLineJoin(presentation.lineJoin||'miter'); }catch(_){}
   }
   if(fill){
     try{ pdfCurrent.setFillColor(fill.r,fill.g,fill.b); }catch(_){}
+  }
+  const effectiveFillOpacity=Math.max(0,Math.min(1,(presentation.opacity??1)*(presentation.fillOpacity??1)));
+  const effectiveStrokeOpacity=Math.max(0,Math.min(1,(presentation.opacity??1)*(presentation.strokeOpacity??1)));
+  if(typeof pdfCurrent.setGState==='function'){
+    try{
+      pdfCurrent.setGState(new pdfCurrent.GState({opacity:effectiveFillOpacity,strokeOpacity:effectiveStrokeOpacity}));
+    }catch(_){}
   }
   let mode='S';
   if(fill&&stroke) mode='FD';
@@ -1246,48 +1363,76 @@ function svgPathToPdfOps(d){
   }
   return ops;
 }
-function drawSvgNodeToPdf(node){
+function drawSvgNodeToPdf(node,inheritedPresentation={}){
   if(!node||node.nodeType!==1) return;
   const tag=node.tagName.toLowerCase();
   if(tag==='defs'||tag==='clippath') return;
-  if(tag==='svg'||tag==='g'){ Array.from(node.childNodes).forEach(drawSvgNodeToPdf); return; }
-  const paint=getPdfPaint(node);
+  const presentation=getNodePresentation(node,inheritedPresentation);
+  if(tag==='svg'||tag==='g'){
+    withPdfGraphicsState(()=>{
+      applyPdfTransform(presentation.transform);
+      if(tag==='svg') applySvgViewportTransform(node);
+      Array.from(node.childNodes).forEach(child=>drawSvgNodeToPdf(child,presentation));
+    });
+    return;
+  }
+  const paint=getPdfPaint(presentation);
   if(!paint.mode&&tag!=='text') return;
-  if(tag==='line'){
-    const x1=Number(node.getAttribute('x1'))||0, y1=Number(node.getAttribute('y1'))||0, x2=Number(node.getAttribute('x2'))||0, y2=Number(node.getAttribute('y2'))||0;
-    if(paint.stroke) pdfCurrent.line(x1,y1,x2,y2);
-    return;
-  }
-  if(tag==='rect'){
-    const x=Number(node.getAttribute('x'))||0, y=Number(node.getAttribute('y'))||0, w=Number(node.getAttribute('width'))||0, h=Number(node.getAttribute('height'))||0, rx=Number(node.getAttribute('rx'))||0, ry=Number(node.getAttribute('ry'))||rx;
-    if(rx||ry) pdfCurrent.roundedRect(x,y,w,h,rx,ry,paint.mode||'S'); else pdfCurrent.rect(x,y,w,h,paint.mode||'S');
-    return;
-  }
-  if(tag==='circle'){
-    const cx=Number(node.getAttribute('cx'))||0, cy=Number(node.getAttribute('cy'))||0, r=Number(node.getAttribute('r'))||0;
-    pdfCurrent.circle(cx,cy,r,paint.mode||'S');
-    return;
-  }
-  if(tag==='text'){
-    const fill=parseColorValue(node.getAttribute('fill'))||{r:31,g:41,b:55};
-    const fontSizeMm=Math.max(1,Number(node.getAttribute('font-size'))||3.5);
-    const anchor=node.getAttribute('text-anchor');
-    const align=anchor==='middle'?'center':anchor==='end'?'right':'left';
-    pdfCurrent.setTextColor(fill.r,fill.g,fill.b);
-    pdfCurrent.setFont('helvetica','normal');
-    pdfCurrent.setFontSize(fontSizeMm*72/25.4);
-    const x=Number(node.getAttribute('x'))||0, y=Number(node.getAttribute('y'))||0;
-    pdfCurrent.text(String(node.textContent||''),x,y,{align,baseline:'alphabetic'});
-    return;
-  }
-  if(tag==='path'){
-    const d=node.getAttribute('d');
-    const ops=svgPathToPdfOps(d);
-    if(ops.length&&typeof pdfCurrent.path==='function'){
-      pdfCurrent.path(ops,paint.mode||'S');
+  withPdfGraphicsState(()=>{
+    applyPdfTransform(presentation.transform);
+    if(tag==='line'){
+      const x1=Number(node.getAttribute('x1'))||0, y1=Number(node.getAttribute('y1'))||0, x2=Number(node.getAttribute('x2'))||0, y2=Number(node.getAttribute('y2'))||0;
+      if(paint.stroke) pdfCurrent.line(x1,y1,x2,y2);
+      return;
     }
-    return;
-  }
+    if(tag==='rect'){
+      const x=Number(node.getAttribute('x'))||0, y=Number(node.getAttribute('y'))||0, w=Number(node.getAttribute('width'))||0, h=Number(node.getAttribute('height'))||0, rx=Number(node.getAttribute('rx'))||0, ry=Number(node.getAttribute('ry'))||rx;
+      if(rx||ry) pdfCurrent.roundedRect(x,y,w,h,rx,ry,paint.mode||'S'); else pdfCurrent.rect(x,y,w,h,paint.mode||'S');
+      return;
+    }
+    if(tag==='circle'){
+      const cx=Number(node.getAttribute('cx'))||0, cy=Number(node.getAttribute('cy'))||0, r=Number(node.getAttribute('r'))||0;
+      pdfCurrent.circle(cx,cy,r,paint.mode||'S');
+      return;
+    }
+    if(tag==='ellipse'){
+      const cx=Number(node.getAttribute('cx'))||0, cy=Number(node.getAttribute('cy'))||0, rx=Math.max(0,Number(node.getAttribute('rx'))||0), ry=Math.max(0,Number(node.getAttribute('ry'))||0);
+      if(typeof pdfCurrent.ellipse==='function') pdfCurrent.ellipse(cx,cy,rx,ry,paint.mode||'S');
+      return;
+    }
+    if(tag==='polyline'||tag==='polygon'){
+      const rawPoints=(node.getAttribute('points')||'').trim();
+      const coords=rawPoints.split(/[\s,]+/).map(v=>Number(v)).filter(v=>Number.isFinite(v));
+      const ops=[];
+      for(let i=0;i+1<coords.length;i+=2){
+        const x=coords[i], y=coords[i+1];
+        ops.push({op:i===0?'m':'l',c:[x,y]});
+      }
+      if(tag==='polygon'&&ops.length) ops.push({op:'h',c:[]});
+      if(ops.length&&typeof pdfCurrent.path==='function') pdfCurrent.path(ops,paint.mode||'S');
+      return;
+    }
+    if(tag==='text'){
+      const fill=presentation.fill||presentation.color||{r:31,g:41,b:55};
+      const fontSizeMm=Math.max(1,Number(node.getAttribute('font-size'))||3.5);
+      const anchor=node.getAttribute('text-anchor');
+      const align=anchor==='middle'?'center':anchor==='end'?'right':'left';
+      pdfCurrent.setTextColor(fill.r,fill.g,fill.b);
+      pdfCurrent.setFont('helvetica','normal');
+      pdfCurrent.setFontSize(fontSizeMm*72/25.4);
+      const x=Number(node.getAttribute('x'))||0, y=Number(node.getAttribute('y'))||0;
+      pdfCurrent.text(String(node.textContent||''),x,y,{align,baseline:'alphabetic'});
+      return;
+    }
+    if(tag==='path'){
+      const d=node.getAttribute('d');
+      const ops=svgPathToPdfOps(d);
+      if(ops.length&&typeof pdfCurrent.path==='function'){
+        pdfCurrent.path(ops,paint.mode||'S');
+      }
+      return;
+    }
+  });
 }
 async function exportPdfVector(){
   if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
