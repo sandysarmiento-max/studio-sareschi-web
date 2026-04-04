@@ -1442,7 +1442,23 @@ async function exportPdfVector(){
   const pdf=new jsPDF({orientation:pageSize.width>pageSize.height?'landscape':'portrait',unit:'mm',format:[pageSize.width,pageSize.height],compress:true,precision:12});
   const frontSvg=buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"front"});
   const backSvg=state.printMode==="duplex"?buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"back"}):null;
-  const requiresMarkerFallback=stateNeedsMarkerAssets();
+  const sheetHasNonNumericMarker=(sheetType,config)=>sheetType==="lista"&&!!config?.checkbox&&String(config?.listMarkerStyle||'numerado')!=="numerado";
+  const layoutHasNonNumericMarker=(
+    state.layoutMode==="single"
+      ? sheetHasNonNumericMarker(state.sheetType,state)
+      : sheetHasNonNumericMarker(state.splitTopSheetType,state.splitConfigs?.top)
+        || sheetHasNonNumericMarker(state.splitBottomSheetType,state.splitConfigs?.bottom)
+  );
+  const svgHasNonNumericMarker=svg=>{
+    if(!svg) return false;
+    if(svg.querySelector('[data-role="marker-outline"]')) return true;
+    return Array.from(svg.querySelectorAll('text')).some(node=>{
+      const value=String(node.textContent||'').trim();
+      return /^[0-9]+[.)]?$/.test(value)===false && value.length>0;
+    });
+  };
+  const hasNonNumericListMarkers=layoutHasNonNumericMarker||svgHasNonNumericMarker(frontSvg)||svgHasNonNumericMarker(backSvg);
+  const markerTypeDetected=hasNonNumericListMarkers?'non-numeric':'numeric-or-none';
   const renderWithManualFallback=()=>{
     pdfCurrent=pdf;
     try{
@@ -1455,7 +1471,8 @@ async function exportPdfVector(){
       pdfCurrent=null;
     }
   };
-  if(typeof pdf.svg==='function'&&!requiresMarkerFallback){
+  if(typeof pdf.svg==='function'&&!hasNonNumericListMarkers){
+    console.warn(`[PDF vector export] route=pdf.svg markerType=${markerTypeDetected}`);
     try{
       await pdf.svg(frontSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
       if(backSvg){
@@ -1463,10 +1480,11 @@ async function exportPdfVector(){
         await pdf.svg(backSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
       }
     } catch(error){
-      console.warn('Fallback manual SVG->PDF por incompatibilidad en pdf.svg',error);
+      console.warn(`[PDF vector export] route=manual fallback markerType=${markerTypeDetected} reason=pdf.svg-error`,error);
       renderWithManualFallback();
     }
   } else {
+    console.warn(`[PDF vector export] route=manual fallback markerType=${markerTypeDetected}`);
     renderWithManualFallback();
   }
   pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
