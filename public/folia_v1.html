@@ -278,23 +278,28 @@ const USAGE_PRESETS={
 };
 const SPLIT_ZONE_GAP_MM=2;
 const MARKER_ASSETS={
-  cuadrado:{label:"Cuadrado",file:"square.svg",scale:0.86,padding:0.08},
-  circuloContorno:{label:"Círculo",file:"circle.svg",scale:0.88,padding:0.07},
-  corazonContorno:{label:"Corazón contorno",file:"heart-outline.svg",scale:0.86,padding:0.08},
-  corazonRelleno:{label:"Corazón relleno",file:"heart-filled.svg",scale:0.84,padding:0.08},
-  ubicacion:{label:"Ubicación",file:"location.svg",scale:0.82,padding:0.1},
-  regalo:{label:"Regalo",file:"gift.svg",scale:0.82,padding:0.1},
-  correo:{label:"Correo",file:"envelope.svg",scale:0.84,padding:0.09},
-  whatsapp:{label:"WhatsApp",file:"whatsapp.svg",scale:0.82,padding:0.1},
-  web:{label:"Web",file:"globe.svg",scale:0.84,padding:0.09},
-  numerado:{label:"Numerado"}
+  cuadrado:{label:"Cuadrado",kind:"square",padding:0.12},
+  circuloContorno:{label:"Círculo",kind:"circle",padding:0.1},
+  corazonContorno:{label:"Corazón contorno",kind:"heart-outline",padding:0.08},
+  corazonRelleno:{label:"Corazón relleno",kind:"heart-filled",padding:0.08},
+  ubicacion:{label:"Ubicación",kind:"location",padding:0.09},
+  regalo:{label:"Regalo",kind:"gift",padding:0.1},
+  correo:{label:"Correo",kind:"envelope",padding:0.09},
+  whatsapp:{label:"WhatsApp",kind:"whatsapp",padding:0.1},
+  web:{label:"Web",kind:"globe",padding:0.09},
+  numerado:{label:"Numerado",kind:"number"}
 };
 const MARKER_STYLE_ORDER=["cuadrado","circuloContorno","corazonContorno","corazonRelleno","ubicacion","regalo","correo","whatsapp","web","numerado"];
-const MARKER_ASSET_BASE_PATHS=["/icons/markers/","public/icons/markers/"];
-const markerAssetCache=new Map();
-const markerAssetUrlCache=new Map();
-let markerAssetsReady=false;
-let markerAssetsPromise=null;
+const MARKER_BASE_VIEWBOX=24;
+const INTERNAL_MARKER_PATHS={
+  "heart-outline":"M12 21c-0.3 0-0.6-0.1-0.9-0.3C6.2 17.7 3 14.8 3 10.9C3 7.9 5.3 5.7 8.2 5.7c1.6 0 3 0.7 3.8 1.9c0.8-1.2 2.3-1.9 3.8-1.9c2.9 0 5.2 2.3 5.2 5.2c0 3.9-3.2 6.8-8.1 9.8c-0.3 0.2-0.6 0.3-0.9 0.3z",
+  "heart-filled":"M12 21c-0.3 0-0.6-0.1-0.9-0.3C6.2 17.7 3 14.8 3 10.9C3 7.9 5.3 5.7 8.2 5.7c1.6 0 3 0.7 3.8 1.9c0.8-1.2 2.3-1.9 3.8-1.9c2.9 0 5.2 2.3 5.2 5.2c0 3.9-3.2 6.8-8.1 9.8c-0.3 0.2-0.6 0.3-0.9 0.3z",
+  gift:"M4 10h16v10H4z M2.8 8h18.4v2H2.8z M12 8V5 M9.2 8c-1.5 0-2.7-1.2-2.7-2.6C6.5 3.8 8 2.8 9.7 3.3c1.4 0.4 2.3 1.9 2.3 3.4V8z M14.8 8c1.5 0 2.7-1.2 2.7-2.6c0-1.6-1.5-2.6-3.2-2.1c-1.4 0.4-2.3 1.9-2.3 3.4V8z",
+  location:"M12 21s6-5.7 6-10.3C18 7.2 15.3 4.5 12 4.5S6 7.2 6 10.7C6 15.3 12 21 12 21z M12 13.4a2.7 2.7 0 1 1 0-5.4a2.7 2.7 0 0 1 0 5.4z",
+  envelope:"M3.5 6h17v12h-17z M3.5 7l8.5 6L20.5 7",
+  whatsapp:"M12 4.5a7.5 7.5 0 0 0-6.4 11.5L5 20l4.2-1.3A7.5 7.5 0 1 0 12 4.5z M9.1 8.7c0.2-0.5 0.5-0.5 0.8-0.5h0.7c0.2 0 0.4 0.1 0.5 0.4l0.8 2c0.1 0.2 0 0.4-0.1 0.6l-0.5 0.6c-0.1 0.1-0.1 0.2 0 0.4c0.4 0.8 1.1 1.5 1.9 2c0.2 0.1 0.3 0.1 0.4 0l0.7-0.8c0.1-0.2 0.4-0.2 0.6-0.1l1.9 0.9c0.3 0.1 0.4 0.3 0.3 0.6l-0.3 1.2c-0.1 0.5-0.6 0.8-1.1 0.8c-3.4-0.1-6.6-3.4-6.9-6.8c0-0.3 0.1-0.6 0.2-0.9z",
+  globe:"M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 0 0 0-17z M3.8 12h16.4 M12 3.8c2.1 2.3 3.2 5.2 3.2 8.2s-1.1 5.9-3.2 8.2 M12 3.8c-2.1 2.3-3.2 5.2-3.2 8.2s1.1 5.9 3.2 8.2"
+};
 const CONTENT_CONFIG_DEFAULTS={
   lineSpacing:7,
   showTopGuide:false,
@@ -431,13 +436,33 @@ function uid(prefix="id"){return `${prefix}-${Math.random().toString(36).slice(2
 function markerLabel(style){
   return MARKER_ASSETS[style]?.label||"Cuadrado";
 }
-function markerIconHtml(style,color="#334155"){
+function markerInlineSvg(style,color="#334155",size=18){
   const marker=MARKER_ASSETS[style];
-  if(marker?.file){
-    const src=markerAssetUrlCache.get(style)||`${MARKER_ASSET_BASE_PATHS[0]}${marker.file}`;
-    return `<span class="marker-icon"><img src="${src}" alt="${marker.label}"></span>`;
+  if(!marker||marker.kind==="number"){
+    return `<span class="marker-icon marker-number" style="color:${color}">1.</span>`;
+  }
+  const pad=Math.max(0,Math.min(0.25,marker.padding??0.1));
+  const inner=MARKER_BASE_VIEWBOX*(1-(pad*2));
+  const offset=(MARKER_BASE_VIEWBOX-inner)/2;
+  if(marker.kind==="square"){
+    return `<span class="marker-icon"><svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"><rect x="${offset}" y="${offset}" width="${inner}" height="${inner}" fill="none" stroke="${color}" stroke-width="1.8"/></svg></span>`;
+  }
+  if(marker.kind==="circle"){
+    const r=inner/2;
+    return `<span class="marker-icon"><svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"><circle cx="12" cy="12" r="${r}" fill="none" stroke="${color}" stroke-width="1.8"/></svg></span>`;
+  }
+  const path=INTERNAL_MARKER_PATHS[marker.kind];
+  if(path){
+    const fillMode=marker.kind==="heart-filled"?"fill":"stroke";
+    const pathAttrs=fillMode==="fill"
+      ? `fill="${color}" stroke="none"`
+      : `fill="none" stroke="${color}" stroke-width="1.8"`;
+    return `<span class="marker-icon"><svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"><path d="${path}" ${pathAttrs} stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
   }
   return `<span class="marker-icon marker-number" style="color:${color}">1.</span>`;
+}
+function markerIconHtml(style,color="#334155"){
+  return markerInlineSvg(style,color,18);
 }
 function markerPickerHtml(selectedStyle,color,zone="single"){
   return `<details class="icon-select"><summary>${markerIconHtml(selectedStyle,color)}<span>${markerLabel(selectedStyle)}</span><span class="dropdown-caret">▾</span></summary><div class="icon-select-menu">${MARKER_STYLE_ORDER.map(style=>`<button type="button" class="marker-option" data-marker-option="${style}" data-marker-zone="${zone}">${markerIconHtml(style,color)}<span>${markerLabel(style)}</span></button>`).join("")}</div></details>`;
@@ -465,45 +490,59 @@ async function loadMarkerAsset(style){
 }
 function drawMarkerAsset(svg,style,x,top,size,markerColor){
   const marker=MARKER_ASSETS[style];
-  const asset=markerAssetCache.get(style);
-  if(!marker?.file||!asset) return false;
+  if(!marker||marker.kind==="number") return false;
   const padding=Math.max(0,Math.min(0.2,marker.padding??0.08));
   const iconSize=size*(1-(padding*2));
   const offset=(size-iconSize)/2;
-  const scale=Math.max(0.72,Math.min(1,marker.scale??0.85));
-  const scaled=iconSize*scale;
-  const scaleOffset=(iconSize-scaled)/2;
-  const node=el("svg",{
-    x:roundMm(x+offset+scaleOffset),
-    y:roundMm(top+offset+scaleOffset),
-    width:roundMm(scaled),
-    height:roundMm(scaled),
-    viewBox:asset.viewBox,
-    color:markerColor,
-    fill:"none",
+  const iconX=x+offset;
+  const iconY=top+offset;
+  const strokeWidth=Math.max(0.14,size*0.045);
+
+  if(marker.kind==="square"){
+    addRect(svg,iconX,iconY,iconSize,iconSize,{fill:"none",stroke:markerColor,"stroke-width":roundMm(strokeWidth),"data-role":"marker-outline"});
+    return true;
+  }
+  if(marker.kind==="circle"){
+    addCircle(svg,iconX+(iconSize/2),iconY+(iconSize/2),iconSize/2,{fill:"none",stroke:markerColor,"stroke-width":roundMm(strokeWidth),"data-role":"marker-outline"});
+    return true;
+  }
+
+  const pathData=INTERNAL_MARKER_PATHS[marker.kind];
+  if(!pathData) return false;
+  const scale=iconSize/MARKER_BASE_VIEWBOX;
+  const path=el("path",{
+    d:pathData,
+    transform:`translate(${roundMm(iconX)} ${roundMm(iconY)}) scale(${roundMm(scale,5)})`,
+    fill:marker.kind==="heart-filled"?markerColor:"none",
+    stroke:marker.kind==="heart-filled"?"none":markerColor,
+    "stroke-width":marker.kind==="heart-filled"?0:roundMm(Math.max(0.85,strokeWidth/scale),4),
+    "stroke-linecap":"round",
+    "stroke-linejoin":"round",
     "data-role":"marker-outline"
   });
-  node.innerHTML=asset.content;
-  svg.appendChild(node);
+  svg.appendChild(path);
   return true;
 }
-async function preloadMarkerAssets(){
-  const styles=MARKER_STYLE_ORDER.filter(style=>MARKER_ASSETS[style]?.file);
-  await Promise.all(styles.map(loadMarkerAsset));
-  markerAssetsReady=true;
-}
-function ensureMarkerAssetsReady(){
-  if(markerAssetsReady) return Promise.resolve();
-  if(!markerAssetsPromise){
-    markerAssetsPromise=preloadMarkerAssets().catch(error=>{
-      console.error("No se pudieron cargar algunos marcadores SVG",error);
-      throw error;
-    });
+function drawList(svg,rect,config=state){
+  const {gridStroke}=getStrokeSet(config);
+  const spacing=Math.max(7,+config.listSpacing),fit=!!config.fitListToSpace,rowCount=fit?Math.max(1,Math.floor(rect.height/spacing)):Math.max(1,Math.floor(rect.height/spacing)-1),step=fit?rect.height/rowCount:spacing;
+  function drawMarker(x,lineY,index){
+    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,markerColor=config.listMarkerColor||state.lineColor;
+    if(style==="numerado"){
+      const fontSize=+config.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*1.15,fontSize*(maxDigits*0.62+0.62)),gap=Math.max(1.2,fontSize*0.18),textX=x+numberBoxWidth;
+      addText(svg,textX,lineY-0.35,label,{fill:markerColor,"font-size":roundMm(fontSize),"text-anchor":"end"});
+      return numberBoxWidth+gap;
+    }
+    drawMarkerAsset(svg,style,x,top,size,markerColor);
+    return size+2.2;
   }
-  return markerAssetsPromise;
-}
-function sheetConfigNeedsMarkerAssets(sheetType,config){
-  return sheetType==="lista" && !!config?.checkbox && config?.listMarkerStyle!=="numerado";
+  for(let i=0;i<rowCount;i++){
+    const y=rect.y+step*(i+1);
+    if(y>rect.y+rect.height+0.01) continue;
+    let x1=rect.x;
+    if(config.checkbox) x1=rect.x+drawMarker(rect.x,y,i);
+    addRule(svg,x1,y,rect.x+rect.width,y,state.lineColor,gridStroke);
+  }
 }
 function stateNeedsMarkerAssets(layoutState=state){
   if(layoutState.layoutMode==="single") return sheetConfigNeedsMarkerAssets(layoutState.sheetType,layoutState);
