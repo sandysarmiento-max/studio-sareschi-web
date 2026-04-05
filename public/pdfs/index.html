@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tienda de PDFs | Studio Sareschi</title>
+    <meta
+      name="description"
+      content="Tienda de PDFs Studio Sareschi con descargable gratis diario y catálogo premium en HQ y Canva editable."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="/">Studio Sareschi</a>
+        <nav aria-label="Principal">
+          <ul class="nav-links">
+            <li><a href="/#home">Home</a></li>
+            <li><a href="/pdfs/#tienda">Tienda PDF</a></li>
+            <li><a href="/pdfs/#catalogo">Catálogo</a></li>
+            <li><a href="/acceso/">Acceso</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section id="tienda" class="section pdf-store-hero">
+        <div class="container">
+          <div class="pdf-store-top">
+            <div>
+              <p class="eyebrow">Storefront</p>
+              <h1>Plantillas PDF listas para vender, editar y usar hoy</h1>
+              <p class="hero-copy" style="margin: 0">
+                Compra en PDF HQ o versión editable en Canva. También tienes una descarga gratis diaria
+                sin perder visibilidad del catálogo premium.
+              </p>
+              <div class="pdf-store-cta-row">
+                <a class="btn btn-primary" href="#freebie">Descarga gratis hoy</a>
+                <a class="btn btn-secondary" href="#catalogo">Ver catálogo</a>
+              </div>
+            </div>
+            <aside class="pdf-freebie-compact" id="freebie" aria-label="Oferta gratis del día">
+              <p class="eyebrow">Gratis del día</p>
+              <h2 id="daily-title">Cargando oferta...</h2>
+              <p id="daily-description">Estamos preparando la plantilla gratuita de hoy.</p>
+              <button class="btn btn-primary" id="daily-free-btn" type="button">Descargar gratis hoy</button>
+              <p class="tiny-note">Disponible una vez por día por usuario.</p>
+            </aside>
+          </div>
+
+          <section aria-label="Productos destacados" class="featured-preview-grid" id="featured-preview-grid"></section>
+        </div>
+      </section>
+
+      <section id="catalogo" class="section section-soft">
+        <div class="container">
+          <div class="section-heading">
+            <p class="eyebrow">Catálogo</p>
+            <h2>Tienda visual de plantillas</h2>
+            <p class="hero-copy" style="margin: 0">Todos los productos muestran precios visibles: PDF HQ $1 y Canva editable $2.</p>
+          </div>
+          <div class="catalog-grid" id="catalog-grid"></div>
+          <p class="tiny-note" id="catalog-note">Si falla conexión, mostramos datos de muestra elegantes para revisión visual.</p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const FALLBACK_PRODUCTS = [
+        {
+          id: 'sample-1',
+          slug: 'agenda-semanal-rosa',
+          title: 'Agenda semanal Rosa',
+          subtitle: 'Plan semanal elegante con foco en objetivos.',
+          prices: { pdf_hq: 1, canva: 2 },
+          is_featured: true,
+          badge: 'Más vendido',
+          preview: { from: '#fff1f7', to: '#f8dce9' },
+        },
+        {
+          id: 'sample-2',
+          slug: 'checklist-boutique',
+          title: 'Checklist Boutique',
+          subtitle: 'Control diario visual y minimalista.',
+          prices: { pdf_hq: 1, canva: 2 },
+          is_featured: false,
+          badge: 'Nuevo',
+          preview: { from: '#fff9f1', to: '#fbead8' },
+        },
+        {
+          id: 'sample-3',
+          slug: 'pack-contenido-social',
+          title: 'Pack contenido social',
+          subtitle: 'Bloques listos para planificación de posteos.',
+          prices: { pdf_hq: 1, canva: 2 },
+          is_featured: false,
+          badge: '',
+          preview: { from: '#f5f4ff', to: '#e7e3fb' },
+        },
+        {
+          id: 'sample-4',
+          slug: 'organizador-pedidos',
+          title: 'Organizador de pedidos',
+          subtitle: 'Resumen limpio para ventas y entregas.',
+          prices: { pdf_hq: 1, canva: 2 },
+          is_featured: false,
+          badge: '',
+          preview: { from: '#f4fbff', to: '#ddf2fc' },
+        },
+      ];
+
+      const FALLBACK_DAILY = {
+        id: 'daily-sample',
+        title: 'Mini planner diario',
+        description: 'Hoja rápida para tareas clave, prioridades y seguimiento.',
+      };
+
+      const featuredPreviewGrid = document.getElementById('featured-preview-grid');
+      const catalogGrid = document.getElementById('catalog-grid');
+      const catalogNote = document.getElementById('catalog-note');
+      const dailyTitle = document.getElementById('daily-title');
+      const dailyDescription = document.getElementById('daily-description');
+      const dailyFreeBtn = document.getElementById('daily-free-btn');
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
+      function productCard(product, compact = false) {
+        const badge = product.badge ? `<span class="store-badge">${escapeHtml(product.badge)}</span>` : '';
+        const featured = product.is_featured ? '<span class="store-badge store-badge-hot">Destacado</span>' : '';
+        const cardClass = compact ? 'product-card product-card--compact' : 'product-card';
+        return `
+          <article class="${cardClass}">
+            <div class="product-preview" style="background: linear-gradient(135deg, ${product.preview.from}, ${product.preview.to});">
+              <div class="product-sheet"></div>
+              ${badge}
+              ${featured}
+            </div>
+            <h3>${escapeHtml(product.title)}</h3>
+            <p>${escapeHtml(product.subtitle || '')}</p>
+            <div class="price-row">
+              <span>PDF HQ <strong>$${Number(product.prices?.pdf_hq ?? 1).toFixed(0)}</strong></span>
+              <span>Editable en Canva <strong>$${Number(product.prices?.canva ?? 2).toFixed(0)}</strong></span>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-secondary" data-action="buy-pdf" data-product-id="${escapeHtml(product.id)}">Comprar PDF HQ</button>
+              <button class="btn btn-primary" data-action="buy-canva" data-product-id="${escapeHtml(product.id)}">Comprar Canva</button>
+            </div>
+          </article>
+        `;
+      }
+
+      function renderProducts(products) {
+        const highlighted = products.slice(0, 3);
+        featuredPreviewGrid.innerHTML = highlighted.map((item) => productCard(item, true)).join('');
+        catalogGrid.innerHTML = products.map((item) => productCard(item)).join('');
+      }
+
+      async function fetchStorefrontData() {
+        const response = await fetch('/api/pdf-access?action=storefront', { headers: { Accept: 'application/json' } });
+        if (!response.ok) {
+          throw new Error('No fue posible cargar el catálogo desde backend seguro.');
+        }
+        return response.json();
+      }
+
+      async function bootstrapStorefront() {
+        try {
+          const data = await fetchStorefrontData();
+          const products = Array.isArray(data.products) && data.products.length ? data.products : FALLBACK_PRODUCTS;
+          const daily = data.daily_free || FALLBACK_DAILY;
+          renderProducts(products);
+          dailyTitle.textContent = daily.title;
+          dailyDescription.textContent = daily.description;
+          catalogNote.textContent = 'Catálogo conectado en modo seguro. Los enlaces de descarga se entregan solo después de validar acceso.';
+        } catch (error) {
+          renderProducts(FALLBACK_PRODUCTS);
+          dailyTitle.textContent = FALLBACK_DAILY.title;
+          dailyDescription.textContent = FALLBACK_DAILY.description;
+          catalogNote.textContent = 'Modo visual temporal activo: datos de muestra para revisar diseño mientras se corrige la conexión.';
+        }
+      }
+
+      async function requestAsset(action, productId) {
+        const response = await fetch('/api/pdf-access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ action, productId }),
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload?.error || 'Acción no autorizada.');
+        }
+
+        if (payload.url) {
+          window.location.href = payload.url;
+        }
+      }
+
+      dailyFreeBtn.addEventListener('click', async () => {
+        try {
+          await requestAsset('claim-daily-free');
+        } catch (error) {
+          alert('No se pudo validar la descarga gratuita en este momento.');
+        }
+      });
+
+      document.addEventListener('click', async (event) => {
+        const button = event.target.closest('[data-action]');
+        if (!button) {
+          return;
+        }
+
+        const action = button.dataset.action;
+        const productId = button.dataset.productId;
+        if (!action || !productId) {
+          return;
+        }
+
+        try {
+          await requestAsset(action, productId);
+        } catch (error) {
+          alert('No se pudo completar la acción comercial. Intenta nuevamente.');
+        }
+      });
+
+      bootstrapStorefront();
+    </script>
+  </body>
+</html>
