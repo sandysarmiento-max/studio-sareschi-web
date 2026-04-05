@@ -75,6 +75,26 @@
             <h2>Herramientas abiertas</h2>
           </div>
 
+          <article class="free-zone-entry" aria-label="Zona gratuita de PDFs">
+            <header class="free-zone-entry__header">
+              <div>
+                <p class="eyebrow">ZONA GRATUITA</p>
+                <h3>Elige tu diseño gratis</h3>
+                <p>
+                  Explora los PDFs disponibles para descarga gratuita y elige 1 al día.
+                </p>
+              </div>
+              <a
+                class="btn btn-primary free-zone-entry__cta"
+                href="#zona-gratuita-modal"
+                aria-label="Abrir zona gratuita y ver PDFs disponibles"
+              >
+                Ver PDFs gratis
+              </a>
+            </header>
+            <p class="free-zone-entry__note">Disponible 1 vez al día por usuario.</p>
+          </article>
+
           <article class="mini-tool" data-mini-app="ring-calculator">
             <header class="mini-tool__header">
               <div>
@@ -149,6 +169,40 @@
     >
       WhatsApp
     </a>
+
+    <div id="zona-gratuita-modal" class="free-zone-modal" aria-hidden="true">
+      <div class="free-zone-modal__backdrop" data-modal-close></div>
+      <section
+        class="free-zone-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="free-zone-title"
+      >
+        <header class="free-zone-modal__header">
+          <div>
+            <p class="eyebrow">ZONA GRATUITA</p>
+            <h3 id="free-zone-title">Elige 1 PDF gratis al día</h3>
+            <p>Disponible 1 vez al día por usuario.</p>
+          </div>
+          <button
+            class="free-zone-modal__close"
+            type="button"
+            aria-label="Cerrar zona gratuita"
+            data-modal-close
+          >
+            ×
+          </button>
+        </header>
+
+        <p class="free-zone-modal__info">
+          Esta selección está pensada para que descubras recursos de la tienda antes de
+          comprar.
+        </p>
+
+        <div id="free-zone-grid" class="free-zone-grid"></div>
+        <p id="free-zone-status" class="free-zone-status" aria-live="polite"></p>
+      </section>
+    </div>
 
     <script>
       const RINGS = [
@@ -283,6 +337,168 @@
         .addEventListener('click', calculateAndRenderRing);
 
       renderPlaceholder();
+
+      const FREE_PDFS = [
+        {
+          id: 'agenda-semanal',
+          title: 'Agenda semanal suave',
+          description: 'Planifica tu semana con estructura limpia y foco en prioridades.',
+          category: 'Organización',
+          pdfUrl: '/freebies/agenda-semanal-suave.pdf',
+          accent: '#f0d8e4',
+        },
+        {
+          id: 'lista-habitos',
+          title: 'Lista de hábitos minimal',
+          description: 'Seguimiento diario con formato simple y estilo femenino.',
+          category: 'Hábitos',
+          pdfUrl: '/freebies/lista-habitos-minimal.pdf',
+          accent: '#f8e7ce',
+        },
+        {
+          id: 'notas-creativas',
+          title: 'Notas creativas A4',
+          description: 'Plantilla libre para ideas, bosquejos y notas rápidas.',
+          category: 'Creatividad',
+          pdfUrl: '/freebies/notas-creativas-a4.pdf',
+          accent: '#dfeafc',
+        },
+      ];
+
+      const FREE_ZONE_KEY = 'studio_sareschi_free_zone_last_download';
+      const FREE_ZONE_MODAL_ID = 'zona-gratuita-modal';
+      const freeZoneModal = document.getElementById(FREE_ZONE_MODAL_ID);
+      const freeZoneGrid = document.getElementById('free-zone-grid');
+      const freeZoneStatus = document.getElementById('free-zone-status');
+      const openZoneButton = document.querySelector('.free-zone-entry__cta');
+      const closeZoneButtons = document.querySelectorAll('[data-modal-close]');
+
+      function getTodayKey() {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+          now.getDate()
+        ).padStart(2, '0')}`;
+      }
+
+      function getLastDownloadDate() {
+        return localStorage.getItem(FREE_ZONE_KEY);
+      }
+
+      function hasDownloadedToday() {
+        return getLastDownloadDate() === getTodayKey();
+      }
+
+      function formatLocalDate(isoDate) {
+        const date = new Date(`${isoDate}T00:00:00`);
+        return new Intl.DateTimeFormat('es-PE', {
+          dateStyle: 'long',
+        }).format(date);
+      }
+
+      function renderFreeStatus() {
+        if (hasDownloadedToday()) {
+          freeZoneStatus.textContent =
+            'Ya usaste tu descarga gratuita de hoy. Vuelve mañana para elegir otro PDF.';
+          return;
+        }
+
+        const lastDate = getLastDownloadDate();
+        if (lastDate) {
+          freeZoneStatus.textContent = `Tu última descarga gratuita fue el ${formatLocalDate(
+            lastDate
+          )}. Hoy puedes elegir una nueva.`;
+          return;
+        }
+
+        freeZoneStatus.textContent = 'Tienes 1 descarga gratuita disponible hoy.';
+      }
+
+      function buildFreeCard(item) {
+        const card = document.createElement('article');
+        card.className = 'free-zone-card';
+
+        const locked = hasDownloadedToday();
+        const buttonLabel = locked ? 'Descarga usada hoy' : 'Descargar gratis';
+
+        card.innerHTML = `
+          <div class="free-zone-card__thumb" style="--thumb:${item.accent}">
+            <span>${item.category}</span>
+          </div>
+          <div class="free-zone-card__content">
+            <h4>${item.title}</h4>
+            <p>${item.description}</p>
+            <button class="btn btn-secondary free-zone-card__download" type="button">
+              ${buttonLabel}
+            </button>
+          </div>
+        `;
+
+        const downloadButton = card.querySelector('.free-zone-card__download');
+        downloadButton.disabled = locked;
+        downloadButton.addEventListener('click', () => {
+          if (hasDownloadedToday()) {
+            renderFreeStatus();
+            refreshFreeCards();
+            return;
+          }
+
+          localStorage.setItem(FREE_ZONE_KEY, getTodayKey());
+          window.location.assign(item.pdfUrl);
+        });
+
+        return card;
+      }
+
+      function refreshFreeCards() {
+        freeZoneGrid.innerHTML = '';
+        FREE_PDFS.forEach((item) => {
+          freeZoneGrid.appendChild(buildFreeCard(item));
+        });
+      }
+
+      function openFreeZone(event) {
+        if (event) event.preventDefault();
+        freeZoneModal.classList.add('is-open');
+        freeZoneModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+        if (window.location.hash !== `#${FREE_ZONE_MODAL_ID}`) {
+          history.replaceState(null, '', `#${FREE_ZONE_MODAL_ID}`);
+        }
+        refreshFreeCards();
+        renderFreeStatus();
+      }
+
+      function closeFreeZone() {
+        freeZoneModal.classList.remove('is-open');
+        freeZoneModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+        if (window.location.hash === `#${FREE_ZONE_MODAL_ID}`) {
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      }
+
+      openZoneButton.addEventListener('click', openFreeZone);
+      closeZoneButtons.forEach((button) => {
+        button.addEventListener('click', closeFreeZone);
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && freeZoneModal.classList.contains('is-open')) {
+          closeFreeZone();
+        }
+      });
+
+      window.addEventListener('hashchange', () => {
+        if (window.location.hash === `#${FREE_ZONE_MODAL_ID}`) {
+          openFreeZone();
+        } else if (freeZoneModal.classList.contains('is-open')) {
+          closeFreeZone();
+        }
+      });
+
+      if (window.location.hash === `#${FREE_ZONE_MODAL_ID}`) {
+        openFreeZone();
+      }
     </script>
   </body>
 </html>
