@@ -532,7 +532,13 @@ h1 {
   text-align: center;
   max-width: 760px;
 }
+.pdfs-hero__content h1 {
+  margin-bottom: 0.65rem;
+}
 
+.pdfs-hero .hero-copy {
+  margin-top: 0;
+}
 .pdf-access-banner {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
