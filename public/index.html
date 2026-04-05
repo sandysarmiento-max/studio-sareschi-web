@@ -204,6 +204,7 @@
       </section>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
       const RINGS = [
         { label: '7/16"', diameter: 11.1, capacity: 9.1 },
@@ -338,112 +339,122 @@
 
       renderPlaceholder();
 
-      const FREE_PDFS = [
-        {
-          id: 'agenda-semanal',
-          title: 'Agenda semanal suave',
-          description: 'Planifica tu semana con estructura limpia y foco en prioridades.',
-          category: 'Organización',
-          pdfUrl: '/freebies/agenda-semanal-suave.pdf',
-          accent: '#f0d8e4',
-        },
-        {
-          id: 'lista-habitos',
-          title: 'Lista de hábitos minimal',
-          description: 'Seguimiento diario con formato simple y estilo femenino.',
-          category: 'Hábitos',
-          pdfUrl: '/freebies/lista-habitos-minimal.pdf',
-          accent: '#f8e7ce',
-        },
-        {
-          id: 'notas-creativas',
-          title: 'Notas creativas A4',
-          description: 'Plantilla libre para ideas, bosquejos y notas rápidas.',
-          category: 'Creatividad',
-          pdfUrl: '/freebies/notas-creativas-a4.pdf',
-          accent: '#dfeafc',
-        },
-      ];
-
-      const FREE_ZONE_KEY = 'studio_sareschi_free_zone_last_download';
       const FREE_ZONE_MODAL_ID = 'zona-gratuita-modal';
       const freeZoneModal = document.getElementById(FREE_ZONE_MODAL_ID);
       const freeZoneGrid = document.getElementById('free-zone-grid');
       const freeZoneStatus = document.getElementById('free-zone-status');
       const openZoneButton = document.querySelector('.free-zone-entry__cta');
       const closeZoneButtons = document.querySelectorAll('[data-modal-close]');
+      let supabaseClient = null;
+      let freeProducts = [];
+      let freeZoneState = {
+        authenticated: false,
+        canDownload: false,
+        message: 'Cargando estado de tu descarga diaria...',
+      };
 
-      function getTodayKey() {
-        const now = new Date();
-        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-          now.getDate()
-        ).padStart(2, '0')}`;
+      const authPanel = document.createElement('section');
+      authPanel.className = 'free-zone-auth';
+      authPanel.innerHTML = `
+        <p class="free-zone-auth__title">Acceso de usuaria</p>
+        <p class="free-zone-auth__copy">Inicia sesión para habilitar tu descarga gratuita diaria.</p>
+        <form id="free-zone-auth-form" class="free-zone-auth__form">
+          <input id="free-zone-email" type="email" required placeholder="tu@email.com" />
+          <button class="btn btn-secondary" type="submit">Recibir enlace de acceso</button>
+        </form>
+        <div class="free-zone-auth__actions">
+          <span id="free-zone-auth-state">Sesión no iniciada.</span>
+          <button id="free-zone-signout" class="btn btn-secondary" type="button">Cerrar sesión</button>
+        </div>
+      `;
+      freeZoneGrid.insertAdjacentElement('beforebegin', authPanel);
+
+      const authForm = document.getElementById('free-zone-auth-form');
+      const authEmailInput = document.getElementById('free-zone-email');
+      const authState = document.getElementById('free-zone-auth-state');
+      const signOutButton = document.getElementById('free-zone-signout');
+
+      function setStatus(text, isError = false) {
+        freeZoneStatus.textContent = text;
+        freeZoneStatus.classList.toggle('is-error', isError);
       }
 
-      function getLastDownloadDate() {
-        return localStorage.getItem(FREE_ZONE_KEY);
+      function setAuthState(text) {
+        authState.textContent = text;
       }
 
-      function hasDownloadedToday() {
-        return getLastDownloadDate() === getTodayKey();
-      }
-
-      function formatLocalDate(isoDate) {
-        const date = new Date(`${isoDate}T00:00:00`);
-        return new Intl.DateTimeFormat('es-PE', {
-          dateStyle: 'long',
-        }).format(date);
-      }
-
-      function renderFreeStatus() {
-        if (hasDownloadedToday()) {
-          freeZoneStatus.textContent =
-            'Ya usaste tu descarga gratuita de hoy. Vuelve mañana para elegir otro PDF.';
-          return;
-        }
-
-        const lastDate = getLastDownloadDate();
-        if (lastDate) {
-          freeZoneStatus.textContent = `Tu última descarga gratuita fue el ${formatLocalDate(
-            lastDate
-          )}. Hoy puedes elegir una nueva.`;
-          return;
-        }
-
-        freeZoneStatus.textContent = 'Tienes 1 descarga gratuita disponible hoy.';
+      async function getAccessToken() {
+        if (!supabaseClient) return null;
+        const { data } = await supabaseClient.auth.getSession();
+        return data?.session?.access_token || null;
       }
 
       function buildFreeCard(item) {
         const card = document.createElement('article');
         card.className = 'free-zone-card';
 
-        const locked = hasDownloadedToday();
-        const buttonLabel = locked ? 'Descarga usada hoy' : 'Descargar gratis';
+        const disabled = !freeZoneState.authenticated || !freeZoneState.canDownload;
+        const buttonLabel = !freeZoneState.authenticated
+          ? 'Inicia sesión para descargar'
+          : freeZoneState.canDownload
+          ? 'Descargar gratis'
+          : 'Descarga usada hoy';
 
         card.innerHTML = `
-          <div class="free-zone-card__thumb" style="--thumb:${item.accent}">
-            <span>${item.category}</span>
+          <div class="free-zone-card__thumb" style="--thumb:${item.thumbnail || '#f3dfec'}">
+            <span>${item.category || 'PDF gratis'}</span>
           </div>
           <div class="free-zone-card__content">
             <h4>${item.title}</h4>
-            <p>${item.description}</p>
-            <button class="btn btn-secondary free-zone-card__download" type="button">
-              ${buttonLabel}
-            </button>
+            <p>${item.description || ''}</p>
+            <button class="btn btn-secondary free-zone-card__download" type="button">${buttonLabel}</button>
           </div>
         `;
 
         const downloadButton = card.querySelector('.free-zone-card__download');
-        downloadButton.disabled = locked;
-        downloadButton.addEventListener('click', () => {
-          if (hasDownloadedToday()) {
-            renderFreeStatus();
-            refreshFreeCards();
-            return;
-          }
+        downloadButton.disabled = disabled;
+        downloadButton.addEventListener('click', async () => {
+          try {
+            if (!freeZoneState.authenticated) {
+              setStatus('Primero inicia sesión con tu email para activar la descarga diaria.');
+              return;
+            }
 
-          localStorage.setItem(FREE_ZONE_KEY, getTodayKey());
-          window.location.assign(item.pdfUrl);
+            if (!freeZoneState.canDownload) {
+              setStatus('Ya usaste tu descarga gratuita de hoy. Vuelve mañana para elegir otro PDF.');
+              return;
+            }
+
+            downloadButton.disabled = true;
+            downloadButton.textContent = 'Preparando enlace...';
+
+            const token = await getAccessToken();
+            const response = await fetch('/api/pdf-access', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({
+                action: 'claim-freebie',
+                freeProductId: item.id,
+              }),
+            });
+
+            const payload = await response.json();
+            if (!response.ok) {
+              throw new Error(payload?.error || 'No pudimos validar tu descarga diaria.');
+            }
+
+            setStatus('Tu descarga está lista. El enlace es temporal por seguridad.');
+            await refreshFreeStatus();
+            refreshFreeCards();
+            window.location.assign(payload.downloadUrl);
+          } catch (error) {
+            setStatus(error.message || 'No fue posible preparar la descarga.', true);
+            downloadButton.disabled = false;
+            downloadButton.textContent = buttonLabel;
+          }
         });
 
         return card;
@@ -451,12 +462,79 @@
 
       function refreshFreeCards() {
         freeZoneGrid.innerHTML = '';
-        FREE_PDFS.forEach((item) => {
+        freeProducts.forEach((item) => {
           freeZoneGrid.appendChild(buildFreeCard(item));
         });
       }
 
-      function openFreeZone(event) {
+      async function refreshFreeStatus() {
+        const token = await getAccessToken();
+        const response = await fetch('/api/pdf-access', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ action: 'freebie-status' }),
+        });
+        const payload = await response.json();
+
+        freeZoneState = {
+          authenticated: Boolean(payload?.authenticated),
+          canDownload: Boolean(payload?.canDownload),
+          message: payload?.message || 'No fue posible consultar tu estado en este momento.',
+        };
+
+        setStatus(freeZoneState.message);
+        setAuthState(
+          freeZoneState.authenticated
+            ? 'Sesión activa. Tu descarga diaria se valida automáticamente.'
+            : 'Sesión no iniciada.'
+        );
+
+        signOutButton.hidden = !freeZoneState.authenticated;
+      }
+
+      async function loadFreeProducts() {
+        const response = await fetch('/api/pdf-access?action=free-products');
+        const payload = await response.json();
+        freeProducts = Array.isArray(payload?.products) ? payload.products : [];
+      }
+
+      async function initSupabaseAuth() {
+        const configRes = await fetch('/api/pdf-access?action=free-config');
+        const config = await configRes.json();
+        if (!config?.supabaseUrl || !config?.supabaseAnonKey || !window.supabase?.createClient) {
+          throw new Error('No se pudo iniciar Supabase Auth.');
+        }
+
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
+          auth: {
+            detectSessionInUrl: true,
+            persistSession: true,
+            autoRefreshToken: true,
+          },
+        });
+
+        supabaseClient.auth.onAuthStateChange(async () => {
+          await refreshFreeStatus();
+          refreshFreeCards();
+        });
+      }
+
+      async function bootstrapFreeZone() {
+        try {
+          await initSupabaseAuth();
+          await loadFreeProducts();
+          await refreshFreeStatus();
+          refreshFreeCards();
+        } catch (error) {
+          setStatus('No pudimos conectar la Zona Gratuita en este momento.', true);
+          setAuthState('Auth no disponible temporalmente.');
+        }
+      }
+
+      async function openFreeZone(event) {
         if (event) event.preventDefault();
         freeZoneModal.classList.add('is-open');
         freeZoneModal.setAttribute('aria-hidden', 'false');
@@ -464,8 +542,13 @@
         if (window.location.hash !== `#${FREE_ZONE_MODAL_ID}`) {
           history.replaceState(null, '', `#${FREE_ZONE_MODAL_ID}`);
         }
-        refreshFreeCards();
-        renderFreeStatus();
+
+        if (!freeProducts.length) {
+          await bootstrapFreeZone();
+        } else {
+          await refreshFreeStatus();
+          refreshFreeCards();
+        }
       }
 
       function closeFreeZone() {
@@ -476,6 +559,42 @@
           history.replaceState(null, '', window.location.pathname + window.location.search);
         }
       }
+
+      authForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!supabaseClient) {
+          setStatus('Supabase Auth todavía no está listo. Intenta nuevamente.');
+          return;
+        }
+
+        const email = authEmailInput.value.trim();
+        if (!email) return;
+
+        try {
+          setAuthState('Enviando enlace de acceso...');
+          const { error } = await supabaseClient.auth.signInWithOtp({
+            email,
+            options: {
+              emailRedirectTo: `${window.location.origin}${window.location.pathname}#${FREE_ZONE_MODAL_ID}`,
+            },
+          });
+
+          if (error) throw error;
+
+          setAuthState('Revisa tu email para completar el acceso.');
+          setStatus('Te enviamos un enlace mágico para activar tu descarga diaria.');
+        } catch (error) {
+          setAuthState('No se pudo enviar el enlace.');
+          setStatus(error.message || 'No pudimos enviar el enlace de acceso.', true);
+        }
+      });
+
+      signOutButton.addEventListener('click', async () => {
+        if (!supabaseClient) return;
+        await supabaseClient.auth.signOut();
+        await refreshFreeStatus();
+        refreshFreeCards();
+      });
 
       openZoneButton.addEventListener('click', openFreeZone);
       closeZoneButtons.forEach((button) => {
