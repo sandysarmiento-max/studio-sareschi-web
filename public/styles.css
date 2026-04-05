@@ -525,7 +525,7 @@ h1 {
 }
 
 .pdfs-hero {
-  padding-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
 }
 
 .pdfs-hero__content {
@@ -533,9 +533,10 @@ h1 {
   max-width: 760px;
 }
 .pdfs-hero__content h1 {
-  margin-bottom: 0.65rem;
+  margin-bottom: 0.35rem;
 }
 
+.pdfs-hero__content p,
 .pdfs-hero .hero-copy {
   margin-top: 0;
 }
