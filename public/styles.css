@@ -523,3 +523,157 @@ h1 {
     grid-column: span 1;
   }
 }
+
+.pdf-store-hero {
+  padding-top: clamp(2.8rem, 5vw, 4rem);
+}
+
+.pdf-store-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.pdf-store-cta-row {
+  margin-top: 1.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.pdf-freebie-compact {
+  border: 1px solid #efd6e4;
+  border-radius: 18px;
+  background: linear-gradient(170deg, #fffafd 0%, #fff2f8 100%);
+  box-shadow: var(--shadow);
+  padding: 1.1rem;
+}
+
+.pdf-freebie-compact h2 {
+  margin-bottom: 0.4rem;
+}
+
+.pdf-freebie-compact p {
+  margin-top: 0;
+  color: #625466;
+}
+
+.featured-preview-grid {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.catalog-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.product-card {
+  border: 1px solid #efd7e4;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: var(--shadow);
+  padding: 0.9rem;
+}
+
+.product-card--compact .product-preview {
+  min-height: 128px;
+}
+
+.product-card h3 {
+  margin: 0.8rem 0 0.25rem;
+  font-size: 1rem;
+}
+
+.product-card p {
+  margin: 0;
+  color: #645767;
+  font-size: 0.9rem;
+}
+
+.product-preview {
+  position: relative;
+  border-radius: 14px;
+  min-height: 148px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-sheet {
+  width: min(86%, 180px);
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(111, 75, 95, 0.18);
+  box-shadow: 0 12px 22px rgba(90, 53, 75, 0.14);
+}
+
+.store-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 0.26rem 0.58rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.9);
+  color: #6d3556;
+  border: 1px solid rgba(188, 142, 166, 0.45);
+}
+
+.store-badge-hot {
+  left: auto;
+  right: 10px;
+  background: #c13f75;
+  color: #fff;
+  border-color: #c13f75;
+}
+
+.price-row {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.4rem;
+  color: #5b4760;
+  font-size: 0.86rem;
+}
+
+.card-actions {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.card-actions .btn {
+  width: 100%;
+  border-radius: 12px;
+  font-size: 0.86rem;
+}
+
+.tiny-note {
+  margin: 0.6rem 0 0;
+  color: #77697b;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 980px) {
+  .featured-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 840px) {
+  .pdf-store-top {
+    grid-template-columns: 1fr;
+  }
+}
