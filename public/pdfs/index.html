@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tienda de PDFs | Studio Sareschi</title>
+    <meta
+      name="description"
+      content="Tienda de descargables Studio Sareschi: una descarga gratuita diaria y productos individuales en PDF HQ y Canva editable."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="/">Studio Sareschi</a>
+        <nav aria-label="Principal">
+          <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/aral-calc-guia/">Aral Calc</a></li>
+            <li><a href="/folia-guia/">Folia</a></li>
+            <li><a href="/pdfs/">Tienda PDFs</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="section pdf-store-intro">
+        <div class="container">
+          <p class="eyebrow">Descargables independientes</p>
+          <h1>Tienda de PDFs de Studio Sareschi</h1>
+          <p class="hero-copy" style="margin: 0">
+            Esta sección funciona por separado de Aral Calc y Folia. Aquí encontrarás
+            una descarga gratuita del día y descargables de compra individual.
+          </p>
+        </div>
+      </section>
+
+      <section class="section section-soft">
+        <div class="container">
+          <div class="pdf-store-free card" id="free-offer-card">
+            <div>
+              <p class="eyebrow">Gratis hoy</p>
+              <h2 id="free-offer-title">Cargando descarga del día...</h2>
+              <p id="free-offer-description" class="pdf-store-muted">
+                Estamos buscando el producto gratuito del día.
+              </p>
+            </div>
+
+            <form id="free-offer-form" class="pdf-store-form">
+              <label for="free-email">Tu correo para habilitar la descarga de hoy</label>
+              <div class="pdf-store-input-row">
+                <input
+                  id="free-email"
+                  name="email"
+                  type="email"
+                  placeholder="nombre@correo.com"
+                  required
+                />
+                <button class="btn btn-primary" type="submit">Descargar gratis</button>
+              </div>
+              <p class="pdf-store-note">Solo 1 descarga gratuita por día por correo.</p>
+              <p id="free-offer-status" class="pdf-store-status" role="status"></p>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-heading">
+            <p class="eyebrow">Catálogo</p>
+            <h2>Descargables de compra individual</h2>
+          </div>
+          <div id="catalog-grid" class="pdf-store-grid"></div>
+          <p id="catalog-status" class="pdf-store-muted">Cargando productos...</p>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
+
+      const freeOfferTitle = document.getElementById('free-offer-title');
+      const freeOfferDescription = document.getElementById('free-offer-description');
+      const freeOfferStatus = document.getElementById('free-offer-status');
+      const freeOfferForm = document.getElementById('free-offer-form');
+      const catalogGrid = document.getElementById('catalog-grid');
+      const catalogStatus = document.getElementById('catalog-status');
+
+      let supabase = null;
+      let todayFreeOffer = null;
+
+      async function loadPublicConfig() {
+        const response = await fetch('/api/public-config');
+        if (!response.ok) throw new Error('No se pudo cargar la configuración pública.');
+        return response.json();
+      }
+
+      function formatMoney(cents, currency) {
+        const value = Number(cents || 0) / 100;
+        return new Intl.NumberFormat('es-PE', {
+          style: 'currency',
+          currency: currency || 'PEN',
+          minimumFractionDigits: 2,
+        }).format(value);
+      }
+
+      function getVariantLabel(type) {
+        if (type === 'canva_editable') return 'Canva editable';
+        return 'PDF HQ';
+      }
+
+      function renderCatalog(products) {
+        if (!products.length) {
+          catalogGrid.innerHTML = '';
+          catalogStatus.textContent = 'Aún no hay productos activos para venta.';
+          return;
+        }
+
+        catalogGrid.innerHTML = products
+          .map((product) => {
+            const variants = product.product_variants || [];
+            const variantRows = variants
+              .map((variant) => {
+                const price = formatMoney(variant.price_cents, variant.currency);
+                const action = variant.checkout_url
+                  ? `<a class="btn btn-primary" href="${variant.checkout_url}" target="_blank" rel="noopener noreferrer">Comprar</a>`
+                  : '<span class="pdf-store-muted">Próximamente</span>';
+
+                return `
+                  <li class="pdf-store-variant">
+                    <div>
+                      <strong>${getVariantLabel(variant.variant_type)}</strong>
+                      <p>${price}</p>
+                    </div>
+                    <div>${action}</div>
+                  </li>
+                `;
+              })
+              .join('');
+
+            return `
+              <article class="card pdf-store-product">
+                <h3>${product.name}</h3>
+                <p class="pdf-store-muted">${product.description || ''}</p>
+                <ul class="pdf-store-variants">${variantRows}</ul>
+              </article>
+            `;
+          })
+          .join('');
+
+        catalogStatus.textContent = '';
+      }
+
+      async function loadCatalog() {
+        const { data, error } = await supabase
+          .from('products')
+          .select(
+            `
+              id,
+              name,
+              description,
+              product_variants (
+                id,
+                variant_type,
+                price_cents,
+                currency,
+                checkout_url,
+                is_active
+              )
+            `,
+          )
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        const filtered = (data || []).map((item) => ({
+          ...item,
+          product_variants: (item.product_variants || []).filter((v) => v.is_active !== false),
+        }));
+
+        renderCatalog(filtered);
+      }
+
+      function setFreeOfferContent(record) {
+        if (!record) {
+          freeOfferTitle.textContent = 'No hay descarga gratuita configurada para hoy.';
+          freeOfferDescription.textContent =
+            'Configura una oferta diaria en Supabase para habilitar esta sección.';
+          freeOfferForm.style.display = 'none';
+          return;
+        }
+
+        const productName = record.product_variants?.products?.name || 'Descarga gratuita';
+        const variantType = getVariantLabel(record.product_variants?.variant_type);
+        freeOfferTitle.textContent = `${productName} · ${variantType}`;
+        freeOfferDescription.textContent =
+          'Completa tu correo y habilita tu descarga gratuita del día.';
+      }
+
+      async function loadDailyFreeOffer() {
+        const today = new Date().toISOString().slice(0, 10);
+        const { data, error } = await supabase
+          .from('daily_free_offers')
+          .select(
+            `
+              id,
+              offer_date,
+              product_variants (
+                id,
+                variant_type,
+                download_url,
+                products ( id, name )
+              )
+            `,
+          )
+          .eq('offer_date', today)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        todayFreeOffer = data;
+        setFreeOfferContent(todayFreeOffer);
+      }
+
+      function normalizeEmail(email) {
+        return String(email || '').trim().toLowerCase();
+      }
+
+      function setStatus(message, kind = 'info') {
+        freeOfferStatus.textContent = message;
+        freeOfferStatus.dataset.kind = kind;
+      }
+
+      async function handleFreeDownload(event) {
+        event.preventDefault();
+        if (!todayFreeOffer?.product_variants?.id) {
+          setStatus('No hay descarga disponible en este momento.', 'error');
+          return;
+        }
+
+        const formData = new FormData(freeOfferForm);
+        const email = normalizeEmail(formData.get('email'));
+
+        if (!email || !email.includes('@')) {
+          setStatus('Ingresa un correo válido para continuar.', 'error');
+          return;
+        }
+
+        setStatus('Verificando disponibilidad...', 'info');
+
+        const payload = {
+          p_email: email,
+          p_offer_id: todayFreeOffer.id,
+        };
+
+        const { data, error } = await supabase.rpc('claim_daily_free_download', payload);
+
+        if (error) {
+          setStatus('No se pudo registrar la descarga gratuita. Intenta más tarde.', 'error');
+          return;
+        }
+
+        if (!data?.allowed) {
+          setStatus(
+            data?.message || 'Ya usaste tu descarga gratuita de hoy. Vuelve mañana.',
+            'error',
+          );
+          return;
+        }
+
+        setStatus('Descarga habilitada. Se abrirá en una nueva pestaña.', 'success');
+        const downloadUrl = data.download_url || todayFreeOffer.product_variants.download_url;
+        if (downloadUrl) window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+      }
+
+      async function initStore() {
+        try {
+          const publicConfig = await loadPublicConfig();
+
+          if (!publicConfig.supabaseUrl || !publicConfig.supabasePublishableKey) {
+            throw new Error('Faltan variables de entorno públicas para Supabase.');
+          }
+
+          supabase = createClient(
+            publicConfig.supabaseUrl,
+            publicConfig.supabasePublishableKey,
+          );
+
+          await Promise.all([loadDailyFreeOffer(), loadCatalog()]);
+        } catch (error) {
+          console.error(error);
+          catalogStatus.textContent =
+            'No se pudo conectar la tienda en este momento. Revisa la configuración de Supabase.';
+          setStatus('Error de conexión con Supabase.', 'error');
+        }
+      }
+
+      freeOfferForm.addEventListener('submit', handleFreeDownload);
+      initStore();
+    </script>
+  </body>
+</html>
