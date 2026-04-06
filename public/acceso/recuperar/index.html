@@ -178,7 +178,10 @@
         setRecoveryMode(recoveryMode);
 
         if (recoveryMode) {
+          window.sessionStorage.setItem('aral-recovery-session', 'active');
           setStatus('Ingresa tu nueva contraseña para completar la recuperación.');
+        } else {
+          window.sessionStorage.removeItem('aral-recovery-session');
         }
       }
 
@@ -227,7 +230,9 @@
           return;
         }
 
-        setStatus('Contraseña actualizada. Ahora puedes iniciar sesión.');
+        await supabaseClient.auth.signOut();
+        window.sessionStorage.removeItem('aral-recovery-session');
+        setStatus('Contraseña actualizada. Inicia sesión nuevamente para continuar.');
         window.setTimeout(() => {
           window.location.href = '/acceso/';
         }, 1200);
