@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Acceso | Studio Sareschi</title>
+    <title>Acceso Aral Calc | Studio Sareschi</title>
     <meta
       name="description"
-      content="Ruta base de acceso para futuras autenticaciones en Studio Sareschi."
+      content="Inicia sesión para acceder a Aral Calc en Studio Sareschi."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,6 +15,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   </head>
   <body>
     <header class="site-header">
@@ -24,34 +25,150 @@
           <ul class="nav-links">
             <li><a href="/#home">Home</a></li>
             <li><a href="/#apps">Apps</a></li>
-            <li><a href="/aral-calc/">Aral Calc</a></li>
+            <li><a href="/aral-calc-guia/">Aral Calc</a></li>
           </ul>
         </nav>
       </div>
     </header>
 
     <main>
-      <section class="section">
+      <section class="section section-soft">
         <div class="container">
           <div class="section-heading">
-            <p class="eyebrow">Acceso</p>
-            <h1>Ruta preparada para autenticación futura</h1>
+            <p class="eyebrow">Acceso protegido</p>
+            <h1>Inicia sesión para acceder a Aral Calc</h1>
             <p class="hero-copy" style="margin: 0">
-              Este punto de entrada queda listo para conectar login real (por ejemplo con
-              Supabase) cuando se habilite el backend.
+              Aral Calc está disponible solo para usuarios con acceso autorizado.
             </p>
           </div>
 
-          <article class="card" style="max-width: 680px">
-            <h3>Estado actual</h3>
-            <p>
-              No hay autenticación implementada todavía. Esta pantalla funciona como
-              marcador de arquitectura para el flujo futuro de acceso.
-            </p>
-            <a class="btn btn-primary" href="/app/aral-calc/">Ir al área futura de app</a>
+          <article class="card" style="max-width: 620px">
+            <form id="login-form" style="display: grid; gap: 12px">
+              <label>
+                Email
+                <input id="email" type="email" required autocomplete="email" style="width:100%;margin-top:6px" />
+              </label>
+              <label>
+                Contraseña
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  autocomplete="current-password"
+                  style="width:100%;margin-top:6px"
+                />
+              </label>
+              <button id="login-btn" class="btn btn-primary" type="submit">Entrar a Aral Calc</button>
+              <a href="/acceso/recuperar/" style="font-weight:600;color:#8f1d4f;text-decoration:none">¿Olvidaste tu contraseña?</a>
+            </form>
+
+            <div id="session-box" hidden>
+              <p><strong>Sesión activa.</strong> Ya puedes ingresar a Aral Calc.</p>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <a class="btn btn-primary" id="continue-link" href="/aral-calc/">Abrir Aral Calc</a>
+                <button class="btn btn-secondary" id="logout-btn" type="button">Cerrar sesión</button>
+              </div>
+            </div>
+
+            <p id="status" class="tiny-note" aria-live="polite" style="margin-top: 12px"></p>
           </article>
         </div>
       </section>
     </main>
+
+    <script>
+      const statusEl = document.getElementById('status');
+      const form = document.getElementById('login-form');
+      const sessionBox = document.getElementById('session-box');
+      const continueLink = document.getElementById('continue-link');
+      const loginBtn = document.getElementById('login-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+      const nextParam = new URLSearchParams(window.location.search).get('next') || '/aral-calc/';
+      continueLink.href = nextParam;
+
+      let supabaseClient = null;
+
+      function setStatus(message, isError = false) {
+        statusEl.textContent = message;
+        statusEl.style.color = isError ? '#8f1d4f' : '';
+      }
+
+      async function hasAralAccess() {
+        // Base preparada para futuras reglas (compra/permiso por usuario).
+        return true;
+      }
+
+      async function bootAuth() {
+        const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
+        const config = await response.json();
+
+        if (!config.enabled) {
+          form.hidden = true;
+          setStatus(
+            'Falta configurar SUPABASE_URL y SUPABASE_ANON_KEY en Vercel para habilitar el acceso protegido.',
+            true
+          );
+          return;
+        }
+
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+
+        if (session) {
+          const allowed = await hasAralAccess(session.user);
+          form.hidden = true;
+          sessionBox.hidden = !allowed;
+          if (allowed) {
+            setStatus('Sesión detectada. Continúa a Aral Calc.');
+          } else {
+            setStatus('Tu cuenta inició sesión, pero todavía no tiene acceso a Aral Calc.', true);
+          }
+        }
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!supabaseClient) {
+          return;
+        }
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        loginBtn.disabled = true;
+        setStatus('Validando acceso...');
+
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+        loginBtn.disabled = false;
+
+        if (error || !data?.session) {
+          setStatus('No fue posible iniciar sesión. Revisa tu email y contraseña.', true);
+          return;
+        }
+
+        const allowed = await hasAralAccess(data.user);
+        if (!allowed) {
+          setStatus('Tu sesión está activa, pero todavía no tienes permiso para Aral Calc.', true);
+          return;
+        }
+
+        window.location.href = nextParam;
+      });
+
+      logoutBtn.addEventListener('click', async () => {
+        if (!supabaseClient) {
+          return;
+        }
+        await supabaseClient.auth.signOut();
+        window.location.reload();
+      });
+
+      bootAuth().catch(() => {
+        setStatus('No se pudo inicializar el login en este momento. Intenta de nuevo.', true);
+      });
+    </script>
   </body>
 </html>
