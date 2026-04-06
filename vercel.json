@@ -11,6 +11,31 @@
       "source": "/mini_calculadora_aral_calc_preview_v5.html",
       "destination": "/acceso/?next=/aral-calc/",
       "permanent": false
+    },
+    {
+      "source": "/folia_v1.html",
+      "destination": "/folia-bloqueada/",
+      "permanent": false
+    },
+    {
+      "source": "/folia_v1",
+      "destination": "/folia-bloqueada/",
+      "permanent": false
+    },
+    {
+      "source": "/folia",
+      "destination": "/folia-bloqueada/",
+      "permanent": false
+    },
+    {
+      "source": "/folia/",
+      "destination": "/folia-bloqueada/",
+      "permanent": false
+    },
+    {
+      "source": "/folia/(.*)",
+      "destination": "/folia-bloqueada/",
+      "permanent": false
     }
   ]
 }
