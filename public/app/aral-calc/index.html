@@ -3,50 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>App Aral Calc | Studio Sareschi</title>
+    <title>Acceso a Aral Calc | Studio Sareschi</title>
     <meta
       name="description"
-      content="Ruta futura de aplicación protegida para Aral Calc en Studio Sareschi."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
+      content="Ruta de transición protegida hacia Aral Calc."
     />
     <link rel="stylesheet" href="/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   </head>
   <body>
-    <header class="site-header">
-      <div class="container nav-wrap">
-        <a class="brand" href="/">Studio Sareschi</a>
-        <nav aria-label="Principal">
-          <ul class="nav-links">
-            <li><a href="/aral-calc/">Aral Calc</a></li>
-            <li><a href="/acceso/">Acceso</a></li>
-          </ul>
-        </nav>
-      </div>
-    </header>
-
     <main>
       <section class="section section-soft">
         <div class="container">
-          <p class="eyebrow">App futura</p>
-          <h1>/app/aral-calc</h1>
-          <article class="card" style="max-width: 760px">
-            <h3>Arquitectura lista para conexión</h3>
-            <p>
-              Esta ruta queda preparada para convertirse en área protegida cuando se
-              implemente autenticación y sesión con Supabase.
-            </p>
-            <p>
-              Por ahora, Aral Calc productivo está disponible en <strong>/aral-calc</strong>.
-            </p>
-            <a class="btn btn-secondary" href="/aral-calc/">Volver a Aral Calc</a>
+          <article class="card" style="max-width:700px">
+            <p class="eyebrow">Acceso protegido</p>
+            <h1 style="margin-top:0">Validando tu sesión…</h1>
+            <p id="status">Te estamos redirigiendo.</p>
+            <a class="btn btn-secondary" href="/acceso/?next=/aral-calc/">Ir a login</a>
           </article>
         </div>
       </section>
     </main>
+
+    <script>
+      const status = document.getElementById('status');
+
+      (async () => {
+        try {
+          const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
+          const config = await response.json();
+
+          if (!config.enabled) {
+            status.textContent = 'Falta configuración de auth. Redirigiendo a login…';
+            window.location.href = '/acceso/?next=/aral-calc/';
+            return;
+          }
+
+          const supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+          const {
+            data: { session },
+          } = await supabaseClient.auth.getSession();
+
+          if (!session) {
+            status.textContent = 'Necesitas iniciar sesión para entrar a Aral Calc.';
+            window.location.href = '/acceso/?next=/aral-calc/';
+            return;
+          }
+
+          window.location.href = '/aral-calc/';
+        } catch (error) {
+          status.textContent = 'No se pudo validar tu sesión. Intenta iniciar sesión nuevamente.';
+          window.location.href = '/acceso/?next=/aral-calc/';
+        }
+      })();
+    </script>
   </body>
 </html>
