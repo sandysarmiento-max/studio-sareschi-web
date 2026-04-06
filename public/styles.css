@@ -524,6 +524,57 @@ body.modal-open {
   color: var(--muted);
 }
 
+
+.free-zone-auth {
+  border: 1px solid #edd9e4;
+  border-radius: 14px;
+  background: #fff9fc;
+  padding: 0.85rem;
+  margin-bottom: 0.8rem;
+}
+
+.free-zone-auth__title {
+  margin: 0;
+  font-weight: 700;
+  color: #5f3f52;
+}
+
+.free-zone-auth__copy {
+  margin: 0.3rem 0 0.75rem;
+  color: #6f5c69;
+  font-size: 0.86rem;
+}
+
+.free-zone-auth__form {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.free-zone-auth__form input {
+  flex: 1 1 240px;
+  border: 1px solid #ddc4d1;
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  font: inherit;
+}
+
+.free-zone-auth__actions {
+  margin-top: 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.82rem;
+  color: #6f5463;
+}
+
+.free-zone-status.is-error {
+  border-color: #f3cad3;
+  background: #fff2f5;
+  color: #8a3f56;
+}
+
 .free-zone-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
