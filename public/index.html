@@ -80,7 +80,7 @@
               <div>
                 <p class="eyebrow">ZONA GRATUITA</p>
                 <h3>Elige tu diseño gratis</h3>
-                <p>Si aún no eres cliente, puedes descargar 1 archivo gratuito al día.</p>
+                <p>Puedes descargar 1 archivo gratuito al día.</p>
               </div>
               <a
                 class="btn btn-primary free-zone-entry__cta"
@@ -90,7 +90,7 @@
                 Ver PDFs gratis
               </a>
             </header>
-            <p class="free-zone-entry__note">Disponible 1 vez al día por navegador.</p>
+            <p class="free-zone-entry__note">Si deseas más archivos, puedes comprarlos en la tienda.</p>
           </article>
 
           <article class="mini-tool" data-mini-app="ring-calculator">
@@ -180,7 +180,7 @@
           <div>
             <p class="eyebrow">ZONA GRATUITA</p>
             <h3 id="free-zone-title">Elige 1 archivo gratuito al día</h3>
-            <p>Si aún no eres cliente, puedes descargar 1 archivo gratuito al día.</p>
+            <p>Puedes descargar 1 archivo gratuito al día.</p>
           </div>
           <button
             class="free-zone-modal__close"
@@ -192,7 +192,7 @@
           </button>
         </header>
 
-        <p class="free-zone-modal__info">Zona Gratuita activa con límite diario por navegador.</p>
+        <p class="free-zone-modal__info">Si deseas más archivos, puedes comprarlos en la tienda.</p>
 
         <div id="free-zone-grid" class="free-zone-grid"></div>
         <p id="free-zone-status" class="free-zone-status" aria-live="polite"></p>
@@ -380,7 +380,7 @@
       function renderFreeStatus() {
         if (hasDownloadedToday()) {
           freeZoneStatus.textContent =
-            'Ya usaste tu descarga gratuita de hoy en este navegador. Vuelve mañana para descargar otro PDF.';
+            'Ya usaste tu descarga gratuita de hoy. Vuelve mañana para descargar otro PDF o visita la tienda para obtener más archivos.';
           return;
         }
 
@@ -388,11 +388,11 @@
         if (lastDate) {
           freeZoneStatus.textContent = `Tu descarga gratuita anterior fue el ${formatLocalDate(
             lastDate
-          )}. Hoy ya puedes descargar 1 archivo gratuito.`;
+          )}. Puedes descargar 1 archivo gratuito al día.`;
           return;
         }
 
-        freeZoneStatus.textContent = 'Hoy tienes 1 archivo gratuito disponible en este navegador.';
+        freeZoneStatus.textContent = 'Puedes descargar 1 archivo gratuito al día.';
       }
 
       function buildFreeCard(item) {
