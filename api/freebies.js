@@ -97,20 +97,28 @@ async function getProductById(productId) {
 }
 
 async function createSignedUrl(objectPath) {
-  const normalizedPath = objectPath.replace(/^\/+/, '');
+  const normalizedPath = objectPath
+    .replace(/^\/+/, '')
+    .replace(new RegExp(`^${SUPABASE_FREEBIES_BUCKET}/`), '');
   const signed = await callSupabase(
-    `/storage/v1/object/sign/${encodeURIComponent(SUPABASE_FREEBIES_BUCKET)}/${encodeURIComponent(normalizedPath)}`,
+    `/storage/v1/object/sign/${SUPABASE_FREEBIES_BUCKET}/${normalizedPath}`,
     {
       method: 'POST',
       body: JSON.stringify({ expiresIn: SIGNED_URL_TTL_SECONDS }),
     }
   );
 
-  if (!signed?.signedURL) {
+  const signedPath = signed?.signedURL || signed?.signedUrl;
+
+  if (!signedPath) {
     throw new Error('No se pudo crear la signed URL.');
   }
 
-  return `${SUPABASE_URL}/storage/v1${signed.signedURL}`;
+  if (/^https?:\/\//.test(signedPath)) {
+    return signedPath;
+  }
+
+  return `${SUPABASE_URL}/storage/v1${signedPath}`;
 }
 
 async function handleGet(req, res) {
