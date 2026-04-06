@@ -11,11 +11,7 @@ const FALLBACK_FREE_PRODUCTS = [
     description: 'Planifica tu semana con estructura limpia y foco en prioridades.',
     category: 'Organización',
     thumbnail: null,
-    storage_path: null,
-    legacy_public_url: '/freebies/agenda-semanal-suave.pdf',
     page_count: 1,
-    is_active: true,
-    sort_order: 1,
   },
   {
     id: 'fallback-habitos',
@@ -24,11 +20,7 @@ const FALLBACK_FREE_PRODUCTS = [
     description: 'Seguimiento diario con formato simple y estilo femenino.',
     category: 'Hábitos',
     thumbnail: null,
-    storage_path: null,
-    legacy_public_url: '/freebies/lista-habitos-minimal.pdf',
     page_count: 1,
-    is_active: true,
-    sort_order: 2,
   },
   {
     id: 'fallback-notas',
@@ -37,11 +29,7 @@ const FALLBACK_FREE_PRODUCTS = [
     description: 'Plantilla libre para ideas, bosquejos y notas rápidas.',
     category: 'Creatividad',
     thumbnail: null,
-    storage_path: null,
-    legacy_public_url: '/freebies/notas-creativas-a4.pdf',
     page_count: 1,
-    is_active: true,
-    sort_order: 3,
   },
 ];
 
@@ -134,7 +122,7 @@ async function hasDownloadedToday(userId, today) {
 async function listFreeProducts() {
   try {
     const rows = await callSupabase(
-      '/rest/v1/free_products?select=id,slug,title,description,category,thumbnail,storage_path,legacy_public_url,page_count,is_active,sort_order&is_active=eq.true&order=sort_order.asc,created_at.asc'
+      '/rest/v1/free_products?select=id,slug,title,description,category,thumbnail,page_count&is_active=eq.true&order=sort_order.asc,created_at.asc'
     );
 
     if (Array.isArray(rows) && rows.length) {
@@ -205,7 +193,17 @@ async function handleFreeConfig(_req, res) {
 
 async function handleFreeProducts(_req, res) {
   const products = await listFreeProducts();
-  return json(res, 200, { products });
+  const safeProducts = products.map((item) => ({
+    id: item.id,
+    slug: item.slug,
+    title: item.title,
+    description: item.description || '',
+    category: item.category || '',
+    thumbnail: item.thumbnail || null,
+    page_count: Number(item.page_count || 0),
+  }));
+
+  return json(res, 200, { products: safeProducts });
 }
 
 async function handleFreebieStatus(req, res, payload) {
