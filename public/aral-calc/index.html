@@ -53,11 +53,28 @@
     .nav-links{display:flex;list-style:none;margin:0;padding:0;gap:16px}
     .nav-links a{color:var(--muted);text-decoration:none;font-weight:500}
     .nav-links a:hover,.nav-links a:focus-visible{color:var(--accent)}
+    .header-actions{display:flex;align-items:center;gap:12px}
+    .logout-btn{
+      border:1px solid var(--border);
+      background:var(--panel2);
+      color:#61584f;
+      border-radius:999px;
+      padding:8px 14px;
+      font-size:13px;
+      font-weight:600;
+      cursor:pointer;
+      transition:all .2s ease;
+    }
+    .logout-btn:hover,.logout-btn:focus-visible{
+      border-color:var(--accent);
+      color:var(--accent);
+      background:var(--accent-soft);
+    }
     .hero-intro{max-width:1280px;margin:0 auto;padding:24px 16px 0}
     .hero-panel{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:18px 20px}
     .hero-panel h1{margin:0 0 8px;font-size:clamp(1.4rem,2.2vw,2rem);line-height:1.2;color:#3a2f3a}
     .hero-panel p{margin:0;color:var(--muted)}
-    @media (max-width:720px){.nav-wrap{flex-direction:column}.nav-links{flex-wrap:wrap;justify-content:center}}
+    @media (max-width:720px){.nav-wrap{flex-direction:column}.header-actions{flex-direction:column}.nav-links{flex-wrap:wrap;justify-content:center}}
     .auth-pending{opacity:0;pointer-events:none}
 
   </style>
@@ -74,6 +91,7 @@
         }
 
         const supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+        window.__aralSupabaseClient = supabaseClient;
         const {
           data: { session },
         } = await supabaseClient.auth.getSession();
@@ -94,13 +112,16 @@
 <header class="site-header">
   <div class="nav-wrap">
     <a class="brand" href="/">Studio Sareschi</a>
-    <nav aria-label="Principal">
-      <ul class="nav-links">
-        <li><a href="/#home">Home</a></li>
-        <li><a href="/#apps">Productos</a></li>
-        <li><a href="/acceso/">Acceso</a></li>
-      </ul>
-    </nav>
+    <div class="header-actions">
+      <nav aria-label="Principal">
+        <ul class="nav-links">
+          <li><a href="/#home">Home</a></li>
+          <li><a href="/#apps">Productos</a></li>
+          <li><a href="/acceso/">Acceso</a></li>
+        </ul>
+      </nav>
+      <button id="logout-btn" class="logout-btn" type="button">Cerrar sesión</button>
+    </div>
   </div>
 </header>
 
@@ -600,7 +621,7 @@ function openPdfSheet(){
     .svg-wrap svg{width:100%;height:auto;display:block}.bar{margin-top:14px}
     button{border:1px solid #7f8c7a;background:#7f8c7a;color:#fff;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
     @media print{.bar{display:none}body{background:white}.page{padding:0}.sheet{border:none;border-radius:0}}
-  </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>
   <script>
     (async function enforceProtectedAccess() {
       try {
@@ -627,7 +648,7 @@ function openPdfSheet(){
         window.location.href = '/acceso/?next=' + encodeURIComponent('/aral-calc/');
       }
     })();
-  </script>
+  <\/script>
 </head><body>
     <div class="page"><div class="sheet">
       <div class="brand">Aral Calc</div>
@@ -675,6 +696,24 @@ document.querySelectorAll(".chip").forEach(btn => {
   });
 });
 document.getElementById("pdf-btn").addEventListener("click", openPdfSheet);
+document.getElementById("logout-btn").addEventListener("click", async () => {
+  try {
+    let supabaseClient = window.__aralSupabaseClient;
+    if (!supabaseClient) {
+      const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
+      const config = await response.json();
+      if (config.enabled) {
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+      }
+    }
+
+    if (supabaseClient) {
+      await supabaseClient.auth.signOut();
+    }
+  } finally {
+    window.location.href = "/acceso/";
+  }
+});
 render();
 </script>
 </body>

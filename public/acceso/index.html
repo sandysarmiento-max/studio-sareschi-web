@@ -50,16 +50,27 @@
               </label>
               <label>
                 Contraseña
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  autocomplete="current-password"
-                  style="width:100%;margin-top:6px"
-                />
+                <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    autocomplete="current-password"
+                    style="width:100%;margin-top:0"
+                  />
+                  <button
+                    id="toggle-password"
+                    type="button"
+                    class="btn btn-secondary"
+                    aria-label="Mostrar contraseña"
+                    aria-pressed="false"
+                    style="padding:10px 12px;line-height:1"
+                  >
+                    👁️
+                  </button>
+                </div>
               </label>
               <button id="login-btn" class="btn btn-primary" type="submit">Entrar a Aral Calc</button>
-              <a href="/acceso/recuperar/" style="font-weight:600;color:#8f1d4f;text-decoration:none">¿Olvidaste tu contraseña?</a>
             </form>
 
             <div id="session-box" hidden>
@@ -83,6 +94,8 @@
       const continueLink = document.getElementById('continue-link');
       const loginBtn = document.getElementById('login-btn');
       const logoutBtn = document.getElementById('logout-btn');
+      const togglePasswordBtn = document.getElementById('toggle-password');
+      const passwordInput = document.getElementById('password');
       const nextParam = new URLSearchParams(window.location.search).get('next') || '/aral-calc/';
       continueLink.href = nextParam;
 
@@ -164,6 +177,13 @@
         }
         await supabaseClient.auth.signOut();
         window.location.reload();
+      });
+
+      togglePasswordBtn.addEventListener('click', () => {
+        const showingPassword = passwordInput.type === 'text';
+        passwordInput.type = showingPassword ? 'password' : 'text';
+        togglePasswordBtn.setAttribute('aria-pressed', String(!showingPassword));
+        togglePasswordBtn.setAttribute('aria-label', showingPassword ? 'Mostrar contraseña' : 'Ocultar contraseña');
       });
 
       bootAuth().catch(() => {
