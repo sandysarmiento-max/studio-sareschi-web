@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Folia | Próximamente</title>
+    <meta
+      name="description"
+      content="Folia estará disponible muy pronto. Estamos preparando los últimos detalles para su lanzamiento."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .folia-lock {
+        min-height: calc(100vh - 84px);
+        display: grid;
+        place-items: center;
+      }
+
+      .folia-lock__card {
+        width: min(700px, 100%);
+        background: #ffffff;
+        border: 1px solid #ead7e2;
+        border-radius: 20px;
+        box-shadow: 0 12px 30px rgba(111, 54, 91, 0.08);
+        padding: 2.5rem;
+        text-align: center;
+      }
+
+      .folia-lock__eyebrow {
+        margin-bottom: 0.75rem;
+      }
+
+      .folia-lock h1 {
+        margin: 0;
+      }
+
+      .folia-lock p {
+        margin: 1rem auto 0;
+        max-width: 42ch;
+      }
+
+      .folia-lock__actions {
+        margin-top: 1.75rem;
+        display: flex;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="/" aria-label="Ir al inicio">Studio Sareschi</a>
+        <nav aria-label="Principal">
+          <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/acceso/">Acceso</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section folia-lock">
+      <div class="container">
+        <article class="folia-lock__card" aria-live="polite">
+          <p class="eyebrow folia-lock__eyebrow">Folia</p>
+          <h1>Folia estará disponible muy pronto</h1>
+          <p>Estamos preparando los últimos detalles para su lanzamiento.</p>
+          <div class="folia-lock__actions">
+            <a class="btn btn-primary" href="/">Volver al inicio</a>
+          </div>
+        </article>
+      </div>
+    </main>
+  </body>
+</html>
