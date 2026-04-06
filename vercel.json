@@ -1,4 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": false
+  "cleanUrls": false,
+  "redirects": [
+    {
+      "source": "/AralCalc-v1.html",
+      "destination": "/acceso/?next=/aral-calc/",
+      "permanent": false
+    },
+    {
+      "source": "/mini_calculadora_aral_calc_preview_v5.html",
+      "destination": "/acceso/?next=/aral-calc/",
+      "permanent": false
+    }
+  ]
 }
