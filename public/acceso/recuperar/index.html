@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Recuperar contraseña | Studio Sareschi</title>
+    <title>Recuperación no disponible | Studio Sareschi</title>
     <meta
       name="description"
-      content="Recupera y restablece tu contraseña de acceso a Aral Calc."
+      content="La recuperación de contraseña de Aral Calc está temporalmente desactivada."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,17 +15,6 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-      .recover-form {
-        display: grid;
-        gap: 12px;
-      }
-
-      .recover-form[hidden] {
-        display: none;
-      }
-    </style>
   </head>
   <body>
     <header class="site-header">
@@ -45,202 +34,26 @@
         <div class="container">
           <div class="section-heading">
             <p class="eyebrow">Soporte de acceso</p>
-            <h1 id="state-title">Recupera tu contraseña</h1>
-            <p class="hero-copy" id="state-description" style="margin: 0">
-              Te enviaremos un enlace seguro para que puedas restablecer tu contraseña.
+            <h1>Recuperación temporalmente desactivada</h1>
+            <p class="hero-copy" style="margin: 0">
+              Por el momento, el acceso a Aral Calc está disponible únicamente mediante inicio de sesión.
             </p>
           </div>
 
           <article class="card" style="max-width: 620px">
-            <form id="request-form" class="recover-form" novalidate>
-              <label>
-                Email
-                <input
-                  id="request-email"
-                  type="email"
-                  required
-                  autocomplete="email"
-                  style="width:100%;margin-top:6px"
-                />
-              </label>
-              <button id="request-btn" class="btn btn-primary" type="submit">
-                Enviar enlace de recuperación
-              </button>
-            </form>
-
-            <form id="reset-form" class="recover-form" hidden novalidate>
-              <label>
-                Nueva contraseña
-                <input
-                  id="new-password"
-                  type="password"
-                  required
-                  minlength="8"
-                  autocomplete="new-password"
-                  style="width:100%;margin-top:6px"
-                />
-              </label>
-              <label>
-                Confirmar contraseña
-                <input
-                  id="confirm-password"
-                  type="password"
-                  required
-                  minlength="8"
-                  autocomplete="new-password"
-                  style="width:100%;margin-top:6px"
-                />
-              </label>
-              <button id="reset-btn" class="btn btn-primary" type="submit">
-                Guardar nueva contraseña
-              </button>
-            </form>
-
-            <a href="/acceso/" style="display:inline-block;margin-top:12px;font-weight:600;color:#8f1d4f;text-decoration:none">
+            <p class="tiny-note" style="margin: 0">
+              Si necesitas recuperar tu acceso, contáctanos por soporte para ayudarte de forma manual.
+            </p>
+            <a
+              class="btn btn-primary"
+              href="/acceso/"
+              style="display:inline-flex;margin-top:16px"
+            >
               Volver a iniciar sesión
             </a>
-
-            <p id="status" class="tiny-note" aria-live="polite" style="margin-top: 12px"></p>
           </article>
         </div>
       </section>
     </main>
-
-    <script>
-      const requestForm = document.getElementById('request-form');
-      const resetForm = document.getElementById('reset-form');
-      const titleEl = document.getElementById('state-title');
-      const descriptionEl = document.getElementById('state-description');
-      const statusEl = document.getElementById('status');
-      const requestBtn = document.getElementById('request-btn');
-      const resetBtn = document.getElementById('reset-btn');
-
-      let supabaseClient = null;
-
-      function setStatus(message, isError = false) {
-        statusEl.textContent = message;
-        statusEl.style.color = isError ? '#8f1d4f' : '';
-      }
-
-      function hasRecoveryTokenInUrl() {
-        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-        const queryParams = new URLSearchParams(window.location.search);
-        const hashType = hashParams.get('type');
-        const queryType = queryParams.get('type');
-        return hashType === 'recovery' || queryType === 'recovery';
-      }
-
-      async function hasRecoverySession() {
-        if (!supabaseClient) {
-          return false;
-        }
-
-        const {
-          data: { session },
-        } = await supabaseClient.auth.getSession();
-
-        return Boolean(session);
-      }
-
-      function setRecoveryMode(isRecoveryMode) {
-        requestForm.hidden = isRecoveryMode;
-        resetForm.hidden = !isRecoveryMode;
-
-        if (isRecoveryMode) {
-          titleEl.textContent = 'Crea tu nueva contraseña';
-          descriptionEl.textContent = 'Estás en un enlace de recuperación seguro. Elige tu nueva contraseña para continuar.';
-        } else {
-          titleEl.textContent = 'Recupera tu contraseña';
-          descriptionEl.textContent = 'Te enviaremos un enlace seguro para que puedas restablecer tu contraseña.';
-        }
-      }
-
-      async function bootAuth() {
-        const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
-        const config = await response.json();
-
-        if (!config.enabled) {
-          requestForm.hidden = true;
-          resetForm.hidden = true;
-          setStatus(
-            'Falta configurar SUPABASE_URL y SUPABASE_ANON_KEY en Vercel para habilitar recuperación de contraseña.',
-            true
-          );
-          return;
-        }
-
-        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-
-        const recoveryByToken = hasRecoveryTokenInUrl();
-        const recoveryBySession = await hasRecoverySession();
-        const recoveryMode = recoveryByToken || recoveryBySession;
-
-        setRecoveryMode(recoveryMode);
-
-        if (recoveryMode) {
-          window.sessionStorage.setItem('aral-recovery-session', 'active');
-          setStatus('Ingresa tu nueva contraseña para completar la recuperación.');
-        } else {
-          window.sessionStorage.removeItem('aral-recovery-session');
-        }
-      }
-
-      requestForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        if (!supabaseClient) {
-          return;
-        }
-
-        const email = document.getElementById('request-email').value.trim();
-        requestBtn.disabled = true;
-
-        const redirectTo = `${window.location.origin}/acceso/recuperar/`;
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
-
-        requestBtn.disabled = false;
-
-        if (error) {
-          setStatus('No se pudo enviar el enlace de recuperación. Intenta nuevamente.', true);
-          return;
-        }
-
-        setStatus('Listo. Revisa tu correo para continuar con el cambio de contraseña.');
-      });
-
-      resetForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        if (!supabaseClient) {
-          return;
-        }
-
-        const newPassword = document.getElementById('new-password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
-
-        if (newPassword !== confirmPassword) {
-          setStatus('Las contraseñas no coinciden.', true);
-          return;
-        }
-
-        resetBtn.disabled = true;
-        const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
-        resetBtn.disabled = false;
-
-        if (error) {
-          setStatus('No se pudo guardar la nueva contraseña. Solicita un nuevo enlace.', true);
-          return;
-        }
-
-        await supabaseClient.auth.signOut();
-        window.sessionStorage.removeItem('aral-recovery-session');
-        setStatus('Contraseña actualizada. Inicia sesión nuevamente para continuar.');
-        window.setTimeout(() => {
-          window.location.href = '/acceso/';
-        }, 1200);
-      });
-
-      bootAuth().catch(() => {
-        setStatus('No se pudo inicializar la recuperación de contraseña en este momento.', true);
-      });
-    </script>
   </body>
 </html>

@@ -59,7 +59,6 @@
                 />
               </label>
               <button id="login-btn" class="btn btn-primary" type="submit">Entrar a Aral Calc</button>
-              <a href="/acceso/recuperar/" style="font-weight:600;color:#8f1d4f;text-decoration:none">¿Olvidaste tu contraseña?</a>
             </form>
 
             <div id="session-box" hidden>
@@ -98,13 +97,6 @@
         return true;
       }
 
-      function isRecoverySession() {
-        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-        const queryParams = new URLSearchParams(window.location.search);
-        const recoveryFlag = window.sessionStorage.getItem('aral-recovery-session') === 'active';
-        return hashParams.get('type') === 'recovery' || queryParams.get('type') === 'recovery' || recoveryFlag;
-      }
-
       async function bootAuth() {
         const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
         const config = await response.json();
@@ -122,13 +114,6 @@
         const {
           data: { session },
         } = await supabaseClient.auth.getSession();
-
-        if (session && isRecoverySession()) {
-          form.hidden = true;
-          sessionBox.hidden = true;
-          setStatus('Primero completa la recuperación de contraseña antes de entrar a Aral Calc.', true);
-          return;
-        }
 
         if (session) {
           const allowed = await hasAralAccess(session.user);
