@@ -24,7 +24,7 @@
           <ul class="nav-links">
             <li><a href="/#home">Home</a></li>
             <li><a href="/pdfs/#tienda">Tienda PDF</a></li>
-            <li><a href="/pdfs/#catalogo">Catálogo</a></li>
+            <li><a href="/pdfs/#catalogo-pagos">Catálogo</a></li>
             <li><a href="/acceso/">Acceso</a></li>
           </ul>
         </nav>
@@ -43,8 +43,7 @@
                 sin perder visibilidad del catálogo premium.
               </p>
               <div class="pdf-store-cta-row">
-                <a class="btn btn-primary" href="#freebie">Descarga gratis hoy</a>
-                <a class="btn btn-secondary" href="#catalogo">Ver catálogo</a>
+                <a class="btn btn-secondary" href="#catalogo-pagos">Ver catálogo</a>
               </div>
             </div>
             <aside class="pdf-freebie-compact" id="freebie" aria-label="Oferta gratis del día">
@@ -56,7 +55,9 @@
             </aside>
           </div>
 
-          <section aria-label="Productos destacados" class="featured-preview-grid" id="featured-preview-grid"></section>
+          <section id="catalogo-pagos" aria-label="Productos destacados">
+            <div class="featured-preview-grid" id="featured-preview-grid"></div>
+          </section>
         </div>
       </section>
 
@@ -119,8 +120,8 @@
 
       const FALLBACK_DAILY = {
         id: 'daily-sample',
-        title: 'Mini planner diario',
-        description: 'Hoja rápida para tareas clave, prioridades y seguimiento.',
+        title: 'Descargable gratuito del día',
+        description: 'Plantilla sorpresa lista para usar. Disponible una vez al día por usuario.',
       };
 
       const featuredPreviewGrid = document.getElementById('featured-preview-grid');
