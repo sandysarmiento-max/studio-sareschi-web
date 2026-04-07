@@ -3,7 +3,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const FALLBACK_PRODUCTS = [
   {
-    id: 'sample-1',
+    id: '11111111-1111-4111-8111-111111111111',
     slug: 'agenda-semanal-rosa',
     title: 'Agenda semanal Rosa',
     subtitle: 'Plan semanal elegante con foco en objetivos.',
@@ -13,7 +13,7 @@ const FALLBACK_PRODUCTS = [
     preview: { from: '#fff1f7', to: '#f8dce9' },
   },
   {
-    id: 'sample-2',
+    id: '22222222-2222-4222-8222-222222222222',
     slug: 'checklist-boutique',
     title: 'Checklist Boutique',
     subtitle: 'Control diario visual y minimalista.',
@@ -23,7 +23,7 @@ const FALLBACK_PRODUCTS = [
     preview: { from: '#fff9f1', to: '#fbead8' },
   },
   {
-    id: 'sample-3',
+    id: '33333333-3333-4333-8333-333333333333',
     slug: 'pack-contenido-social',
     title: 'Pack contenido social',
     subtitle: 'Bloques listos para planificación de posteos.',
@@ -32,13 +32,54 @@ const FALLBACK_PRODUCTS = [
     badge: '',
     preview: { from: '#f5f4ff', to: '#e7e3fb' },
   },
+  {
+    id: '44444444-4444-4444-8444-444444444444',
+    slug: 'organizador-pedidos',
+    title: 'Organizador de pedidos',
+    subtitle: 'Resumen limpio para ventas y entregas.',
+    prices: { pdf_hq: 1, canva: 2 },
+    is_featured: false,
+    badge: '',
+    preview: { from: '#f4fbff', to: '#ddf2fc' },
+  },
+  {
+    id: '55555555-5555-4555-8555-555555555555',
+    slug: 'planner-finanzas-soft',
+    title: 'Planner Finanzas Soft',
+    subtitle: 'Registro mensual de ingresos, gastos y objetivos.',
+    prices: { pdf_hq: 1, canva: 2 },
+    is_featured: false,
+    badge: 'Tendencia',
+    preview: { from: '#fff4fb', to: '#f6dff1' },
+  },
+  {
+    id: '66666666-6666-4666-8666-666666666666',
+    slug: 'control-estudio-creativo',
+    title: 'Control Estudio Creativo',
+    subtitle: 'Sistema visual para tareas de clientes y entregables.',
+    prices: { pdf_hq: 1, canva: 2 },
+    is_featured: false,
+    badge: '',
+    preview: { from: '#f7fbf5', to: '#e2f3e0' },
+  },
 ];
 
 const FALLBACK_DAILY = {
   id: 'daily-sample',
-  title: 'Mini planner diario',
-  description: 'Hoja rápida para tareas clave, prioridades y seguimiento.',
+  title: 'Elige 1 PDF gratis al día',
+  description: 'Accede a la selección disponible y descarga 1 archivo gratuito.',
 };
+
+function normalizeAction(action) {
+  const normalized = String(action || '').trim().toLowerCase();
+  if (normalized === 'buy-pdf-hq') {
+    return 'buy-pdf';
+  }
+  if (normalized === 'buy-canva-editable') {
+    return 'buy-canva';
+  }
+  return normalized;
+}
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -97,7 +138,7 @@ async function handleStorefront(req, res) {
 }
 
 async function handleAccessAction(req, res, payload) {
-  const action = payload?.action;
+  const action = normalizeAction(payload?.action);
   const productId = payload?.productId ?? null;
 
   if (!action) {
