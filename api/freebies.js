@@ -4,6 +4,15 @@ const SUPABASE_FREEBIES_BUCKET = process.env.SUPABASE_FREEBIES_BUCKET;
 
 const DAILY_LIMIT = 1;
 const SIGNED_URL_TTL_SECONDS = 300;
+const FREEBIE_CODE_FIELDS = [
+  'slug',
+  'download_path',
+  'storage_path',
+  'file_path',
+  'object_path',
+  'asset_path',
+  'path',
+];
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -40,19 +49,64 @@ async function callSupabase(path, options = {}) {
   return response.json();
 }
 
+
+function normalizeFreebieCode(value) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const match = value.toLowerCase().match(/fb[\W_]*(\d{3})/);
+  if (!match) {
+    return null;
+  }
+
+  const code = `fb_${match[1]}`;
+  if (!/^fb_(00[1-9]|01[0-8])$/.test(code)) {
+    return null;
+  }
+
+  return code;
+}
+
+function extractFreebieCode(row) {
+  for (const field of FREEBIE_CODE_FIELDS) {
+    const value = row?.[field];
+    const code = normalizeFreebieCode(value);
+    if (code) {
+      return code;
+    }
+  }
+
+  const storagePath = extractStoragePath(row);
+  return normalizeFreebieCode(storagePath);
+}
+
+function buildPreviewImageUrlFromCode(code) {
+  if (!code) {
+    return null;
+  }
+
+  return `/freebies/previews/${code}_preview.jpg`;
+}
+
 function normalizeFreebie(row, index) {
-  const id = row.id || row.slug || `freebie-${index + 1}`;
+  const slug = typeof row.slug === 'string' ? row.slug.trim().toLowerCase() : '';
+  const inferredCode = extractFreebieCode(row);
+  const id = row.id || slug || inferredCode || `freebie-${index + 1}`;
   const title = row.title || row.name || `PDF gratuito ${index + 1}`;
   const description = row.description || row.subtitle || 'Plantilla PDF gratuita de Studio Sareschi.';
   const category = row.category || 'Zona Gratuita';
   const accent = row.accent_color || row.color || row.preview_color || '#f2e6ef';
+  const previewImageUrl = buildPreviewImageUrlFromCode(inferredCode);
 
   return {
     id,
+    slug: slug || inferredCode || '',
     title,
     description,
     category,
     accent,
+    preview_image_url: previewImageUrl,
   };
 }
 
