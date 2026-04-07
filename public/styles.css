@@ -150,6 +150,13 @@ h1 {
   color: var(--text);
 }
 
+.btn-secondary:hover,
+.btn-secondary:focus-visible {
+  border-color: #d28bab;
+  background: #fff3f9;
+  color: #8f2e58;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -823,8 +830,28 @@ body.modal-open {
   font-size: 0.86rem;
 }
 
+.price-row__item {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.price-row__item strong {
+  font-size: 0.84rem;
+  color: #543b52;
+}
+
+.price-row__item span {
+  color: #6a5668;
+}
+
 .price-row--detail {
   margin-top: 0.2rem;
+}
+
+.payment-note {
+  margin: 0.6rem 0 0;
+  font-size: 0.78rem;
+  color: #7a6578;
 }
 
 .card-actions {

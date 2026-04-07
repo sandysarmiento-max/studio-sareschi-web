@@ -69,6 +69,37 @@
       </section>
     </main>
 
+    <div id="zona-gratuita-modal" class="free-zone-modal" aria-hidden="true">
+      <div class="free-zone-modal__backdrop" data-modal-close></div>
+      <section
+        class="free-zone-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="free-zone-title"
+      >
+        <header class="free-zone-modal__header">
+          <div>
+            <p class="eyebrow">ZONA GRATUITA</p>
+            <h3 id="free-zone-title">Elige 1 archivo gratuito al día</h3>
+            <p>Puedes descargar 1 archivo gratuito al día.</p>
+          </div>
+          <button
+            class="free-zone-modal__close"
+            type="button"
+            aria-label="Cerrar zona gratuita"
+            data-modal-close
+          >
+            ×
+          </button>
+        </header>
+
+        <p class="free-zone-modal__info">Si deseas más archivos, puedes comprarlos en la tienda.</p>
+
+        <div id="free-zone-grid" class="free-zone-grid"></div>
+        <p id="free-zone-status" class="free-zone-status" aria-live="polite"></p>
+      </section>
+    </div>
+
     <div id="product-detail-modal" class="product-detail-modal" aria-hidden="true">
       <div class="product-detail-modal__backdrop" data-close-detail></div>
       <section class="product-detail-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="detail-title">
@@ -162,8 +193,17 @@
       const detailModal = document.getElementById('product-detail-modal');
       const detailContent = document.getElementById('product-detail-content');
       const detailTitle = document.getElementById('detail-title');
+      const FREE_PDFS_FALLBACK = [];
+      const FREE_ZONE_KEY = 'studio_sareschi_free_zone_last_download';
+      const FREE_ZONE_BROWSER_KEY = 'studio_sareschi_free_zone_browser_key';
+      const FREE_ZONE_MODAL_ID = 'zona-gratuita-modal';
+      const freeZoneModal = document.getElementById(FREE_ZONE_MODAL_ID);
+      const freeZoneGrid = document.getElementById('free-zone-grid');
+      const freeZoneStatus = document.getElementById('free-zone-status');
+      const closeZoneButtons = document.querySelectorAll('[data-modal-close]');
 
       let storeProducts = [];
+      let freePdfs = [...FREE_PDFS_FALLBACK];
 
       function escapeHtml(value) {
         return String(value)
@@ -197,6 +237,187 @@
         };
       }
 
+      function getTodayKey() {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+          now.getDate()
+        ).padStart(2, '0')}`;
+      }
+
+      function getLastDownloadDate() {
+        return localStorage.getItem(FREE_ZONE_KEY);
+      }
+
+      function getBrowserKey() {
+        const existing = localStorage.getItem(FREE_ZONE_BROWSER_KEY);
+        if (existing) {
+          return existing;
+        }
+
+        const generated = `brw-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem(FREE_ZONE_BROWSER_KEY, generated);
+        return generated;
+      }
+
+      function hasDownloadedToday() {
+        return getLastDownloadDate() === getTodayKey();
+      }
+
+      function formatLocalDate(isoDate) {
+        const date = new Date(`${isoDate}T00:00:00`);
+        return new Intl.DateTimeFormat('es-PE', { dateStyle: 'long' }).format(date);
+      }
+
+      function renderFreeStatus() {
+        if (hasDownloadedToday()) {
+          freeZoneStatus.textContent =
+            'Ya usaste tu descarga gratuita de hoy. Vuelve mañana para descargar otro PDF o visita la tienda para obtener más archivos.';
+          return;
+        }
+
+        const lastDate = getLastDownloadDate();
+        if (lastDate) {
+          freeZoneStatus.textContent = `Tu descarga gratuita anterior fue el ${formatLocalDate(
+            lastDate
+          )}. Puedes descargar 1 archivo gratuito al día.`;
+          return;
+        }
+
+        freeZoneStatus.textContent = 'Puedes descargar 1 archivo gratuito al día.';
+      }
+
+      function buildFreeCard(item) {
+        const card = document.createElement('article');
+        card.className = 'free-zone-card';
+
+        const locked = hasDownloadedToday();
+        const buttonLabel = locked ? 'Descarga usada hoy' : 'Descargar gratis';
+
+        card.innerHTML = `
+          <div class="free-zone-card__thumb" style="--thumb:${item.accent}">
+            <span>${item.category}</span>
+          </div>
+          <div class="free-zone-card__content">
+            <h4>${item.title}</h4>
+            <p>${item.description}</p>
+            <button class="btn btn-secondary free-zone-card__download" type="button">
+              ${buttonLabel}
+            </button>
+          </div>
+        `;
+
+        const downloadButton = card.querySelector('.free-zone-card__download');
+        downloadButton.disabled = locked;
+        downloadButton.addEventListener('click', async () => {
+          if (hasDownloadedToday()) {
+            renderFreeStatus();
+            refreshFreeCards();
+            return;
+          }
+
+          downloadButton.disabled = true;
+          downloadButton.textContent = 'Preparando...';
+
+          try {
+            const response = await fetch('/api/freebies', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({
+                productId: item.id,
+                browserKey: getBrowserKey(),
+              }),
+            });
+
+            const payload = await response.json();
+            if (!response.ok || !payload?.url) {
+              throw new Error(payload?.error || 'No se pudo iniciar la descarga.');
+            }
+
+            localStorage.setItem(FREE_ZONE_KEY, getTodayKey());
+            window.location.assign(payload.url);
+          } catch (error) {
+            alert('No se pudo preparar la descarga gratuita en este momento.');
+            downloadButton.disabled = false;
+            downloadButton.textContent = 'Descargar gratis';
+          } finally {
+            renderFreeStatus();
+            refreshFreeCards();
+          }
+        });
+
+        return card;
+      }
+
+      function refreshFreeCards() {
+        freeZoneGrid.innerHTML = '';
+        if (!freePdfs.length) {
+          freeZoneGrid.innerHTML = '<p class="tiny-note">No hay archivos disponibles en este momento.</p>';
+          return;
+        }
+        freePdfs.forEach((item) => {
+          freeZoneGrid.appendChild(buildFreeCard(item));
+        });
+      }
+
+      async function fetchFreebies() {
+        const response = await fetch('/api/freebies', {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        });
+        const payload = await response.json();
+        if (!response.ok || !Array.isArray(payload?.freebies)) {
+          throw new Error(payload?.error || 'No se pudo cargar la Zona Gratuita.');
+        }
+        freePdfs = payload.freebies;
+      }
+
+      function openFreeZone(event) {
+        if (event) event.preventDefault();
+        freeZoneModal.classList.add('is-open');
+        freeZoneModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+        if (window.location.hash !== `#${FREE_ZONE_MODAL_ID}`) {
+          history.replaceState(null, '', `#${FREE_ZONE_MODAL_ID}`);
+        }
+        refreshFreeCards();
+        renderFreeStatus();
+      }
+
+      function closeFreeZone() {
+        freeZoneModal.classList.remove('is-open');
+        freeZoneModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+        if (window.location.hash === `#${FREE_ZONE_MODAL_ID}`) {
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      }
+
+      function getPriceMarkup() {
+        return `
+          <div class="price-row__item">
+            <strong>PDF HQ</strong>
+            <span>Perú: S/ 4.00 · Internacional: US$ 1.50</span>
+          </div>
+          <div class="price-row__item">
+            <strong>Editable en Canva</strong>
+            <span>Perú: S/ 8.00 · Internacional: US$ 3.00</span>
+          </div>
+        `;
+      }
+
+      function getPaymentNote() {
+        return 'Si estás en Perú, puedes pagar en soles por Yape, Plin o transferencia. PayPal disponible para compras internacionales.';
+      }
+
+      function openWhatsAppOrder(product, format) {
+        const message =
+          format === 'buy-pdf'
+            ? `Hola, quiero comprar ${product.title} en formato PDF HQ.`
+            : `Hola, quiero comprar ${product.title} en formato editable en Canva.`;
+        const url = `https://wa.me/51969095636?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank', 'noopener');
+      }
+
       function ensureSixProducts(products) {
         const normalized = products.map(normalizeProduct);
         if (normalized.length >= 6) {
@@ -222,9 +443,9 @@
             <h3>${escapeHtml(product.title)}</h3>
             <p>${escapeHtml(product.subtitle || '')}</p>
             <div class="price-row">
-              <span>PDF HQ <strong>$${product.prices.pdf_hq.toFixed(0)}</strong></span>
-              <span>Editable en Canva <strong>$${product.prices.canva.toFixed(0)}</strong></span>
+              ${getPriceMarkup()}
             </div>
+            <p class="payment-note">${getPaymentNote()}</p>
             <div class="card-actions">
               <button class="btn btn-secondary" data-action="buy-pdf" data-product-id="${escapeHtml(product.id)}">Comprar PDF HQ</button>
               <button class="btn btn-primary" data-action="buy-canva" data-product-id="${escapeHtml(product.id)}">Comprar Canva</button>
@@ -262,9 +483,9 @@
             <div class="detail-hero__info">
               <p>${escapeHtml(product.subtitle || '')}</p>
               <div class="price-row price-row--detail">
-                <span>PDF HQ <strong>$${product.prices.pdf_hq.toFixed(0)}</strong></span>
-                <span>Editable en Canva <strong>$${product.prices.canva.toFixed(0)}</strong></span>
+                ${getPriceMarkup()}
               </div>
+              <p class="payment-note">${getPaymentNote()}</p>
               <div class="card-actions card-actions--detail">
                 <button class="btn btn-secondary" data-action="buy-pdf" data-product-id="${escapeHtml(product.id)}">Comprar PDF HQ</button>
                 <button class="btn btn-primary" data-action="buy-canva" data-product-id="${escapeHtml(product.id)}">Comprar Canva</button>
@@ -323,30 +544,8 @@
         }
       }
 
-      async function requestAsset(action, productId) {
-        const response = await fetch('/api/pdf-access', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ action, productId }),
-        });
-
-        const payload = await response.json();
-
-        if (!response.ok) {
-          throw new Error(payload?.error || 'Acción no autorizada.');
-        }
-
-        if (payload.url) {
-          window.location.href = payload.url;
-        }
-      }
-
       dailyFreeBtn.addEventListener('click', async () => {
-        try {
-          await requestAsset('claim-daily-free');
-        } catch (error) {
-          alert('No se pudo validar la descarga gratuita en este momento.');
-        }
+        openFreeZone();
       });
 
       document.addEventListener('click', async (event) => {
@@ -364,11 +563,11 @@
             return;
           }
 
-          try {
-            await requestAsset(action, productId);
-          } catch (error) {
-            alert('No se pudo completar la acción comercial. Intenta nuevamente.');
+          const product = storeProducts.find((item) => String(item.id) === String(productId));
+          if (!product) {
+            return;
           }
+          openWhatsAppOrder(product, action);
           return;
         }
 
@@ -383,6 +582,10 @@
           closeDetail();
           return;
         }
+        if (event.key === 'Escape' && freeZoneModal.classList.contains('is-open')) {
+          closeFreeZone();
+          return;
+        }
 
         if (event.key === 'Enter' || event.key === ' ') {
           const trigger = event.target.closest('[data-open-product-id]');
@@ -393,7 +596,27 @@
         }
       });
 
+      closeZoneButtons.forEach((button) => {
+        button.addEventListener('click', closeFreeZone);
+      });
+
+      window.addEventListener('hashchange', () => {
+        if (window.location.hash === `#${FREE_ZONE_MODAL_ID}`) {
+          openFreeZone();
+        } else if (freeZoneModal.classList.contains('is-open')) {
+          closeFreeZone();
+        }
+      });
+
+      if (window.location.hash === `#${FREE_ZONE_MODAL_ID}`) {
+        openFreeZone();
+      }
+
       bootstrapStorefront();
+      fetchFreebies().then(refreshFreeCards).catch(() => {
+        freePdfs = [...FREE_PDFS_FALLBACK];
+        renderFreeStatus();
+      });
     </script>
   </body>
 </html>
