@@ -40,19 +40,37 @@ async function callSupabase(path, options = {}) {
   return response.json();
 }
 
+
+function buildPreviewImageUrl(slug) {
+  if (typeof slug !== 'string') {
+    return null;
+  }
+
+  const normalizedSlug = slug.trim().toLowerCase();
+  if (!/^fb_(00[1-9]|01[0-8])$/.test(normalizedSlug)) {
+    return null;
+  }
+
+  return `/freebies/previews/${normalizedSlug}_preview.jpg`;
+}
+
 function normalizeFreebie(row, index) {
-  const id = row.id || row.slug || `freebie-${index + 1}`;
+  const slug = typeof row.slug === 'string' ? row.slug.trim().toLowerCase() : '';
+  const id = row.id || slug || `freebie-${index + 1}`;
   const title = row.title || row.name || `PDF gratuito ${index + 1}`;
   const description = row.description || row.subtitle || 'Plantilla PDF gratuita de Studio Sareschi.';
   const category = row.category || 'Zona Gratuita';
   const accent = row.accent_color || row.color || row.preview_color || '#f2e6ef';
+  const previewImageUrl = buildPreviewImageUrl(slug);
 
   return {
     id,
+    slug,
     title,
     description,
     category,
     accent,
+    preview_image_url: previewImageUrl,
   };
 }
 

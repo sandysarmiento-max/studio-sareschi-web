@@ -286,25 +286,56 @@
         freeZoneStatus.textContent = 'Puedes descargar 1 archivo gratuito al día.';
       }
 
+      function getFreebiePreviewUrl(item) {
+        if (typeof item?.preview_image_url === 'string' && item.preview_image_url.trim()) {
+          return item.preview_image_url.trim();
+        }
+
+        if (typeof item?.slug === 'string' && /^fb_(00[1-9]|01[0-8])$/.test(item.slug)) {
+          return `/freebies/previews/${item.slug}_preview.jpg`;
+        }
+
+        return '';
+      }
+
       function buildFreeCard(item) {
         const card = document.createElement('article');
         card.className = 'free-zone-card';
 
         const locked = hasDownloadedToday();
         const buttonLabel = locked ? 'Descarga usada hoy' : 'Descargar gratis';
+        const previewUrl = getFreebiePreviewUrl(item);
 
         card.innerHTML = `
-          <div class="free-zone-card__thumb" style="--thumb:${item.accent}">
-            <span>${item.category}</span>
+          <div class="free-zone-card__thumb">
+            <img class="free-zone-card__image" alt="Preview de ${escapeHtml(item.title)}" loading="lazy" />
+            <div class="free-zone-card__thumb-fallback" style="--thumb:${item.accent}">
+              <span>${escapeHtml(item.category || 'Zona Gratuita')}</span>
+            </div>
           </div>
           <div class="free-zone-card__content">
-            <h4>${item.title}</h4>
-            <p>${item.description}</p>
+            <h4>${escapeHtml(item.title)}</h4>
+            <p>${escapeHtml(item.description)}</p>
             <button class="btn btn-secondary free-zone-card__download" type="button">
               ${buttonLabel}
             </button>
           </div>
         `;
+
+        const previewImage = card.querySelector('.free-zone-card__image');
+        const fallbackThumb = card.querySelector('.free-zone-card__thumb-fallback');
+
+        if (previewUrl) {
+          previewImage.src = previewUrl;
+          previewImage.addEventListener('load', () => {
+            previewImage.classList.add('is-ready');
+            fallbackThumb.classList.add('is-hidden');
+          });
+          previewImage.addEventListener('error', () => {
+            previewImage.classList.remove('is-ready');
+            fallbackThumb.classList.remove('is-hidden');
+          });
+        }
 
         const downloadButton = card.querySelector('.free-zone-card__download');
         downloadButton.disabled = locked;
