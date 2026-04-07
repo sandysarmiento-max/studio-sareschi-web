@@ -24,7 +24,7 @@
           <ul class="nav-links">
             <li><a href="/#home">Home</a></li>
             <li><a href="/pdfs/#tienda">Tienda PDF</a></li>
-            <li><a href="/pdfs/#catalogo">Catálogo</a></li>
+            <li><a href="/pdfs/#catalogo-pagos">Catálogo</a></li>
             <li><a href="/acceso/">Acceso</a></li>
           </ul>
         </nav>
@@ -36,99 +36,174 @@
         <div class="container">
           <div class="pdf-store-top">
             <div>
-              <p class="eyebrow">Storefront</p>
+              <p class="eyebrow">Colección premium</p>
               <h1>Plantillas PDF listas para vender, editar y usar hoy</h1>
               <p class="hero-copy" style="margin: 0">
-                Compra en PDF HQ o versión editable en Canva. También tienes una descarga gratis diaria
-                sin perder visibilidad del catálogo premium.
+                Descubre diseños elegantes para organización, productividad y negocio digital.
+                Cada producto incluye vista previa interior, versión PDF HQ y opción editable en Canva.
               </p>
-              <div class="pdf-store-cta-row">
-                <a class="btn btn-primary" href="#freebie">Descarga gratis hoy</a>
-                <a class="btn btn-secondary" href="#catalogo">Ver catálogo</a>
-              </div>
             </div>
-            <aside class="pdf-freebie-compact" id="freebie" aria-label="Oferta gratis del día">
-              <p class="eyebrow">Gratis del día</p>
-              <h2 id="daily-title">Cargando oferta...</h2>
-              <p id="daily-description">Estamos preparando la plantilla gratuita de hoy.</p>
+            <aside class="pdf-freebie-compact" id="freebie" aria-label="Zona gratuita del día">
+              <p class="eyebrow">Zona Gratuita</p>
+              <h2>Elige 1 PDF gratis al día</h2>
+              <p>Accede a la selección disponible y descarga 1 archivo gratuito.</p>
               <button class="btn btn-primary" id="daily-free-btn" type="button">Descargar gratis hoy</button>
-              <p class="tiny-note">Disponible una vez por día por usuario.</p>
+              <p class="tiny-note">Si quieres más archivos, puedes comprarlos en la tienda.</p>
             </aside>
           </div>
 
-          <section aria-label="Productos destacados" class="featured-preview-grid" id="featured-preview-grid"></section>
-        </div>
-      </section>
-
-      <section id="catalogo" class="section section-soft">
-        <div class="container">
-          <div class="section-heading">
-            <p class="eyebrow">Catálogo</p>
-            <h2>Tienda visual de plantillas</h2>
-            <p class="hero-copy" style="margin: 0">Todos los productos muestran precios visibles: PDF HQ $1 y Canva editable $2.</p>
-          </div>
-          <div class="catalog-grid" id="catalog-grid"></div>
-          <p class="tiny-note" id="catalog-note">Si falla conexión, mostramos datos de muestra elegantes para revisión visual.</p>
+          <section id="catalogo-pagos" class="pdf-main-catalog" aria-label="Catálogo principal de productos">
+            <div class="section-heading pdf-main-catalog__header">
+              <p class="eyebrow">Catálogo</p>
+              <h2>Productos listos para comprar</h2>
+              <p class="hero-copy" style="margin: 0">
+                Elige tu plantilla favorita, revisa hojas interiores y compra en el formato que prefieras.
+              </p>
+            </div>
+            <div class="featured-preview-grid" id="featured-preview-grid"></div>
+            <p class="tiny-note" id="catalog-note">
+              Si falla conexión, mostramos productos de muestra para mantener la tienda operativa visualmente.
+            </p>
+          </section>
         </div>
       </section>
     </main>
 
+    <div id="zona-gratuita-modal" class="free-zone-modal" aria-hidden="true">
+      <div class="free-zone-modal__backdrop" data-modal-close></div>
+      <section
+        class="free-zone-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="free-zone-title"
+      >
+        <header class="free-zone-modal__header">
+          <div>
+            <p class="eyebrow">ZONA GRATUITA</p>
+            <h3 id="free-zone-title">Elige 1 archivo gratuito al día</h3>
+            <p>Puedes descargar 1 archivo gratuito al día.</p>
+          </div>
+          <button
+            class="free-zone-modal__close"
+            type="button"
+            aria-label="Cerrar zona gratuita"
+            data-modal-close
+          >
+            ×
+          </button>
+        </header>
+
+        <p class="free-zone-modal__info">Si deseas más archivos, puedes comprarlos en la tienda.</p>
+
+        <div id="free-zone-grid" class="free-zone-grid"></div>
+        <p id="free-zone-status" class="free-zone-status" aria-live="polite"></p>
+      </section>
+    </div>
+
+    <div id="product-detail-modal" class="product-detail-modal" aria-hidden="true">
+      <div class="product-detail-modal__backdrop" data-close-detail></div>
+      <section class="product-detail-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+        <header class="product-detail-modal__header">
+          <div>
+            <p class="eyebrow">Detalle de producto</p>
+            <h3 id="detail-title">Cargando producto...</h3>
+          </div>
+          <button class="product-detail-modal__close" type="button" aria-label="Cerrar detalle" data-close-detail>
+            ×
+          </button>
+        </header>
+
+        <div class="product-detail-modal__content" id="product-detail-content"></div>
+      </section>
+    </div>
+
     <script>
       const FALLBACK_PRODUCTS = [
         {
-          id: 'sample-1',
+          id: '11111111-1111-4111-8111-111111111111',
           slug: 'agenda-semanal-rosa',
           title: 'Agenda semanal Rosa',
-          subtitle: 'Plan semanal elegante con foco en objetivos.',
+          subtitle: 'Plan semanal elegante con foco en objetivos y prioridades diarias.',
           prices: { pdf_hq: 1, canva: 2 },
           is_featured: true,
           badge: 'Más vendido',
           preview: { from: '#fff1f7', to: '#f8dce9' },
+          interior_previews: [{ label: 'Vista interior 1' }, { label: 'Vista interior 2' }, { label: 'Vista interior 3' }],
         },
         {
-          id: 'sample-2',
+          id: '22222222-2222-4222-8222-222222222222',
           slug: 'checklist-boutique',
           title: 'Checklist Boutique',
-          subtitle: 'Control diario visual y minimalista.',
+          subtitle: 'Control diario visual para tareas, metas y seguimiento de hábitos.',
           prices: { pdf_hq: 1, canva: 2 },
-          is_featured: false,
+          is_featured: true,
           badge: 'Nuevo',
           preview: { from: '#fff9f1', to: '#fbead8' },
+          interior_previews: [{ label: 'Vista interior 1' }, { label: 'Vista interior 2' }, { label: 'Vista interior 3' }],
         },
         {
-          id: 'sample-3',
+          id: '33333333-3333-4333-8333-333333333333',
           slug: 'pack-contenido-social',
           title: 'Pack contenido social',
-          subtitle: 'Bloques listos para planificación de posteos.',
+          subtitle: 'Bloques listos para planificación de contenidos y calendarios.',
           prices: { pdf_hq: 1, canva: 2 },
-          is_featured: false,
+          is_featured: true,
           badge: '',
           preview: { from: '#f5f4ff', to: '#e7e3fb' },
+          interior_previews: [{ label: 'Vista interior 1' }, { label: 'Vista interior 2' }, { label: 'Vista interior 3' }],
         },
         {
-          id: 'sample-4',
+          id: '44444444-4444-4444-8444-444444444444',
           slug: 'organizador-pedidos',
           title: 'Organizador de pedidos',
-          subtitle: 'Resumen limpio para ventas y entregas.',
+          subtitle: 'Resumen limpio para ventas, producción y entregas semanales.',
           prices: { pdf_hq: 1, canva: 2 },
           is_featured: false,
           badge: '',
           preview: { from: '#f4fbff', to: '#ddf2fc' },
+          interior_previews: [{ label: 'Vista interior 1' }, { label: 'Vista interior 2' }, { label: 'Vista interior 3' }],
+        },
+        {
+          id: '55555555-5555-4555-8555-555555555555',
+          slug: 'planner-finanzas-soft',
+          title: 'Planner Finanzas Soft',
+          subtitle: 'Registro mensual de ingresos, gastos y objetivos financieros.',
+          prices: { pdf_hq: 1, canva: 2 },
+          is_featured: false,
+          badge: 'Tendencia',
+          preview: { from: '#fff4fb', to: '#f6dff1' },
+          interior_previews: [{ label: 'Vista interior 1' }, { label: 'Vista interior 2' }, { label: 'Vista interior 3' }],
+        },
+        {
+          id: '66666666-6666-4666-8666-666666666666',
+          slug: 'control-estudio-creativo',
+          title: 'Control Estudio Creativo',
+          subtitle: 'Sistema visual para tareas de clientes, entregables y calendario.',
+          prices: { pdf_hq: 1, canva: 2 },
+          is_featured: false,
+          badge: '',
+          preview: { from: '#f7fbf5', to: '#e2f3e0' },
+          interior_previews: [{ label: 'Vista interior 1' }, { label: 'Vista interior 2' }, { label: 'Vista interior 3' }],
         },
       ];
 
-      const FALLBACK_DAILY = {
-        id: 'daily-sample',
-        title: 'Mini planner diario',
-        description: 'Hoja rápida para tareas clave, prioridades y seguimiento.',
-      };
-
       const featuredPreviewGrid = document.getElementById('featured-preview-grid');
-      const catalogGrid = document.getElementById('catalog-grid');
       const catalogNote = document.getElementById('catalog-note');
-      const dailyTitle = document.getElementById('daily-title');
-      const dailyDescription = document.getElementById('daily-description');
       const dailyFreeBtn = document.getElementById('daily-free-btn');
+      const detailModal = document.getElementById('product-detail-modal');
+      const detailContent = document.getElementById('product-detail-content');
+      const detailTitle = document.getElementById('detail-title');
+      const FREE_PDFS_FALLBACK = [];
+      const FREE_ZONE_KEY = 'studio_sareschi_free_zone_last_download';
+      const FREE_ZONE_BROWSER_KEY = 'studio_sareschi_free_zone_browser_key';
+      const FREE_ZONE_MODAL_ID = 'zona-gratuita-modal';
+      const freeZoneModal = document.getElementById(FREE_ZONE_MODAL_ID);
+      const freeZoneGrid = document.getElementById('free-zone-grid');
+      const freeZoneStatus = document.getElementById('free-zone-status');
+      const closeZoneButtons = document.querySelectorAll('[data-modal-close]');
+
+      let storeProducts = [];
+      let freePdfs = [...FREE_PDFS_FALLBACK];
 
       function escapeHtml(value) {
         return String(value)
@@ -139,12 +214,227 @@
           .replaceAll("'", '&#39;');
       }
 
-      function productCard(product, compact = false) {
+      function normalizeProduct(product) {
+        const interiorPreviews = Array.isArray(product?.interior_previews) && product.interior_previews.length
+          ? product.interior_previews
+          : [
+              { label: 'Vista interior 1' },
+              { label: 'Vista interior 2' },
+              { label: 'Vista interior 3' },
+            ];
+
+        return {
+          ...product,
+          prices: {
+            pdf_hq: Number(product?.prices?.pdf_hq ?? 1),
+            canva: Number(product?.prices?.canva ?? 2),
+          },
+          preview: {
+            from: product?.preview?.from || '#fff4fb',
+            to: product?.preview?.to || '#f2e2ec',
+          },
+          interior_previews: interiorPreviews,
+        };
+      }
+
+      function getTodayKey() {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+          now.getDate()
+        ).padStart(2, '0')}`;
+      }
+
+      function getLastDownloadDate() {
+        return localStorage.getItem(FREE_ZONE_KEY);
+      }
+
+      function getBrowserKey() {
+        const existing = localStorage.getItem(FREE_ZONE_BROWSER_KEY);
+        if (existing) {
+          return existing;
+        }
+
+        const generated = `brw-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem(FREE_ZONE_BROWSER_KEY, generated);
+        return generated;
+      }
+
+      function hasDownloadedToday() {
+        return getLastDownloadDate() === getTodayKey();
+      }
+
+      function formatLocalDate(isoDate) {
+        const date = new Date(`${isoDate}T00:00:00`);
+        return new Intl.DateTimeFormat('es-PE', { dateStyle: 'long' }).format(date);
+      }
+
+      function renderFreeStatus() {
+        if (hasDownloadedToday()) {
+          freeZoneStatus.textContent =
+            'Ya usaste tu descarga gratuita de hoy. Vuelve mañana para descargar otro PDF o visita la tienda para obtener más archivos.';
+          return;
+        }
+
+        const lastDate = getLastDownloadDate();
+        if (lastDate) {
+          freeZoneStatus.textContent = `Tu descarga gratuita anterior fue el ${formatLocalDate(
+            lastDate
+          )}. Puedes descargar 1 archivo gratuito al día.`;
+          return;
+        }
+
+        freeZoneStatus.textContent = 'Puedes descargar 1 archivo gratuito al día.';
+      }
+
+      function buildFreeCard(item) {
+        const card = document.createElement('article');
+        card.className = 'free-zone-card';
+
+        const locked = hasDownloadedToday();
+        const buttonLabel = locked ? 'Descarga usada hoy' : 'Descargar gratis';
+
+        card.innerHTML = `
+          <div class="free-zone-card__thumb" style="--thumb:${item.accent}">
+            <span>${item.category}</span>
+          </div>
+          <div class="free-zone-card__content">
+            <h4>${item.title}</h4>
+            <p>${item.description}</p>
+            <button class="btn btn-secondary free-zone-card__download" type="button">
+              ${buttonLabel}
+            </button>
+          </div>
+        `;
+
+        const downloadButton = card.querySelector('.free-zone-card__download');
+        downloadButton.disabled = locked;
+        downloadButton.addEventListener('click', async () => {
+          if (hasDownloadedToday()) {
+            renderFreeStatus();
+            refreshFreeCards();
+            return;
+          }
+
+          downloadButton.disabled = true;
+          downloadButton.textContent = 'Preparando...';
+
+          try {
+            const response = await fetch('/api/freebies', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({
+                productId: item.id,
+                browserKey: getBrowserKey(),
+              }),
+            });
+
+            const payload = await response.json();
+            if (!response.ok || !payload?.url) {
+              throw new Error(payload?.error || 'No se pudo iniciar la descarga.');
+            }
+
+            localStorage.setItem(FREE_ZONE_KEY, getTodayKey());
+            window.location.assign(payload.url);
+          } catch (error) {
+            alert('No se pudo preparar la descarga gratuita en este momento.');
+            downloadButton.disabled = false;
+            downloadButton.textContent = 'Descargar gratis';
+          } finally {
+            renderFreeStatus();
+            refreshFreeCards();
+          }
+        });
+
+        return card;
+      }
+
+      function refreshFreeCards() {
+        freeZoneGrid.innerHTML = '';
+        if (!freePdfs.length) {
+          freeZoneGrid.innerHTML = '<p class="tiny-note">No hay archivos disponibles en este momento.</p>';
+          return;
+        }
+        freePdfs.forEach((item) => {
+          freeZoneGrid.appendChild(buildFreeCard(item));
+        });
+      }
+
+      async function fetchFreebies() {
+        const response = await fetch('/api/freebies', {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        });
+        const payload = await response.json();
+        if (!response.ok || !Array.isArray(payload?.freebies)) {
+          throw new Error(payload?.error || 'No se pudo cargar la Zona Gratuita.');
+        }
+        freePdfs = payload.freebies;
+      }
+
+      function openFreeZone(event) {
+        if (event) event.preventDefault();
+        freeZoneModal.classList.add('is-open');
+        freeZoneModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+        if (window.location.hash !== `#${FREE_ZONE_MODAL_ID}`) {
+          history.replaceState(null, '', `#${FREE_ZONE_MODAL_ID}`);
+        }
+        refreshFreeCards();
+        renderFreeStatus();
+      }
+
+      function closeFreeZone() {
+        freeZoneModal.classList.remove('is-open');
+        freeZoneModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+        if (window.location.hash === `#${FREE_ZONE_MODAL_ID}`) {
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      }
+
+      function getPriceMarkup() {
+        return `
+          <div class="price-row__item">
+            <strong>PDF HQ</strong>
+            <span>Perú: S/ 4.00 · Internacional: US$ 1.50</span>
+          </div>
+          <div class="price-row__item">
+            <strong>Editable en Canva</strong>
+            <span>Perú: S/ 8.00 · Internacional: US$ 3.00</span>
+          </div>
+        `;
+      }
+
+      function getPaymentNote() {
+        return 'Si estás en Perú, puedes pagar en soles por Yape, Plin o transferencia. PayPal disponible para compras internacionales.';
+      }
+
+      function openWhatsAppOrder(product, format) {
+        const message =
+          format === 'buy-pdf'
+            ? `Hola, quiero comprar ${product.title} en formato PDF HQ.`
+            : `Hola, quiero comprar ${product.title} en formato editable en Canva.`;
+        const url = `https://wa.me/51969095636?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank', 'noopener');
+      }
+
+      function ensureSixProducts(products) {
+        const normalized = products.map(normalizeProduct);
+        if (normalized.length >= 6) {
+          return normalized.slice(0, 6);
+        }
+
+        const missing = 6 - normalized.length;
+        const extra = FALLBACK_PRODUCTS.slice(0, missing).map(normalizeProduct);
+        return [...normalized, ...extra];
+      }
+
+      function productCard(product) {
         const badge = product.badge ? `<span class="store-badge">${escapeHtml(product.badge)}</span>` : '';
         const featured = product.is_featured ? '<span class="store-badge store-badge-hot">Destacado</span>' : '';
-        const cardClass = compact ? 'product-card product-card--compact' : 'product-card';
+
         return `
-          <article class="${cardClass}">
+          <article class="product-card" data-open-product-id="${escapeHtml(product.id)}" tabindex="0" role="button" aria-label="Ver detalle de ${escapeHtml(product.title)}">
             <div class="product-preview" style="background: linear-gradient(135deg, ${product.preview.from}, ${product.preview.to});">
               <div class="product-sheet"></div>
               ${badge}
@@ -153,9 +443,9 @@
             <h3>${escapeHtml(product.title)}</h3>
             <p>${escapeHtml(product.subtitle || '')}</p>
             <div class="price-row">
-              <span>PDF HQ <strong>$${Number(product.prices?.pdf_hq ?? 1).toFixed(0)}</strong></span>
-              <span>Editable en Canva <strong>$${Number(product.prices?.canva ?? 2).toFixed(0)}</strong></span>
+              ${getPriceMarkup()}
             </div>
+            <p class="payment-note">${getPaymentNote()}</p>
             <div class="card-actions">
               <button class="btn btn-secondary" data-action="buy-pdf" data-product-id="${escapeHtml(product.id)}">Comprar PDF HQ</button>
               <button class="btn btn-primary" data-action="buy-canva" data-product-id="${escapeHtml(product.id)}">Comprar Canva</button>
@@ -164,10 +454,74 @@
         `;
       }
 
+      function buildInteriorPreviewItem(item, index) {
+        if (item?.image) {
+          return `
+            <figure class="interior-thumb">
+              <img src="${escapeHtml(item.image)}" alt="Vista interior ${index + 1}" loading="lazy" />
+              <figcaption>${escapeHtml(item.label || `Vista interior ${index + 1}`)}</figcaption>
+            </figure>
+          `;
+        }
+
+        return `
+          <figure class="interior-thumb interior-thumb--placeholder">
+            <div class="interior-thumb__placeholder">${escapeHtml(item?.label || `Vista interior ${index + 1}`)}</div>
+            <figcaption>Placeholder listo para reemplazar por imagen real.</figcaption>
+          </figure>
+        `;
+      }
+
+      function renderDetail(product) {
+        detailTitle.textContent = product.title;
+
+        detailContent.innerHTML = `
+          <div class="detail-hero">
+            <div class="detail-hero__cover" style="background: linear-gradient(135deg, ${product.preview.from}, ${product.preview.to});">
+              <div class="product-sheet"></div>
+            </div>
+            <div class="detail-hero__info">
+              <p>${escapeHtml(product.subtitle || '')}</p>
+              <div class="price-row price-row--detail">
+                ${getPriceMarkup()}
+              </div>
+              <p class="payment-note">${getPaymentNote()}</p>
+              <div class="card-actions card-actions--detail">
+                <button class="btn btn-secondary" data-action="buy-pdf" data-product-id="${escapeHtml(product.id)}">Comprar PDF HQ</button>
+                <button class="btn btn-primary" data-action="buy-canva" data-product-id="${escapeHtml(product.id)}">Comprar Canva</button>
+              </div>
+            </div>
+          </div>
+          <section class="detail-interiors" aria-label="Vistas interiores del producto">
+            <h4>Vista previa de hojas interiores</h4>
+            <div class="interior-grid">
+              ${product.interior_previews.map((item, index) => buildInteriorPreviewItem(item, index)).join('')}
+            </div>
+          </section>
+        `;
+      }
+
+      function openDetail(productId) {
+        const product = storeProducts.find((item) => String(item.id) === String(productId));
+        if (!product) {
+          return;
+        }
+
+        renderDetail(product);
+        detailModal.classList.add('is-open');
+        detailModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+      }
+
+      function closeDetail() {
+        detailModal.classList.remove('is-open');
+        detailModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+      }
+
       function renderProducts(products) {
-        const highlighted = products.slice(0, 3);
-        featuredPreviewGrid.innerHTML = highlighted.map((item) => productCard(item, true)).join('');
-        catalogGrid.innerHTML = products.map((item) => productCard(item)).join('');
+        storeProducts = ensureSixProducts(products);
+        featuredPreviewGrid.innerHTML = storeProducts.map((item) => productCard(item)).join('');
       }
 
       async function fetchStorefrontData() {
@@ -182,65 +536,87 @@
         try {
           const data = await fetchStorefrontData();
           const products = Array.isArray(data.products) && data.products.length ? data.products : FALLBACK_PRODUCTS;
-          const daily = data.daily_free || FALLBACK_DAILY;
           renderProducts(products);
-          dailyTitle.textContent = daily.title;
-          dailyDescription.textContent = daily.description;
-          catalogNote.textContent = 'Catálogo conectado en modo seguro. Los enlaces de descarga se entregan solo después de validar acceso.';
+          catalogNote.textContent = 'Catálogo conectado en modo seguro. Puedes abrir cada producto para ver detalles y hojas interiores.';
         } catch (error) {
           renderProducts(FALLBACK_PRODUCTS);
-          dailyTitle.textContent = FALLBACK_DAILY.title;
-          dailyDescription.textContent = FALLBACK_DAILY.description;
           catalogNote.textContent = 'Modo visual temporal activo: datos de muestra para revisar diseño mientras se corrige la conexión.';
         }
       }
 
-      async function requestAsset(action, productId) {
-        const response = await fetch('/api/pdf-access', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ action, productId }),
-        });
-
-        const payload = await response.json();
-
-        if (!response.ok) {
-          throw new Error(payload?.error || 'Acción no autorizada.');
-        }
-
-        if (payload.url) {
-          window.location.href = payload.url;
-        }
-      }
-
       dailyFreeBtn.addEventListener('click', async () => {
-        try {
-          await requestAsset('claim-daily-free');
-        } catch (error) {
-          alert('No se pudo validar la descarga gratuita en este momento.');
-        }
+        openFreeZone();
       });
 
       document.addEventListener('click', async (event) => {
-        const button = event.target.closest('[data-action]');
-        if (!button) {
+        const closeButton = event.target.closest('[data-close-detail]');
+        if (closeButton) {
+          closeDetail();
           return;
         }
 
-        const action = button.dataset.action;
-        const productId = button.dataset.productId;
-        if (!action || !productId) {
+        const actionButton = event.target.closest('[data-action]');
+        if (actionButton) {
+          const action = actionButton.dataset.action;
+          const productId = actionButton.dataset.productId;
+          if (!action || !productId) {
+            return;
+          }
+
+          const product = storeProducts.find((item) => String(item.id) === String(productId));
+          if (!product) {
+            return;
+          }
+          openWhatsAppOrder(product, action);
           return;
         }
 
-        try {
-          await requestAsset(action, productId);
-        } catch (error) {
-          alert('No se pudo completar la acción comercial. Intenta nuevamente.');
+        const productCardTrigger = event.target.closest('[data-open-product-id]');
+        if (productCardTrigger) {
+          openDetail(productCardTrigger.dataset.openProductId);
         }
       });
 
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && detailModal.classList.contains('is-open')) {
+          closeDetail();
+          return;
+        }
+        if (event.key === 'Escape' && freeZoneModal.classList.contains('is-open')) {
+          closeFreeZone();
+          return;
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          const trigger = event.target.closest('[data-open-product-id]');
+          if (trigger) {
+            event.preventDefault();
+            openDetail(trigger.dataset.openProductId);
+          }
+        }
+      });
+
+      closeZoneButtons.forEach((button) => {
+        button.addEventListener('click', closeFreeZone);
+      });
+
+      window.addEventListener('hashchange', () => {
+        if (window.location.hash === `#${FREE_ZONE_MODAL_ID}`) {
+          openFreeZone();
+        } else if (freeZoneModal.classList.contains('is-open')) {
+          closeFreeZone();
+        }
+      });
+
+      if (window.location.hash === `#${FREE_ZONE_MODAL_ID}`) {
+        openFreeZone();
+      }
+
       bootstrapStorefront();
+      fetchFreebies().then(refreshFreeCards).catch(() => {
+        freePdfs = [...FREE_PDFS_FALLBACK];
+        renderFreeStatus();
+      });
     </script>
   </body>
 </html>
