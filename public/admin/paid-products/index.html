@@ -89,10 +89,12 @@
       const panel = document.getElementById('panel');
       const productsGrid = document.getElementById('products-grid');
       const newBtn = document.getElementById('new-product-btn');
+      const LOCAL_STORAGE_PRODUCTS_KEY = 'studio_sareschi_paid_products_local';
 
       let supabaseClient = null;
       let accessToken = '';
       let products = [];
+      let useLocalMode = false;
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
@@ -132,7 +134,25 @@
         };
       }
 
+      function loadLocalProducts() {
+        const raw = localStorage.getItem(LOCAL_STORAGE_PRODUCTS_KEY);
+        if (!raw) return [];
+        try {
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_error) {
+          return [];
+        }
+      }
+
+      function saveLocalProducts(nextProducts) {
+        localStorage.setItem(LOCAL_STORAGE_PRODUCTS_KEY, JSON.stringify(nextProducts));
+      }
+
       async function apiRequest(method, body) {
+        if (useLocalMode) {
+          return { localMode: true };
+        }
         const response = await fetch('/api/paid-products-admin', {
           method,
           headers: {
@@ -143,7 +163,9 @@
         });
         const payload = await response.json();
         if (!response.ok) {
-          throw new Error(payload?.error || 'Error inesperado.');
+          const error = new Error(payload?.error || 'Error inesperado.');
+          error.code = payload?.code || '';
+          throw error;
         }
         return payload;
       }
@@ -232,9 +254,26 @@
       }
 
       async function loadProducts() {
-        const payload = await apiRequest('GET');
-        products = Array.isArray(payload.products) ? payload.products : [];
-        renderProducts();
+        if (useLocalMode) {
+          products = loadLocalProducts();
+          renderProducts();
+          return;
+        }
+
+        try {
+          const payload = await apiRequest('GET');
+          products = Array.isArray(payload.products) ? payload.products : [];
+          renderProducts();
+        } catch (error) {
+          if (error.code === 'missing_paid_products_table') {
+            useLocalMode = true;
+            products = loadLocalProducts();
+            renderProducts();
+            setStatus('La tabla de catálogo aún no existe en Supabase. Activamos modo local para que puedas crear/editar sin errores.', true);
+            return;
+          }
+          throw error;
+        }
       }
 
       async function ensureSession() {
@@ -318,7 +357,7 @@
         const index = Number(card.dataset.index);
         const product = collectProduct(card, products[index]);
 
-        if (!product.id) {
+        if (!product.id && !useLocalMode) {
           setStatus('Guarda primero el producto para habilitar subida de imágenes.', true);
           uploadInput.value = '';
           return;
@@ -326,20 +365,31 @@
 
         try {
           const file = uploadInput.files[0];
-          const dataBase64 = await readFileAsBase64(file);
-          const payload = await apiRequest('POST', {
-            action: 'upload',
-            productId: product.id,
-            slot: uploadInput.dataset.upload,
-            fileName: file.name,
-            contentType: file.type || 'image/jpeg',
-            dataBase64,
-          });
+          if (useLocalMode) {
+            const localReader = new FileReader();
+            await new Promise((resolve, reject) => {
+              localReader.onload = resolve;
+              localReader.onerror = reject;
+              localReader.readAsDataURL(file);
+            });
+            product[uploadInput.dataset.upload] = String(localReader.result || '');
+          } else {
+            const dataBase64 = await readFileAsBase64(file);
+            const payload = await apiRequest('POST', {
+              action: 'upload',
+              productId: product.id,
+              slot: uploadInput.dataset.upload,
+              fileName: file.name,
+              contentType: file.type || 'image/jpeg',
+              dataBase64,
+            });
+            product[uploadInput.dataset.upload] = payload.publicUrl;
+          }
 
-          product[uploadInput.dataset.upload] = payload.publicUrl;
           products[index] = product;
+          if (useLocalMode) saveLocalProducts(products);
           renderProducts();
-          setStatus('Imagen subida. Recuerda guardar para confirmar cambios.');
+          setStatus(useLocalMode ? 'Imagen cargada en modo local. Guarda para mantener cambios en este navegador.' : 'Imagen subida. Recuerda guardar para confirmar cambios.');
         } catch (error) {
           setStatus(error.message, true);
         } finally {
@@ -361,14 +411,31 @@
         setStatus('Guardando producto...');
 
         try {
-          const payload = product.id
-            ? await apiRequest('PATCH', product)
-            : await apiRequest('POST', product);
-
-          products[index] = payload.product;
+          if (useLocalMode) {
+            const next = { ...product };
+            if (!next.id) {
+              next.id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            }
+            products[index] = next;
+            saveLocalProducts(products);
+          } else {
+            const payload = product.id
+              ? await apiRequest('PATCH', product)
+              : await apiRequest('POST', product);
+            products[index] = payload.product;
+          }
           renderProducts();
-          setStatus('Producto guardado correctamente.');
+          setStatus(useLocalMode ? 'Producto guardado en modo local (sin error de tabla).' : 'Producto guardado correctamente.');
         } catch (error) {
+          if (error.code === 'missing_paid_products_table') {
+            useLocalMode = true;
+            const next = { ...product, id: product.id || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
+            products[index] = next;
+            saveLocalProducts(products);
+            renderProducts();
+            setStatus('Supabase aún no tiene la tabla. Guardamos en modo local para que puedas seguir trabajando.', true);
+            return;
+          }
           setStatus(error.message, true);
         } finally {
           saveBtn.disabled = false;

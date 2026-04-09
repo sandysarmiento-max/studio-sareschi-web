@@ -140,22 +140,43 @@ function inferExtension(contentType, fileName) {
 }
 
 async function listProducts(res) {
-  const products = await callSupabase(
-    `/rest/v1/paid_products?select=${encodeURIComponent(PRODUCT_COLUMNS)}&order=sort_order.asc,created_at.asc`
-  );
-  return json(res, 200, { products });
+  try {
+    const products = await callSupabase(
+      `/rest/v1/paid_products?select=${encodeURIComponent(PRODUCT_COLUMNS)}&order=sort_order.asc,created_at.asc`
+    );
+    return json(res, 200, { products });
+  } catch (error) {
+    if (String(error.message || '').includes("Could not find the table 'public.paid_products'")) {
+      return json(res, 503, {
+        code: 'missing_paid_products_table',
+        error: 'La tabla paid_products todavía no existe en este proyecto de Supabase.',
+      });
+    }
+    throw error;
+  }
 }
 
 async function createProduct(res, payload) {
   const record = sanitizePayload(payload || {});
-  const products = await callSupabase(`/rest/v1/paid_products?select=${encodeURIComponent(PRODUCT_COLUMNS)}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-    },
-    body: JSON.stringify(record),
-  });
+  let products;
+  try {
+    products = await callSupabase(`/rest/v1/paid_products?select=${encodeURIComponent(PRODUCT_COLUMNS)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify(record),
+    });
+  } catch (error) {
+    if (String(error.message || '').includes("Could not find the table 'public.paid_products'")) {
+      return json(res, 503, {
+        code: 'missing_paid_products_table',
+        error: 'La tabla paid_products todavía no existe en este proyecto de Supabase.',
+      });
+    }
+    throw error;
+  }
 
   return json(res, 200, { product: products?.[0] || null });
 }
@@ -167,17 +188,28 @@ async function updateProduct(res, payload) {
   }
 
   const record = sanitizePayload(payload || {});
-  const products = await callSupabase(
-    `/rest/v1/paid_products?id=eq.${encodeURIComponent(id)}&select=${encodeURIComponent(PRODUCT_COLUMNS)}`,
-    {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-      },
-      body: JSON.stringify(record),
+  let products;
+  try {
+    products = await callSupabase(
+      `/rest/v1/paid_products?id=eq.${encodeURIComponent(id)}&select=${encodeURIComponent(PRODUCT_COLUMNS)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+        },
+        body: JSON.stringify(record),
+      }
+    );
+  } catch (error) {
+    if (String(error.message || '').includes("Could not find the table 'public.paid_products'")) {
+      return json(res, 503, {
+        code: 'missing_paid_products_table',
+        error: 'La tabla paid_products todavía no existe en este proyecto de Supabase.',
+      });
     }
-  );
+    throw error;
+  }
 
   return json(res, 200, { product: products?.[0] || null });
 }
