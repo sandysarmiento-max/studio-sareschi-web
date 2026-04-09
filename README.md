@@ -42,6 +42,7 @@ Se agregó un gestor privado para productos de paga en `/admin/paid-products/`.
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ADMIN_EMAILS` (lista separada por comas con emails administradores, por ejemplo: `admin@dominio.com,otro@dominio.com`)
+- Si `ADMIN_EMAILS` no está definido, el panel admin permite a cualquier usuario autenticado (mismo login de Aral Calc).
 
 ### Pasos manuales en Supabase
 

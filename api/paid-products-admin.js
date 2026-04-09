@@ -74,7 +74,22 @@ function canManageProducts(user) {
   const email = String(user?.email || '').toLowerCase();
   const isAdminFromMetadata =
     user?.app_metadata?.role === 'admin' || user?.user_metadata?.role === 'admin';
-  return Boolean(isAdminFromMetadata || (email && ADMIN_EMAILS.includes(email)));
+
+  if (isAdminFromMetadata) {
+    return true;
+  }
+
+  if (email && ADMIN_EMAILS.includes(email)) {
+    return true;
+  }
+
+  // Modo estable por defecto: si ADMIN_EMAILS no está definido,
+  // habilita el panel para cualquier usuario autenticado (mismo login de Aral Calc).
+  if (!ADMIN_EMAILS.length && email) {
+    return true;
+  }
+
+  return false;
 }
 
 function sanitizePayload(payload) {
@@ -205,7 +220,7 @@ module.exports = async function handler(req, res) {
     if (!canManageProducts(user)) {
       return json(res, 403, {
         error:
-          'Tu usuario no tiene rol de administrador. Define ADMIN_EMAILS en Vercel o role=admin en Supabase Auth.',
+          'Tu usuario no está habilitado para este panel. Si deseas restringir acceso, configura ADMIN_EMAILS o role=admin.',
       });
     }
 
