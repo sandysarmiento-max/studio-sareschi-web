@@ -1,7 +1,24 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const FALLBACK_PRODUCTS = [];
+const FALLBACK_PRODUCTS = [
+  {
+    id: 'seed-paid-product',
+    code: 'agenda-semanal-rosa',
+    title: 'Agenda semanal Rosa (Demo)',
+    description: 'Producto de prueba para validar catálogo y flujo de compra por WhatsApp.',
+    price_pdf_pe: 4,
+    price_pdf_int: 1.5,
+    price_canva_pe: 8,
+    price_canva_int: 3,
+    main_image_url: '/freebies/previews/fb_001_preview.jpg',
+    preview_01_url: '/freebies/previews/fb_002_preview.jpg',
+    preview_02_url: '/freebies/previews/fb_003_preview.jpg',
+    preview_03_url: '/freebies/previews/fb_004_preview.jpg',
+    active: true,
+    sort_order: 0,
+  },
+];
 
 const FALLBACK_DAILY = {
   id: 'daily-sample',
@@ -69,7 +86,7 @@ async function handleStorefront(req, res) {
     }
 
     return json(res, 200, {
-      products: Array.isArray(products) ? products : FALLBACK_PRODUCTS,
+      products: Array.isArray(products) && products.length ? products : FALLBACK_PRODUCTS,
       daily_free: daily || FALLBACK_DAILY,
       source: 'secure-backend',
     });
