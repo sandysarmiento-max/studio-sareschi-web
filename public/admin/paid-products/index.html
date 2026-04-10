@@ -92,6 +92,7 @@
       const LOCAL_STORAGE_PRODUCTS_KEY = 'studio_sareschi_paid_products_local';
 
       let supabaseClient = null;
+      let supabaseUrl = '';
       let accessToken = '';
       let products = [];
       let useLocalMode = false;
@@ -117,6 +118,7 @@
 
       function createEmptyProduct() {
         return {
+          _clientKey: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           id: '',
           code: `producto-${Date.now()}`,
           title: '',
@@ -147,6 +149,39 @@
 
       function saveLocalProducts(nextProducts) {
         localStorage.setItem(LOCAL_STORAGE_PRODUCTS_KEY, JSON.stringify(nextProducts));
+      }
+
+      function attachClientKey(product) {
+        if (product && product._clientKey) return product;
+        return {
+          ...product,
+          _clientKey: product?.id
+            ? `id-${product.id}`
+            : `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        };
+      }
+
+      function replaceProductByClientKey(updatedProduct) {
+        const key = updatedProduct?._clientKey;
+        const index = products.findIndex((item) => item._clientKey === key);
+        if (index === -1) {
+          products.unshift(updatedProduct);
+          return;
+        }
+        products[index] = updatedProduct;
+      }
+
+      function toAbsolutePublicImageUrl(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image/')) {
+          return raw;
+        }
+        if (!supabaseUrl) return raw;
+        if (raw.startsWith('/storage/v1/object/public/')) return `${supabaseUrl}${raw}`;
+        if (raw.startsWith('storage/v1/object/public/')) return `${supabaseUrl}/${raw}`;
+        if (raw.startsWith('paid-previews/')) return `${supabaseUrl}/storage/v1/object/public/${raw}`;
+        return raw;
       }
 
       async function apiRequest(method, body) {
@@ -196,10 +231,10 @@
         products
           .slice()
           .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
-          .forEach((product, index) => {
+          .forEach((product) => {
             const card = document.createElement('article');
             card.className = 'admin-card';
-            card.dataset.index = String(index);
+            card.dataset.clientKey = product._clientKey;
             card.innerHTML = `
               <div class="admin-row">
                 ${field('title', 'Título', product.title)}
@@ -219,6 +254,13 @@
                     <strong style="font-size:13px;">${slot.label}</strong>
                     <img src="${product[slot.key] || ''}" alt="${slot.label}" />
                     <input type="file" data-upload="${slot.key}" accept="image/*" />
+                    <input
+                      data-field="${slot.key}"
+                      type="text"
+                      value="${String(product[slot.key] || '').replaceAll('"', '&quot;')}"
+                      readonly
+                      style="font-size:11px;opacity:.8"
+                    />
                   </div>
                 `).join('')}
               </div>
@@ -250,24 +292,28 @@
             next[key] = value.trim();
           }
         });
+        next.main_image_url = toAbsolutePublicImageUrl(next.main_image_url);
+        next.preview_01_url = toAbsolutePublicImageUrl(next.preview_01_url);
+        next.preview_02_url = toAbsolutePublicImageUrl(next.preview_02_url);
+        next.preview_03_url = toAbsolutePublicImageUrl(next.preview_03_url);
         return next;
       }
 
       async function loadProducts() {
         if (useLocalMode) {
-          products = loadLocalProducts();
+          products = loadLocalProducts().map(attachClientKey);
           renderProducts();
           return;
         }
 
         try {
           const payload = await apiRequest('GET');
-          products = Array.isArray(payload.products) ? payload.products : [];
+          products = (Array.isArray(payload.products) ? payload.products : []).map(attachClientKey);
           renderProducts();
         } catch (error) {
           if (error.code === 'missing_paid_products_table') {
             useLocalMode = true;
-            products = loadLocalProducts();
+            products = loadLocalProducts().map(attachClientKey);
             renderProducts();
             setStatus('La tabla de catálogo aún no existe en Supabase. Activamos modo local para que puedas crear/editar sin errores.', true);
             return;
@@ -285,6 +331,7 @@
         }
 
         supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+        supabaseUrl = config.supabaseUrl;
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session?.access_token) {
           accessToken = session.access_token;
@@ -345,6 +392,7 @@
       newBtn.addEventListener('click', () => {
         products.unshift(createEmptyProduct());
         renderProducts();
+        setStatus('Nuevo producto listo. Completa los campos y pulsa “Guardar producto”.');
       });
 
       productsGrid.addEventListener('change', async (event) => {
@@ -354,8 +402,14 @@
         }
 
         const card = uploadInput.closest('.admin-card');
-        const index = Number(card.dataset.index);
-        const product = collectProduct(card, products[index]);
+        const clientKey = card.dataset.clientKey;
+        const baseProduct = products.find((item) => item._clientKey === clientKey);
+        if (!baseProduct) {
+          setStatus('No se encontró el producto para subir imagen. Actualiza la lista e intenta de nuevo.', true);
+          uploadInput.value = '';
+          return;
+        }
+        const product = collectProduct(card, baseProduct);
 
         if (!product.id && !useLocalMode) {
           setStatus('Guarda primero el producto para habilitar subida de imágenes.', true);
@@ -386,7 +440,7 @@
             product[uploadInput.dataset.upload] = payload.publicUrl;
           }
 
-          products[index] = product;
+          replaceProductByClientKey(product);
           if (useLocalMode) saveLocalProducts(products);
           renderProducts();
           setStatus(useLocalMode ? 'Imagen cargada en modo local. Guarda para mantener cambios en este navegador.' : 'Imagen subida. Recuerda guardar para confirmar cambios.');
@@ -404,8 +458,13 @@
         }
 
         const card = saveBtn.closest('.admin-card');
-        const index = Number(card.dataset.index);
-        const product = collectProduct(card, products[index]);
+        const clientKey = card.dataset.clientKey;
+        const baseProduct = products.find((item) => item._clientKey === clientKey);
+        if (!baseProduct) {
+          setStatus('No se encontró el producto a guardar. Actualiza la lista e intenta de nuevo.', true);
+          return;
+        }
+        const product = collectProduct(card, baseProduct);
 
         saveBtn.disabled = true;
         setStatus('Guardando producto...');
@@ -416,27 +475,31 @@
             if (!next.id) {
               next.id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
             }
-            products[index] = next;
+            replaceProductByClientKey(next);
             saveLocalProducts(products);
           } else {
             const payload = product.id
               ? await apiRequest('PATCH', product)
               : await apiRequest('POST', product);
-            products[index] = payload.product;
+            replaceProductByClientKey(attachClientKey({ ...payload.product, _clientKey: product._clientKey }));
+            await loadProducts();
           }
           renderProducts();
           setStatus(useLocalMode ? 'Producto guardado en modo local (sin error de tabla).' : 'Producto guardado correctamente.');
         } catch (error) {
           if (error.code === 'missing_paid_products_table') {
             useLocalMode = true;
-            const next = { ...product, id: product.id || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
-            products[index] = next;
+            const next = {
+              ...product,
+              id: product.id || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            };
+            replaceProductByClientKey(next);
             saveLocalProducts(products);
             renderProducts();
             setStatus('Supabase aún no tiene la tabla. Guardamos en modo local para que puedas seguir trabajando.', true);
             return;
           }
-          setStatus(error.message, true);
+          setStatus(`Error al guardar: ${error.message}`, true);
         } finally {
           saveBtn.disabled = false;
         }

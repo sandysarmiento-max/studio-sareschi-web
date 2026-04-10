@@ -66,6 +66,42 @@ async function callSupabase(path, options = {}) {
   return response.json();
 }
 
+function toAbsolutePublicImageUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image/')) {
+    return raw;
+  }
+
+  if (!SUPABASE_URL) {
+    return raw;
+  }
+
+  if (raw.startsWith('/storage/v1/object/public/')) {
+    return `${SUPABASE_URL}${raw}`;
+  }
+
+  if (raw.startsWith('storage/v1/object/public/')) {
+    return `${SUPABASE_URL}/${raw}`;
+  }
+
+  if (raw.startsWith('paid-previews/')) {
+    return `${SUPABASE_URL}/storage/v1/object/public/${raw}`;
+  }
+
+  return raw;
+}
+
+function normalizeStorefrontProduct(product) {
+  return {
+    ...product,
+    main_image_url: toAbsolutePublicImageUrl(product?.main_image_url),
+    preview_01_url: toAbsolutePublicImageUrl(product?.preview_01_url),
+    preview_02_url: toAbsolutePublicImageUrl(product?.preview_02_url),
+    preview_03_url: toAbsolutePublicImageUrl(product?.preview_03_url),
+  };
+}
+
 async function handleStorefront(req, res) {
   try {
     const products = await callSupabase(
@@ -86,7 +122,10 @@ async function handleStorefront(req, res) {
     }
 
     return json(res, 200, {
-      products: Array.isArray(products) && products.length ? products : FALLBACK_PRODUCTS,
+      products:
+        Array.isArray(products) && products.length
+          ? products.map(normalizeStorefrontProduct)
+          : FALLBACK_PRODUCTS,
       daily_free: daily || FALLBACK_DAILY,
       source: 'secure-backend',
     });
