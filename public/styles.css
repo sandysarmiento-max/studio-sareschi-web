@@ -76,11 +76,11 @@ body {
 }
 
 .section {
-  padding: 5rem 0;
+  padding: 4.6rem 0;
 }
 
 .hero {
-  padding-top: clamp(3.25rem, 5vw, 4.5rem);
+  padding-top: clamp(2.6rem, 4.2vw, 3.8rem);
   padding-bottom: clamp(2.25rem, 4vw, 3.25rem);
 }
 
@@ -425,7 +425,7 @@ h1 {
 }
 
 .free-zone-entry {
-  margin-bottom: 1rem;
+  margin-top: 1rem;
   border: 1px solid #eacddb;
   border-radius: 20px;
   background: linear-gradient(145deg, #fffafd 0%, #ffffff 70%);
@@ -433,25 +433,62 @@ h1 {
   padding: 1.25rem;
 }
 
-.free-zone-entry__header {
+.free-zone-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.free-zone-preview-card {
+  border: 1px solid #edd7e3;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.free-zone-preview-card__thumb {
+  aspect-ratio: 4 / 5;
+  position: relative;
+}
+
+.free-zone-preview-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.free-zone-preview-card__image.is-ready {
+  opacity: 1;
+}
+
+.free-zone-preview-card__fallback {
+  position: absolute;
+  inset: 0;
+  padding: 0.8rem;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: #6d3758;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--thumb, #f3d9e6) 85%, #fff) 0%, #fff 100%);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.free-zone-preview-card__fallback.is-hidden {
+  display: none;
+}
+
+.free-zone-entry__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-}
-
-.free-zone-entry__header .eyebrow {
-  margin-bottom: 0.6rem;
-}
-
-.free-zone-entry__header h3 {
-  margin-bottom: 0.45rem;
-}
-
-.free-zone-entry__header p {
-  margin: 0;
-  color: var(--muted);
-  max-width: 58ch;
+  margin-top: 0.95rem;
 }
 
 .free-zone-entry__cta {
@@ -459,7 +496,7 @@ h1 {
 }
 
 .free-zone-entry__note {
-  margin: 0.85rem 0 0;
+  margin: 0;
   color: #725867;
   font-size: 0.82rem;
   font-weight: 600;
@@ -640,9 +677,13 @@ body.modal-open {
     align-items: flex-start;
   }
 
-  .free-zone-entry__header {
+  .free-zone-entry__footer {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .free-zone-preview-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .free-zone-grid {
