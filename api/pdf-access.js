@@ -3,64 +3,20 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const FALLBACK_PRODUCTS = [
   {
-    id: '11111111-1111-4111-8111-111111111111',
-    slug: 'agenda-semanal-rosa',
-    title: 'Agenda semanal Rosa',
-    subtitle: 'Plan semanal elegante con foco en objetivos.',
-    prices: { pdf_hq: 1, canva: 2 },
-    is_featured: true,
-    badge: 'Más vendido',
-    preview: { from: '#fff1f7', to: '#f8dce9' },
-  },
-  {
-    id: '22222222-2222-4222-8222-222222222222',
-    slug: 'checklist-boutique',
-    title: 'Checklist Boutique',
-    subtitle: 'Control diario visual y minimalista.',
-    prices: { pdf_hq: 1, canva: 2 },
-    is_featured: false,
-    badge: 'Nuevo',
-    preview: { from: '#fff9f1', to: '#fbead8' },
-  },
-  {
-    id: '33333333-3333-4333-8333-333333333333',
-    slug: 'pack-contenido-social',
-    title: 'Pack contenido social',
-    subtitle: 'Bloques listos para planificación de posteos.',
-    prices: { pdf_hq: 1, canva: 2 },
-    is_featured: false,
-    badge: '',
-    preview: { from: '#f5f4ff', to: '#e7e3fb' },
-  },
-  {
-    id: '44444444-4444-4444-8444-444444444444',
-    slug: 'organizador-pedidos',
-    title: 'Organizador de pedidos',
-    subtitle: 'Resumen limpio para ventas y entregas.',
-    prices: { pdf_hq: 1, canva: 2 },
-    is_featured: false,
-    badge: '',
-    preview: { from: '#f4fbff', to: '#ddf2fc' },
-  },
-  {
-    id: '55555555-5555-4555-8555-555555555555',
-    slug: 'planner-finanzas-soft',
-    title: 'Planner Finanzas Soft',
-    subtitle: 'Registro mensual de ingresos, gastos y objetivos.',
-    prices: { pdf_hq: 1, canva: 2 },
-    is_featured: false,
-    badge: 'Tendencia',
-    preview: { from: '#fff4fb', to: '#f6dff1' },
-  },
-  {
-    id: '66666666-6666-4666-8666-666666666666',
-    slug: 'control-estudio-creativo',
-    title: 'Control Estudio Creativo',
-    subtitle: 'Sistema visual para tareas de clientes y entregables.',
-    prices: { pdf_hq: 1, canva: 2 },
-    is_featured: false,
-    badge: '',
-    preview: { from: '#f7fbf5', to: '#e2f3e0' },
+    id: 'seed-paid-product',
+    code: 'agenda-semanal-rosa',
+    title: 'Agenda semanal Rosa (Demo)',
+    description: 'Producto de prueba para validar catálogo y flujo de compra por WhatsApp.',
+    price_pdf_pe: 4,
+    price_pdf_int: 1.5,
+    price_canva_pe: 8,
+    price_canva_int: 3,
+    main_image_url: '/freebies/previews/fb_001_preview.jpg',
+    preview_01_url: '/freebies/previews/fb_002_preview.jpg',
+    preview_02_url: '/freebies/previews/fb_003_preview.jpg',
+    preview_03_url: '/freebies/previews/fb_004_preview.jpg',
+    active: true,
+    sort_order: 0,
   },
 ];
 
@@ -110,20 +66,66 @@ async function callSupabase(path, options = {}) {
   return response.json();
 }
 
+function toAbsolutePublicImageUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image/')) {
+    return raw;
+  }
+
+  if (!SUPABASE_URL) {
+    return raw;
+  }
+
+  if (raw.startsWith('/storage/v1/object/public/')) {
+    return `${SUPABASE_URL}${raw}`;
+  }
+
+  if (raw.startsWith('storage/v1/object/public/')) {
+    return `${SUPABASE_URL}/${raw}`;
+  }
+
+  if (raw.startsWith('paid-previews/')) {
+    return `${SUPABASE_URL}/storage/v1/object/public/${raw}`;
+  }
+
+  return raw;
+}
+
+function normalizeStorefrontProduct(product) {
+  return {
+    ...product,
+    main_image_url: toAbsolutePublicImageUrl(product?.main_image_url),
+    preview_01_url: toAbsolutePublicImageUrl(product?.preview_01_url),
+    preview_02_url: toAbsolutePublicImageUrl(product?.preview_02_url),
+    preview_03_url: toAbsolutePublicImageUrl(product?.preview_03_url),
+  };
+}
+
 async function handleStorefront(req, res) {
   try {
-    const products = await callSupabase('/rest/v1/rpc/get_storefront_products_public', {
-      method: 'POST',
-      body: '{}',
-    });
+    const products = await callSupabase(
+      '/rest/v1/paid_products?select=id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order&active=eq.true&order=sort_order.asc,created_at.asc',
+      {
+        method: 'GET',
+      }
+    );
 
-    const daily = await callSupabase('/rest/v1/rpc/get_daily_free_product_public', {
-      method: 'POST',
-      body: '{}',
-    });
+    let daily = null;
+    try {
+      daily = await callSupabase('/rest/v1/rpc/get_daily_free_product_public', {
+        method: 'POST',
+        body: '{}',
+      });
+    } catch (error) {
+      daily = FALLBACK_DAILY;
+    }
 
     return json(res, 200, {
-      products: Array.isArray(products) && products.length ? products : FALLBACK_PRODUCTS,
+      products:
+        Array.isArray(products) && products.length
+          ? products.map(normalizeStorefrontProduct)
+          : FALLBACK_PRODUCTS,
       daily_free: daily || FALLBACK_DAILY,
       source: 'secure-backend',
     });
@@ -145,8 +147,6 @@ async function handleAccessAction(req, res, payload) {
     return json(res, 400, { error: 'Falta action.' });
   }
 
-  // Punto único para entregar URLs firmadas.
-  // Evita exponer download_url directo en lecturas anónimas.
   try {
     const result = await callSupabase('/rest/v1/rpc/create_pdf_access_link', {
       method: 'POST',
