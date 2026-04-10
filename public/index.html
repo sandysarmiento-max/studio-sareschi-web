@@ -24,7 +24,7 @@
           <ul class="nav-links">
             <li><a href="#home">Home</a></li>
             <li><a href="#apps">Apps</a></li>
-            <li><a href="#libre-uso">Libre uso</a></li>
+            <li><a href="#libre-uso">Gratis</a></li>
             <li><a href="/pdfs/">Tienda PDF</a></li>
             <li><a href="/acceso/">Acceso</a></li>
           </ul>
@@ -71,27 +71,9 @@
       <section id="libre-uso" class="section section-soft">
         <div class="container">
           <div class="section-heading">
-            <p class="eyebrow">Libre uso</p>
-            <h2>Herramientas abiertas</h2>
+            <p class="eyebrow">GRATIS</p>
+            <h2>Herramientas y PDFs gratis</h2>
           </div>
-
-          <article class="free-zone-entry" aria-label="Zona gratuita de PDFs">
-            <header class="free-zone-entry__header">
-              <div>
-                <p class="eyebrow">ZONA GRATUITA</p>
-                <h3>Elige tu diseño gratis</h3>
-                <p>Puedes descargar 1 archivo gratuito al día.</p>
-              </div>
-              <a
-                class="btn btn-primary free-zone-entry__cta"
-                href="#zona-gratuita-modal"
-                aria-label="Abrir zona gratuita y ver PDFs disponibles"
-              >
-                Ver PDFs gratis
-              </a>
-            </header>
-            <p class="free-zone-entry__note">Si deseas más archivos, puedes comprarlos en la tienda.</p>
-          </article>
 
           <article class="mini-tool" data-mini-app="ring-calculator">
             <header class="mini-tool__header">
@@ -154,6 +136,20 @@
             </p>
             <a class="btn btn-primary aral-calc-promo__cta" href="/aral-calc/">Conocer Aral Calc</a>
           </aside>
+
+          <article class="free-zone-entry" aria-label="Galería visual de archivos gratis">
+            <div id="free-zone-preview-grid" class="free-zone-preview-grid"></div>
+            <div class="free-zone-entry__footer">
+              <a
+                class="btn btn-primary free-zone-entry__cta"
+                href="#zona-gratuita-modal"
+                aria-label="Abrir zona gratuita y ver PDFs disponibles"
+              >
+                Ver PDFs gratis
+              </a>
+              <p class="free-zone-entry__note">Puedes descargar 1 archivo gratuito al día.</p>
+            </div>
+          </article>
         </div>
       </section>
     </main>
@@ -339,6 +335,7 @@
       const FREE_ZONE_MODAL_ID = 'zona-gratuita-modal';
       const freeZoneModal = document.getElementById(FREE_ZONE_MODAL_ID);
       const freeZoneGrid = document.getElementById('free-zone-grid');
+      const freeZonePreviewGrid = document.getElementById('free-zone-preview-grid');
       const freeZoneStatus = document.getElementById('free-zone-status');
       const openZoneButton = document.querySelector('.free-zone-entry__cta');
       const closeZoneButtons = document.querySelectorAll('[data-modal-close]');
@@ -499,6 +496,47 @@
         });
       }
 
+      function refreshFreePreviewGallery() {
+        if (!freeZonePreviewGrid) return;
+        freeZonePreviewGrid.innerHTML = '';
+        if (!freePdfs.length) {
+          freeZonePreviewGrid.innerHTML =
+            '<p class="tiny-note">No hay archivos disponibles en este momento.</p>';
+          return;
+        }
+
+        freePdfs.slice(0, 6).forEach((item) => {
+          const card = document.createElement('article');
+          card.className = 'free-zone-preview-card';
+          const previewUrl = getFreebiePreviewUrl(item);
+          card.innerHTML = `
+            <div class="free-zone-preview-card__thumb">
+              <img class="free-zone-preview-card__image" alt="Preview de ${item.title}" loading="lazy" />
+              <div class="free-zone-preview-card__fallback" style="--thumb:${item.accent}">
+                <span>${item.category}</span>
+              </div>
+            </div>
+          `;
+
+          const previewImage = card.querySelector('.free-zone-preview-card__image');
+          const fallbackThumb = card.querySelector('.free-zone-preview-card__fallback');
+
+          if (previewUrl) {
+            previewImage.src = previewUrl;
+            previewImage.addEventListener('load', () => {
+              previewImage.classList.add('is-ready');
+              fallbackThumb.classList.add('is-hidden');
+            });
+            previewImage.addEventListener('error', () => {
+              previewImage.classList.remove('is-ready');
+              fallbackThumb.classList.remove('is-hidden');
+            });
+          }
+
+          freeZonePreviewGrid.appendChild(card);
+        });
+      }
+
       async function fetchFreebies() {
         const response = await fetch('/api/freebies', {
           method: 'GET',
@@ -555,10 +593,17 @@
         openFreeZone();
       }
 
-      fetchFreebies().then(refreshFreeCards).catch(() => {
-        freePdfs = [...FREE_PDFS_FALLBACK];
-        renderFreeStatus();
-      });
+      fetchFreebies()
+        .then(() => {
+          refreshFreeCards();
+          refreshFreePreviewGallery();
+        })
+        .catch(() => {
+          freePdfs = [...FREE_PDFS_FALLBACK];
+          renderFreeStatus();
+          refreshFreeCards();
+          refreshFreePreviewGallery();
+        });
     </script>
   </body>
 </html>
