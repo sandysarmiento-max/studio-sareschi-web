@@ -23,6 +23,16 @@
       "permanent": false
     },
     {
+      "source": "/admin/folia-preview",
+      "destination": "/admin/folia-preview/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/folia-preview/",
+      "destination": "/admin/folia-preview/index.html",
+      "permanent": false
+    },
+    {
       "source": "/folia_v1.html",
       "destination": "/folia-bloqueada/",
       "permanent": false
