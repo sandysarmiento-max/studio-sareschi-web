@@ -42,6 +42,42 @@ async function callSupabase(path, options = {}) {
   return response.text();
 }
 
+function createSupabaseAdminClient() {
+  return {
+    auth: {
+      admin: {
+        async inviteUserByEmail(email, options = {}) {
+          const normalizedEmail = String(email || '').trim().toLowerCase();
+          if (!normalizedEmail) {
+            throw new Error('El email es obligatorio para invitar usuarios.');
+          }
+
+          const payload = {
+            email: normalizedEmail,
+            data: options.data,
+            redirect_to: options.redirectTo,
+          };
+
+          const response = await callSupabase('/auth/v1/invite', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+
+          return {
+            data: response || null,
+            error: null,
+          };
+        },
+      },
+    },
+  };
+}
+
+const supabase = createSupabaseAdminClient();
+
 async function getUserFromToken(accessToken) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error('Falta configurar SUPABASE_URL o SUPABASE_ANON_KEY');
@@ -214,6 +250,25 @@ async function updateProduct(res, payload) {
   return json(res, 200, { product: products?.[0] || null });
 }
 
+async function inviteUser(res, payload) {
+  const email = String(payload?.email || '').trim().toLowerCase();
+  if (!email) {
+    return json(res, 400, { error: 'Falta email para enviar invitación.' });
+  }
+
+  const redirectToRaw = String(payload?.redirectTo || '').trim();
+  const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
+    redirectTo: redirectToRaw || undefined,
+    data: payload?.data && typeof payload.data === 'object' ? payload.data : undefined,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return json(res, 200, { invited: true, data });
+}
+
 async function uploadImage(res, payload) {
   const productId = String(payload?.productId || '').trim();
   const slot = String(payload?.slot || '').trim();
@@ -264,6 +319,9 @@ module.exports = async function handler(req, res) {
       const action = String(req.body?.action || '').trim().toLowerCase();
       if (action === 'upload') {
         return await uploadImage(res, req.body || {});
+      }
+      if (action === 'invite-user') {
+        return await inviteUser(res, req.body || {});
       }
       return await createProduct(res, req.body || {});
     }
