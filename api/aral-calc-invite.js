@@ -1,6 +1,5 @@
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const INVITE_ADMIN_TOKEN = process.env.INVITE_ADMIN_TOKEN || '';
+const { createClient } = require('@supabase/supabase-js');
+
 const INVITE_REDIRECT_TO = 'https://studio-sareschi.com/acceso/nueva-contrasena/';
 
 function json(res, status, body) {
@@ -9,66 +8,115 @@ function json(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-function isAuthorized(req) {
-  const bearer = String(req.headers.authorization || '');
-  const token = bearer.startsWith('Bearer ') ? bearer.slice(7).trim() : '';
-  return Boolean(INVITE_ADMIN_TOKEN && token && token === INVITE_ADMIN_TOKEN);
-}
+function readAuthorization(req) {
+  const rawHeader =
+    req?.headers?.authorization ||
+    req?.headers?.Authorization ||
+    req?.headers?.AUTHORIZATION ||
+    '';
 
-async function inviteUserByEmail(email) {
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/invite`, {
-    method: 'POST',
-    headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      email,
-      options: {
-        redirectTo: INVITE_REDIRECT_TO,
-      },
-    }),
-  });
-
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(payload?.msg || payload?.error_description || payload?.error || 'No se pudo enviar invitación.');
+  const value = String(rawHeader || '').trim();
+  if (!value) {
+    return '';
   }
 
-  return payload;
+  if (/^Bearer\s+/i.test(value)) {
+    return value.replace(/^Bearer\s+/i, '').trim();
+  }
+
+  return value;
+}
+
+async function readBody(req) {
+  const directBody = req?.body;
+
+  if (directBody && typeof directBody === 'object' && !Buffer.isBuffer(directBody)) {
+    return directBody;
+  }
+
+  let raw = '';
+
+  if (typeof directBody === 'string') {
+    raw = directBody;
+  } else if (Buffer.isBuffer(directBody)) {
+    raw = directBody.toString('utf8');
+  } else {
+    raw = await new Promise((resolve, reject) => {
+      const chunks = [];
+      req
+        .on('data', (chunk) => {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+        })
+        .on('end', () => {
+          resolve(Buffer.concat(chunks).toString('utf8'));
+        })
+        .on('error', reject);
+    });
+  }
+
+  const normalized = String(raw || '').trim();
+  if (!normalized) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(normalized);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
-    return json(res, 405, { error: 'Method Not Allowed' });
+    return json(res, 405, { error: 'Método no permitido' });
   }
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !INVITE_ADMIN_TOKEN) {
-    return json(res, 500, {
-      error: 'Faltan variables SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY o INVITE_ADMIN_TOKEN.',
-    });
+  const expectedToken = String(process.env.INVITE_ADMIN_TOKEN || '').trim();
+  const receivedToken = readAuthorization(req);
+
+  if (!expectedToken || !receivedToken || receivedToken.trim() !== expectedToken) {
+    return json(res, 401, { error: 'No autorizado', step: 'token' });
   }
 
-  if (!isAuthorized(req)) {
-    return json(res, 401, { error: 'No autorizado.' });
+  const body = await readBody(req);
+  const email = String(body?.email || '')
+    .trim()
+    .toLowerCase();
+
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    return json(res, 400, { error: 'Email inválido', step: 'email' });
   }
 
-  const email = String(req.body?.email || '').trim().toLowerCase();
-  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-    return json(res, 400, { error: 'Email inválido.' });
-  }
+  const supabaseUrl = String(process.env.SUPABASE_URL || '').trim();
+  const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
   try {
-    const invited = await inviteUserByEmail(email);
-    return json(res, 200, {
-      ok: true,
-      email,
-      redirectTo: INVITE_REDIRECT_TO,
-      invited,
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
     });
+
+    const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
+      redirectTo: INVITE_REDIRECT_TO,
+    });
+
+    if (error) {
+      return json(res, 400, {
+        error: 'Error de invitación',
+        step: 'invite',
+        details: String(error.message || 'Error desconocido'),
+      });
+    }
+
+    return json(res, 200, { ok: true });
   } catch (error) {
-    return json(res, 400, { error: String(error.message || 'No se pudo enviar la invitación.') });
+    return json(res, 500, {
+      error: 'Error de invitación',
+      step: 'invite',
+      details: String(error?.message || 'Error desconocido'),
+    });
   }
 };
