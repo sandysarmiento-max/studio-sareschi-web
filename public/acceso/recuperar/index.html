@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Recuperación no disponible | Studio Sareschi</title>
+    <title>Recuperar contraseña | Studio Sareschi</title>
     <meta
       name="description"
-      content="La recuperación de contraseña de Aral Calc está temporalmente desactivada."
+      content="Solicita por correo la recuperación de contraseña para Aral Calc."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,6 +15,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   </head>
   <body>
     <header class="site-header">
@@ -34,26 +35,82 @@
         <div class="container">
           <div class="section-heading">
             <p class="eyebrow">Soporte de acceso</p>
-            <h1>Recuperación temporalmente desactivada</h1>
+            <h1>Recuperar contraseña</h1>
             <p class="hero-copy" style="margin: 0">
-              Por el momento, el acceso a Aral Calc está disponible únicamente mediante inicio de sesión.
+              Te enviaremos un enlace para crear una nueva contraseña de Aral Calc.
             </p>
           </div>
 
           <article class="card" style="max-width: 620px">
-            <p class="tiny-note" style="margin: 0">
-              Si necesitas recuperar tu acceso, contáctanos por soporte para ayudarte de forma manual.
-            </p>
-            <a
-              class="btn btn-primary"
-              href="/acceso/"
-              style="display:inline-flex;margin-top:16px"
-            >
-              Volver a iniciar sesión
-            </a>
+            <form id="recovery-form" style="display: grid; gap: 12px">
+              <label>
+                Email
+                <input id="email" type="email" required autocomplete="email" style="width:100%;margin-top:6px" />
+              </label>
+              <button id="recovery-btn" class="btn btn-primary" type="submit">Enviar enlace de recuperación</button>
+            </form>
+            <p id="status" class="tiny-note" aria-live="polite" style="margin-top: 12px"></p>
+            <a class="btn btn-secondary" href="/acceso/" style="display:inline-flex;margin-top:16px">Volver a iniciar sesión</a>
           </article>
         </div>
       </section>
     </main>
+
+    <script>
+      const form = document.getElementById('recovery-form');
+      const statusEl = document.getElementById('status');
+      const recoveryBtn = document.getElementById('recovery-btn');
+      let supabaseClient = null;
+
+      function setStatus(message, isError = false) {
+        statusEl.textContent = message;
+        statusEl.style.color = isError ? '#8f1d4f' : '';
+      }
+
+      async function bootAuth() {
+        const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
+        const config = await response.json();
+
+        if (!config.enabled) {
+          form.hidden = true;
+          setStatus(
+            'Falta configurar SUPABASE_URL y SUPABASE_ANON_KEY en Vercel para habilitar la recuperación.',
+            true
+          );
+          return;
+        }
+
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!supabaseClient) {
+          return;
+        }
+
+        const email = document.getElementById('email').value.trim();
+        const redirectTo = `${window.location.origin}/acceso/nueva-contrasena/`;
+
+        recoveryBtn.disabled = true;
+        setStatus('Enviando enlace de recuperación...');
+
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+
+        recoveryBtn.disabled = false;
+
+        if (error) {
+          setStatus('No se pudo enviar el enlace en este momento. Intenta de nuevo.', true);
+          return;
+        }
+
+        setStatus('Si el correo está registrado, te enviamos un enlace para crear tu nueva contraseña.');
+        form.reset();
+      });
+
+      bootAuth().catch(() => {
+        setStatus('No se pudo inicializar la recuperación en este momento. Intenta de nuevo.', true);
+      });
+    </script>
   </body>
 </html>
