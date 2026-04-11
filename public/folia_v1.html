@@ -481,7 +481,8 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
     viewBox:asset.viewBox,
     color:markerColor,
     fill:"none",
-    "data-role":"marker-outline"
+    "data-role":"marker-outline",
+    "data-marker-style":style
   });
   node.innerHTML=asset.content;
   svg.appendChild(node);
@@ -1058,6 +1059,17 @@ function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=fa
 }
 function buildExportSvgElement({includeBackground=false,optimizeForRaster=false,dpi=300,face="front",rasterStrokeConfig=null}={}){
   const svg=buildSheetSvg(face);
+  const exportMarkerStyles=new Set(["ubicacion","whatsapp","web"]);
+  svg.querySelectorAll('svg[data-role="marker-outline"]').forEach(markerNode=>{
+    const markerStyle=markerNode.getAttribute('data-marker-style');
+    if(!markerStyle||!exportMarkerStyles.has(markerStyle)) return;
+    const markerColor=markerNode.getAttribute('color');
+    if(!markerColor) return;
+    markerNode.querySelectorAll('*').forEach(child=>{
+      if(child.getAttribute('stroke')==='currentColor') child.setAttribute('stroke',markerColor);
+      if(child.getAttribute('fill')==='currentColor') child.setAttribute('fill',markerColor);
+    });
+  });
   if(!optimizeForRaster) convertRuleRectsToLines(svg);
   return normalizeSvgForExport(svg,{forRaster:optimizeForRaster,dpi,includeBackground,rasterStrokeConfig});
 }

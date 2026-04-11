@@ -3,6 +3,16 @@
   "cleanUrls": false,
   "redirects": [
     {
+      "source": "/admin/folia-preview",
+      "destination": "/folia_v1.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/folia-preview/",
+      "destination": "/folia_v1.html",
+      "permanent": false
+    },
+    {
       "source": "/admin/paid-products",
       "destination": "/admin/paid-products/index.html",
       "permanent": false
