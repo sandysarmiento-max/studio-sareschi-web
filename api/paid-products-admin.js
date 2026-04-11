@@ -98,12 +98,15 @@ async function getUserFromToken(accessToken) {
 }
 
 function getAccessToken(req) {
-  const authHeader = req.headers.authorization || '';
-  const [type, token] = authHeader.split(' ');
-  if (type !== 'Bearer' || !token) {
+  const authHeader = String(req.headers.authorization || '').trim();
+  if (!authHeader) {
     return '';
   }
-  return token;
+  const [type, token] = authHeader.split(/\s+/, 2);
+  if (type === 'Bearer' && token) {
+    return token.trim();
+  }
+  return authHeader;
 }
 
 function canManageProducts(user) {
@@ -298,6 +301,16 @@ async function uploadImage(res, payload) {
 
 module.exports = async function handler(req, res) {
   try {
+    const action = String(req.body?.action || '').trim().toLowerCase();
+    if (req.method === 'POST' && action === 'invite-user') {
+      const authToken = getAccessToken(req).trim();
+      const inviteAdminToken = String(process.env.INVITE_ADMIN_TOKEN || '').trim();
+      if (!authToken || !inviteAdminToken || authToken !== inviteAdminToken) {
+        return json(res, 401, { error: 'No autorizado.' });
+      }
+      return await inviteUser(res, req.body || {});
+    }
+
     const accessToken = getAccessToken(req);
     if (!accessToken) {
       return json(res, 401, { error: 'No autorizado.' });
@@ -316,12 +329,8 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const action = String(req.body?.action || '').trim().toLowerCase();
       if (action === 'upload') {
         return await uploadImage(res, req.body || {});
-      }
-      if (action === 'invite-user') {
-        return await inviteUser(res, req.body || {});
       }
       return await createProduct(res, req.body || {});
     }
