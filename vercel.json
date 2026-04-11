@@ -47,5 +47,15 @@
       "destination": "/folia-bloqueada/",
       "permanent": false
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/admin/folia-preview",
+      "destination": "/folia_v1.html"
+    },
+    {
+      "source": "/admin/folia-preview/",
+      "destination": "/folia_v1.html"
+    }
   ]
 }
