@@ -27,11 +27,11 @@ function readAuthorization(req) {
   return value;
 }
 
-async function readBody(req) {
+async function readJsonBody(req) {
   const directBody = req?.body;
 
   if (directBody && typeof directBody === 'object' && !Buffer.isBuffer(directBody)) {
-    return directBody;
+    return { data: directBody, error: null };
   }
 
   let raw = '';
@@ -56,20 +56,32 @@ async function readBody(req) {
 
   const normalized = String(raw || '').trim();
   if (!normalized) {
-    return {};
+    return { data: {}, error: null };
   }
 
   try {
     const parsed = JSON.parse(normalized);
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    if (!parsed || typeof parsed !== 'object') {
+      return { data: {}, error: 'Formato JSON inválido' };
+    }
+    return { data: parsed, error: null };
   } catch {
-    return {};
+    return { data: {}, error: 'No se pudo leer el JSON' };
   }
 }
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return json(res, 405, { error: 'Método no permitido' });
+  }
+
+  const contentType = String(req?.headers?.['content-type'] || '').toLowerCase();
+  if (contentType && !contentType.includes('application/json')) {
+    return json(res, 415, {
+      error: 'Content-Type no soportado',
+      step: 'content-type',
+      expected: 'application/json',
+    });
   }
 
   const expectedToken = String(process.env.INVITE_ADMIN_TOKEN || '').trim();
@@ -81,13 +93,6 @@ module.exports = async function handler(req, res) {
   const hasAuthHeader = Boolean(String(authHeaderRaw || '').trim());
   const hasExpectedToken = Boolean(expectedToken);
   const receivedToken = readAuthorization(req).trim();
-
-  console.log('[aral-calc-invite] auth debug', {
-    hasAuthHeader,
-    hasExpectedToken,
-    receivedTokenLength: receivedToken.length,
-    expectedTokenLength: expectedToken.length,
-  });
 
   if (!hasAuthHeader) {
     return json(res, 401, { error: 'No autorizado', step: 'auth-header' });
@@ -101,7 +106,11 @@ module.exports = async function handler(req, res) {
     return json(res, 401, { error: 'No autorizado', step: 'token-mismatch' });
   }
 
-  const body = await readBody(req);
+  const { data: body, error: bodyError } = await readJsonBody(req);
+  if (bodyError) {
+    return json(res, 400, { error: bodyError, step: 'body' });
+  }
+
   const email = String(body?.email || '')
     .trim()
     .toLowerCase();
