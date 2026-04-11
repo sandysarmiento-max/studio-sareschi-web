@@ -58,3 +58,47 @@ Se agregó un gestor privado para productos de paga en `/admin/paid-products/`.
 4. Subir imagen principal y previews.
 5. Guardar.
 6. Revisar `/pdfs/` (solo muestra productos activos y ordenados por `sort_order`).
+
+## Invitación de clientas Aral Calc (redirect fijo)
+
+Se agregó un endpoint seguro en `POST /api/aral-calc-invite` para invitar clientas con `redirectTo` explícito hacia:
+
+- `https://studio-sareschi.com/acceso/nueva-contrasena/`
+
+Así el enlace de invitación no cae en home y llega directo al flujo de crear contraseña.
+
+### Variable secreta adicional
+
+- `INVITE_ADMIN_TOKEN` (token secreto para autorizar quién puede llamar el endpoint)
+
+### Uso paso a paso
+
+1. Configurar en Vercel:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `INVITE_ADMIN_TOKEN`
+2. Hacer request `POST` al endpoint con header Bearer:
+
+```bash
+curl -X POST 'https://studio-sareschi.com/api/aral-calc-invite' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer TU_INVITE_ADMIN_TOKEN' \
+  -d '{"email":"clienta@correo.com"}'
+```
+
+3. Verificar respuesta `ok: true` y revisar que el correo de invitación llegue a la clienta.
+4. La clienta abre el enlace del email y debe aterrizar en `/acceso/nueva-contrasena/`.
+5. Define contraseña, luego puede iniciar sesión desde `/acceso/` y entrar a `/aral-calc/`.
+
+### Prueba recomendada antes de merge
+
+1. Invitar un correo real de prueba (idealmente uno nuevo, sin usuario previo en Auth).
+2. Confirmar en la bandeja de entrada que el botón/enlace abre:
+   - `https://studio-sareschi.com/acceso/nueva-contrasena/` (o URL con query/hash de Supabase, pero misma ruta base)
+3. Completar nueva contraseña.
+4. Probar login normal en `/acceso/`.
+5. Confirmar acceso a `/aral-calc/`.
+
+Notas:
+- No habilita registro libre (solo invita quien conoce el token secreto).
+- No modifica los flujos actuales de login ni recuperación.
