@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nueva contraseña | Studio Sareschi</title>
+    <meta
+      name="description"
+      content="Define una nueva contraseña para tu acceso a Aral Calc."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="/">Studio Sareschi</a>
+        <nav aria-label="Principal">
+          <ul class="nav-links">
+            <li><a href="/acceso/">Iniciar sesión</a></li>
+            <li><a href="/aral-calc-guia/">Aral Calc</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="section section-soft">
+        <div class="container">
+          <div class="section-heading">
+            <p class="eyebrow">Soporte de acceso</p>
+            <h1>Crear nueva contraseña</h1>
+            <p class="hero-copy" style="margin: 0">
+              Completa tu primer acceso por invitación o recupera tu contraseña con este formulario.
+            </p>
+          </div>
+
+          <article class="card" style="max-width: 620px">
+            <form id="update-password-form" style="display: grid; gap: 12px" hidden>
+              <label>
+                Nueva contraseña
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  minlength="8"
+                  autocomplete="new-password"
+                  style="width:100%;margin-top:6px"
+                />
+              </label>
+              <label>
+                Repetir nueva contraseña
+                <input
+                  id="password-confirm"
+                  type="password"
+                  required
+                  minlength="8"
+                  autocomplete="new-password"
+                  style="width:100%;margin-top:6px"
+                />
+              </label>
+              <button id="update-password-btn" class="btn btn-primary" type="submit">Guardar nueva contraseña</button>
+            </form>
+
+            <p id="status" class="tiny-note" aria-live="polite" style="margin-top: 12px"></p>
+
+            <a id="back-login-link" class="btn btn-secondary" href="/acceso/" style="display:inline-flex;margin-top:16px">
+              Volver a iniciar sesión
+            </a>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById('update-password-form');
+      const statusEl = document.getElementById('status');
+      const updatePasswordBtn = document.getElementById('update-password-btn');
+      const backLoginLink = document.getElementById('back-login-link');
+      let supabaseClient = null;
+
+      function setStatus(message, isError = false) {
+        statusEl.textContent = message;
+        statusEl.style.color = isError ? '#8f1d4f' : '';
+      }
+
+      async function bootAuth() {
+        const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
+        const config = await response.json();
+
+        if (!config.enabled) {
+          setStatus(
+            'Falta configurar SUPABASE_URL y SUPABASE_ANON_KEY en Vercel para habilitar esta pantalla.',
+            true
+          );
+          return;
+        }
+
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+        const queryParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const code = queryParams.get('code');
+        const hashError = hashParams.get('error');
+        const hashErrorDescription = hashParams.get('error_description');
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        if (code) {
+          const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
+          if (error) {
+            setStatus('El enlace no es válido o ya expiró. Solicita uno nuevo.', true);
+            return;
+          }
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        if (!code && hashError) {
+          setStatus(
+            decodeURIComponent(hashErrorDescription || 'No se pudo validar el enlace enviado por email.'),
+            true
+          );
+          return;
+        }
+
+        if (!code && accessToken && refreshToken) {
+          const { error } = await supabaseClient.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) {
+            setStatus('El enlace no es válido o ya expiró. Solicita uno nuevo.', true);
+            return;
+          }
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        const {
+          data: { session: activeSession },
+        } = await supabaseClient.auth.getSession();
+
+        if (!activeSession) {
+          setStatus('Abre esta página desde el enlace enviado por email para poder crear tu contraseña.', true);
+          return;
+        }
+
+        form.hidden = false;
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!supabaseClient) {
+          return;
+        }
+
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('password-confirm').value;
+
+        if (password.length < 8) {
+          setStatus('La contraseña debe tener al menos 8 caracteres.', true);
+          return;
+        }
+
+        if (password !== confirm) {
+          setStatus('Las contraseñas no coinciden.', true);
+          return;
+        }
+
+        updatePasswordBtn.disabled = true;
+        setStatus('Guardando nueva contraseña...');
+
+        const { error } = await supabaseClient.auth.updateUser({ password });
+
+        updatePasswordBtn.disabled = false;
+
+        if (error) {
+          setStatus('No se pudo actualizar la contraseña. Solicita un nuevo enlace e intenta otra vez.', true);
+          return;
+        }
+
+        setStatus('Contraseña actualizada. Ya puedes iniciar sesión con tu nueva contraseña.');
+        form.reset();
+        backLoginLink.focus();
+      });
+
+      bootAuth().catch(() => {
+        setStatus('No se pudo inicializar esta pantalla en este momento. Intenta de nuevo.', true);
+      });
+    </script>
+  </body>
+</html>
