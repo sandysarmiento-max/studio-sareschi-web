@@ -73,10 +73,32 @@ module.exports = async function handler(req, res) {
   }
 
   const expectedToken = String(process.env.INVITE_ADMIN_TOKEN || '').trim();
-  const receivedToken = readAuthorization(req);
+  const authHeaderRaw =
+    req?.headers?.authorization ||
+    req?.headers?.Authorization ||
+    req?.headers?.AUTHORIZATION ||
+    '';
+  const hasAuthHeader = Boolean(String(authHeaderRaw || '').trim());
+  const hasExpectedToken = Boolean(expectedToken);
+  const receivedToken = readAuthorization(req).trim();
 
-  if (!expectedToken || !receivedToken || receivedToken.trim() !== expectedToken) {
-    return json(res, 401, { error: 'No autorizado', step: 'token' });
+  console.log('[aral-calc-invite] auth debug', {
+    hasAuthHeader,
+    hasExpectedToken,
+    receivedTokenLength: receivedToken.length,
+    expectedTokenLength: expectedToken.length,
+  });
+
+  if (!hasAuthHeader) {
+    return json(res, 401, { error: 'No autorizado', step: 'auth-header' });
+  }
+
+  if (!hasExpectedToken) {
+    return json(res, 401, { error: 'No autorizado', step: 'env-missing' });
+  }
+
+  if (receivedToken !== expectedToken) {
+    return json(res, 401, { error: 'No autorizado', step: 'token-mismatch' });
   }
 
   const body = await readBody(req);
