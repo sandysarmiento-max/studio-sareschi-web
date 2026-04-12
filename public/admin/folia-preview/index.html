@@ -478,10 +478,12 @@ async function loadMarkerAsset(style){
   const svgNode=doc.documentElement;
   const viewBox=parseMarkerViewBox(svgNode.getAttribute("viewBox"),svgNode.getAttribute("width"),svgNode.getAttribute("height"));
   const nodes=Array.from(svgNode.children).map(node=>node.cloneNode(true));
-  const defaults={
-    fill:svgNode.getAttribute("fill")||"none",
-    stroke:svgNode.getAttribute("stroke")||null
-  };
+  const rawFill=svgNode.getAttribute("fill");
+const rawStroke=svgNode.getAttribute("stroke");
+const defaults={
+  fill:rawFill&&rawFill!=="none"?rawFill:null,
+  stroke:rawStroke&&rawStroke!=="none"?rawStroke:null
+};
   markerAssetCache.set(style,{viewBox,nodes,defaults});
   if(loadedUrl) markerAssetUrlCache.set(style,loadedUrl);
 }
@@ -499,12 +501,12 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
   const targetY=roundMm(top+offset+scaleOffset);
   const scaleX=scaled/asset.viewBox.width;
   const scaleY=scaled/asset.viewBox.height;
-  const group=el("g",{
-    transform:`translate(${targetX} ${targetY}) scale(${roundMm(scaleX)} ${roundMm(scaleY)}) translate(${roundMm(-asset.viewBox.minX)} ${roundMm(-asset.viewBox.minY)})`,
-    fill:asset.defaults?.fill||"none",
-    "data-role":"marker-outline"
-  });
-  if(asset.defaults?.stroke) group.setAttribute("stroke",asset.defaults.stroke);
+const group=el("g",{
+  transform:`translate(${targetX} ${targetY}) scale(${roundMm(scaleX)} ${roundMm(scaleY)}) translate(${roundMm(-asset.viewBox.minX)} ${roundMm(-asset.viewBox.minY)})`,
+  "data-role":"marker-outline"
+});
+ if(asset.defaults?.fill) group.setAttribute("fill",asset.defaults.fill);
+if(asset.defaults?.stroke) group.setAttribute("stroke",asset.defaults.stroke);
   asset.nodes.forEach(baseNode=>{
     const node=baseNode.cloneNode(true);
     applyMarkerColor(node,markerColor);
