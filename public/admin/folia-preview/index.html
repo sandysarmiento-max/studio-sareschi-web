@@ -212,7 +212,6 @@
                   <select id="exportFormat">
                     <option value="pdf-vector">PDF vectorial</option>
                     <option value="svg">SVG</option>
-                    <option value="png">PNG transparente</option>
                   </select>
                 </div>
                 <div class="field">
@@ -235,7 +234,6 @@
               <div class="modal-column wide">
                 <div class="modal-section-title">Sugerencias de uso</div>
                 <div class="usage-grid" id="usagePresetGrid">
-                  <button class="usage-card" type="button" data-usage="png"><strong>Imagen</strong><span>PNG transparente en máxima calidad para colocar sobre diseños con buena definición.</span></button>
                   <button class="usage-card" type="button" data-usage="powerpoint"><strong>PowerPoint</strong><span>SVG para conservar escalabilidad y líneas limpias.</span></button>
                   <button class="usage-card" type="button" data-usage="print"><strong>Impresión</strong><span>PDF vectorial con máxima precisión para líneas nítidas y tamaño exacto.</span></button>
                   <button class="usage-card" type="button" data-usage="general"><strong>Uso general</strong><span>PDF vectorial en máxima calidad como opción principal.</span></button>
@@ -249,7 +247,7 @@
             </div>
           </div>
         </div>
-        <div class="foot"><div style="font-size:20px;font-weight:700">Qué conserva esta versión</div><div class="chips"><div class="chip">Hojas rayadas con margen superior para escribir</div><div class="chip">Punteadas y cuadriculadas ajustables al área útil</div><div class="chip">Listas con marcador cuadrado, círculo, corazón o numerado</div><div class="chip">Anillado, cuadernillo, anillado superior y hoja suelta</div><div class="chip">Exportación PNG transparente, PDF vectorial y SVG</div><div class="chip">Base mucho más estable para seguir creciendo</div></div></div>
+        <div class="foot"><div style="font-size:20px;font-weight:700">Qué conserva esta versión</div><div class="chips"><div class="chip">Hojas rayadas con margen superior para escribir</div><div class="chip">Punteadas y cuadriculadas ajustables al área útil</div><div class="chip">Listas con marcador cuadrado, círculo, corazón o numerado</div><div class="chip">Anillado, cuadernillo, anillado superior y hoja suelta</div><div class="chip">Exportación PDF vectorial y SVG</div><div class="chip">Base mucho más estable para seguir creciendo</div></div></div>
       </div>
     </div>
   </div>
@@ -289,7 +287,7 @@ const MARKER_ASSETS={
   web:{label:"Web",file:"globe.svg",scale:0.84,padding:0.09},
   numerado:{label:"Numerado"}
 };
-const MARKER_STYLE_ORDER=["cuadrado","circuloContorno","corazonContorno","corazonRelleno","ubicacion","regalo","correo","whatsapp","web","numerado"];
+const MARKER_STYLE_ORDER=["cuadrado","circuloContorno","corazonContorno","corazonRelleno","ubicacion","whatsapp","correo","numerado"];
 const MARKER_ASSET_BASE_PATHS=["/icons/markers/","public/icons/markers/"];
 const markerAssetCache=new Map();
 const markerAssetUrlCache=new Map();
@@ -314,7 +312,7 @@ const CONTENT_CONFIG_DEFAULTS={
   checkbox:true,
   listMarkerStyle:"cuadrado",
   listMarkerFontSize:4.5,
-  listMarkerSize:4,
+  listMarkerSize:8,
   listMarkerColor:"#94a3b8"
 };
 function createContentConfig(){return {...CONTENT_CONFIG_DEFAULTS};}
@@ -358,7 +356,7 @@ const state={
   checkbox:true,
   listMarkerStyle:"cuadrado",
   listMarkerFontSize:4.5,
-  listMarkerSize:4,
+  listMarkerSize:8,
   listMarkerColor:"#94a3b8",
   listMarkerColorLinked:true,
   lineColor:"#94a3b8",
@@ -478,7 +476,11 @@ async function loadMarkerAsset(style){
   const svgNode=doc.documentElement;
   const viewBox=parseMarkerViewBox(svgNode.getAttribute("viewBox"),svgNode.getAttribute("width"),svgNode.getAttribute("height"));
   const nodes=Array.from(svgNode.children).map(node=>node.cloneNode(true));
-  markerAssetCache.set(style,{viewBox,nodes});
+  const defaults={
+  fill:svgNode.getAttribute("fill")||"none",
+  stroke:svgNode.getAttribute("stroke")||null
+};
+  markerAssetCache.set(style,{viewBox,nodes,defaults});
   if(loadedUrl) markerAssetUrlCache.set(style,loadedUrl);
 }
 function drawMarkerAsset(svg,style,x,top,size,markerColor){
@@ -495,10 +497,12 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
   const targetY=roundMm(top+offset+scaleOffset);
   const scaleX=scaled/asset.viewBox.width;
   const scaleY=scaled/asset.viewBox.height;
-  const group=el("g",{
-    transform:`translate(${targetX} ${targetY}) scale(${roundMm(scaleX)} ${roundMm(scaleY)}) translate(${roundMm(-asset.viewBox.minX)} ${roundMm(-asset.viewBox.minY)})`,
-    "data-role":"marker-outline"
-  });
+const group=el("g",{
+  transform:`translate(${targetX} ${targetY}) scale(${roundMm(scaleX)} ${roundMm(scaleY)}) translate(${roundMm(-asset.viewBox.minX)} ${roundMm(-asset.viewBox.minY)})`,
+  fill:asset.defaults?.fill||"none",
+  "data-role":"marker-outline"
+});
+if(asset.defaults?.stroke) group.setAttribute("stroke",asset.defaults.stroke);
   asset.nodes.forEach(baseNode=>{
     const node=baseNode.cloneNode(true);
     applyMarkerColor(node,markerColor);
@@ -724,8 +728,7 @@ function drawList(svg,rect,config=state){
   for(let i=0;i<rowCount;i++){
     const y=rect.y+step*(i+1);
     if(y>rect.y+rect.height+0.01) continue;
-    let x1=rect.x;
-    if(config.checkbox) x1=rect.x+drawMarker(rect.x,y,i);
+   const x1=rect.x+drawMarker(rect.x,y,i);
     addRule(svg,x1,y,rect.x+rect.width,y,state.lineColor,gridStroke);
   }
 }
@@ -895,7 +898,7 @@ function contentFieldsByType(sheetType,config,prefix,zoneLabel=""){
   if(sheetType==="cuadriculada"){
     return `${title}<div class="field"><label>Tamaño del cuadro (mm)</label><input id="${prefix}gridSizeExtra" type="number" min="4" max="20" value="${config.gridSize}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitGridToSpaceExtra" type="checkbox" ${config.fitGridToSpace?'checked':''}></label><label class="toggle"><span>Espacio superior para fecha o datos</span><input id="${prefix}gridHeaderEnabledExtra" type="checkbox" ${config.gridHeaderEnabled?'checked':''}></label>${config.gridHeaderEnabled?`<div class="field"><label>Altura del espacio superior (mm)</label><input id="${prefix}gridHeaderHeightExtra" type="number" min="6" max="40" value="${config.gridHeaderHeight}"></div>`:''}<label class="toggle"><span>Usar esquinas boleadas</span><input id="${prefix}gridRoundedCornersExtra" type="checkbox" ${config.gridRoundedCorners?'checked':''}></label>`;
   }
-  return `${title}<div class="field"><label>Separación entre renglones (mm)</label><input id="${prefix}listSpacingExtra" type="number" min="6" max="20" value="${config.listSpacing}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitListToSpaceExtra" type="checkbox" ${config.fitListToSpace?'checked':''}></label><label class="toggle"><span>Incluir marcador</span><input id="${prefix}checkboxExtra" type="checkbox" ${config.checkbox?'checked':''}></label>${config.checkbox?`<div class="field"><label>Tipo de marcador</label>${markerPickerHtml(config.listMarkerStyle,config.listMarkerColor,prefix||"single")}</div>${config.listMarkerStyle==='numerado'?`<div class="field"><label>Tamaño del número</label><input id="${prefix}listMarkerFontSizeExtra" type="number" min="3" max="18" step="0.5" value="${config.listMarkerFontSize}"></div><div class="field"><label>Color del número</label><input id="${prefix}listMarkerColorExtra" type="color" value="${config.listMarkerColor}"></div>`:`<div class="field"><label>Tamaño del ícono (mm)</label><input id="${prefix}listMarkerSizeExtra" type="number" min="2" max="10" step="0.5" value="${config.listMarkerSize}"></div><div class="field"><label>Color del ícono</label><input id="${prefix}listMarkerColorExtra" type="color" value="${config.listMarkerColor}"></div>`}`:''}`;
+ return `${title}<div class="field"><label>Separación entre renglones (mm)</label><input id="${prefix}listSpacingExtra" type="number" min="6" max="20" value="${config.listSpacing}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitListToSpaceExtra" type="checkbox" ${config.fitListToSpace?'checked':''}></label><div class="field"><label>Tipo de marcador</label>${markerPickerHtml(config.listMarkerStyle,config.listMarkerColor,prefix||"single")}</div>${config.listMarkerStyle==='numerado'?`<div class="field"><label>Tamaño del número</label><input id="${prefix}listMarkerFontSizeExtra" type="number" min="3" max="18" step="0.5" value="${config.listMarkerFontSize}"></div><div class="field"><label>Color del número</label><input id="${prefix}listMarkerColorExtra" type="color" value="${config.listMarkerColor}"></div>`:`<div class="field"><label>Tamaño del ícono (mm)</label><input id="${prefix}listMarkerSizeExtra" type="number" min="2" max="10" step="0.5" value="${config.listMarkerSize}"></div><div class="field"><label>Color del ícono</label><input id="${prefix}listMarkerColorExtra" type="color" value="${config.listMarkerColor}"></div>`}`;
 }
 function renderContentFields(){
   const div=document.getElementById("contentFields");
@@ -1223,10 +1226,17 @@ function parseColorValue(value){
   }
   return null;
 }
-function getPdfPaint(node){
+function getPdfPaint(node,matrix=matrixIdentity()){
   const stroke=parseColorValue(node.getAttribute('stroke'));
   const fill=parseColorValue(node.getAttribute('fill'));
-  const lineWidth=Math.max(0.05,Number(node.getAttribute('stroke-width'))||0.2);
+  let lineWidth=Math.max(0.05,Number(node.getAttribute('stroke-width'))||0.2);
+ if(node.closest&&node.closest('[data-role="marker-outline"]')){
+  const markerGroup=node.closest('[data-role="marker-outline"]');
+  const markerMatrix=markerGroup?parseTransform(markerGroup.getAttribute('transform')):matrixIdentity();
+  const {sx,sy}=getScaleFromMatrix(markerMatrix);
+  const scale=Math.max(0.1,Math.min(sx,sy));
+  lineWidth=Math.max(0.05,lineWidth*scale);
+}
   if(stroke){
     try{ pdfCurrent.setDrawColor(stroke.r,stroke.g,stroke.b); }catch(_){}
     try{ pdfCurrent.setLineWidth(lineWidth); }catch(_){}
@@ -1244,6 +1254,53 @@ function getPdfPaint(node){
   return {stroke,fill,lineWidth,mode};
 }
 let pdfCurrent=null;
+function matrixIdentity(){ return [1,0,0,1,0,0]; }
+function matrixMultiply(m1,m2){
+  return [
+    m1[0]*m2[0]+m1[2]*m2[1],
+    m1[1]*m2[0]+m1[3]*m2[1],
+    m1[0]*m2[2]+m1[2]*m2[3],
+    m1[1]*m2[2]+m1[3]*m2[3],
+    m1[0]*m2[4]+m1[2]*m2[5]+m1[4],
+    m1[1]*m2[4]+m1[3]*m2[5]+m1[5]
+  ];
+}
+function parseTransform(transform){
+  let matrix=matrixIdentity();
+  const value=String(transform||"").trim();
+  if(!value) return matrix;
+  const regex=/([a-zA-Z]+)\(([^)]*)\)/g;
+  let match;
+  while((match=regex.exec(value))){
+    const fn=match[1].toLowerCase();
+    const values=match[2].split(/[\s,]+/).filter(Boolean).map(Number).filter(Number.isFinite);
+    let op=matrixIdentity();
+    if(fn==="translate"){
+      const tx=values[0]||0, ty=values[1]||0;
+      op=[1,0,0,1,tx,ty];
+    } else if(fn==="scale"){
+      const sx=values[0]??1, sy=values[1]??sx;
+      op=[sx,0,0,sy,0,0];
+    } else if(fn==="matrix"&&values.length===6){
+      op=[values[0],values[1],values[2],values[3],values[4],values[5]];
+    } else {
+      continue;
+    }
+    matrix=matrixMultiply(matrix,op);
+  }
+  return matrix;
+}
+function applyMatrixToPoint(matrix,x,y){
+  return {
+    x:matrix[0]*x+matrix[2]*y+matrix[4],
+    y:matrix[1]*x+matrix[3]*y+matrix[5]
+  };
+}
+function getScaleFromMatrix(matrix){
+  const sx=Math.hypot(matrix[0],matrix[1])||1;
+  const sy=Math.hypot(matrix[2],matrix[3])||1;
+  return {sx,sy};
+}
 function tokenizeSvgPath(d){
   return String(d||'').match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g)||[];
 }
@@ -1266,26 +1323,39 @@ function svgPathToPdfOps(d){
   }
   return ops;
 }
-function drawSvgNodeToPdf(node){
+function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity()){
   if(!node||node.nodeType!==1) return;
   const tag=node.tagName.toLowerCase();
   if(tag==='defs'||tag==='clippath') return;
-  if(tag==='svg'||tag==='g'){ Array.from(node.childNodes).forEach(drawSvgNodeToPdf); return; }
-  const paint=getPdfPaint(node);
+  const nodeMatrix=matrixMultiply(parentMatrix,parseTransform(node.getAttribute('transform')));
+  if(tag==='svg'||tag==='g'){
+    Array.from(node.childNodes).forEach(child=>drawSvgNodeToPdf(child,nodeMatrix));
+    return;
+  }
+  const paint=getPdfPaint(node,nodeMatrix);
   if(!paint.mode&&tag!=='text') return;
   if(tag==='line'){
     const x1=Number(node.getAttribute('x1'))||0, y1=Number(node.getAttribute('y1'))||0, x2=Number(node.getAttribute('x2'))||0, y2=Number(node.getAttribute('y2'))||0;
-    if(paint.stroke) pdfCurrent.line(x1,y1,x2,y2);
+    const p1=applyMatrixToPoint(nodeMatrix,x1,y1);
+    const p2=applyMatrixToPoint(nodeMatrix,x2,y2);
+    if(paint.stroke) pdfCurrent.line(p1.x,p1.y,p2.x,p2.y);
     return;
   }
   if(tag==='rect'){
     const x=Number(node.getAttribute('x'))||0, y=Number(node.getAttribute('y'))||0, w=Number(node.getAttribute('width'))||0, h=Number(node.getAttribute('height'))||0, rx=Number(node.getAttribute('rx'))||0, ry=Number(node.getAttribute('ry'))||rx;
-    if(rx||ry) pdfCurrent.roundedRect(x,y,w,h,rx,ry,paint.mode||'S'); else pdfCurrent.rect(x,y,w,h,paint.mode||'S');
+    const p1=applyMatrixToPoint(nodeMatrix,x,y);
+    const p2=applyMatrixToPoint(nodeMatrix,x+w,y+h);
+    const {sx,sy}=getScaleFromMatrix(nodeMatrix);
+    const nextRx=rx*sx, nextRy=ry*sy;
+    if(nextRx||nextRy) pdfCurrent.roundedRect(p1.x,p1.y,p2.x-p1.x,p2.y-p1.y,nextRx,nextRy,paint.mode||'S');
+    else pdfCurrent.rect(p1.x,p1.y,p2.x-p1.x,p2.y-p1.y,paint.mode||'S');
     return;
   }
   if(tag==='circle'){
     const cx=Number(node.getAttribute('cx'))||0, cy=Number(node.getAttribute('cy'))||0, r=Number(node.getAttribute('r'))||0;
-    pdfCurrent.circle(cx,cy,r,paint.mode||'S');
+    const center=applyMatrixToPoint(nodeMatrix,cx,cy);
+    const {sx,sy}=getScaleFromMatrix(nodeMatrix);
+    pdfCurrent.circle(center.x,center.y,r*Math.max(sx,sy),paint.mode||'S');
     return;
   }
   if(tag==='text'){
@@ -1297,12 +1367,22 @@ function drawSvgNodeToPdf(node){
     pdfCurrent.setFont('helvetica','normal');
     pdfCurrent.setFontSize(fontSizeMm*72/25.4);
     const x=Number(node.getAttribute('x'))||0, y=Number(node.getAttribute('y'))||0;
-    pdfCurrent.text(String(node.textContent||''),x,y,{align,baseline:'alphabetic'});
+    const p=applyMatrixToPoint(nodeMatrix,x,y);
+    pdfCurrent.text(String(node.textContent||''),p.x,p.y,{align,baseline:'alphabetic'});
     return;
   }
   if(tag==='path'){
     const d=node.getAttribute('d');
-    const ops=svgPathToPdfOps(d);
+    const ops=svgPathToPdfOps(d).map(op=>{
+      if(!Array.isArray(op.c)||!op.c.length) return op;
+      const coords=[...op.c];
+      for(let i=0;i+1<coords.length;i+=2){
+        const p=applyMatrixToPoint(nodeMatrix,coords[i],coords[i+1]);
+        coords[i]=p.x;
+        coords[i+1]=p.y;
+      }
+      return {op:op.op,c:coords};
+    });
     if(ops.length&&typeof pdfCurrent.path==='function'){
       pdfCurrent.path(ops,paint.mode||'S');
     }
@@ -1358,9 +1438,9 @@ function updateExportSummary(){
   const usage=USAGE_PRESETS[state.exportUsage]||USAGE_PRESETS.general;
   const pagesInfo=(format.extension==="pdf"&&state.printMode==="duplex")?"2 páginas (frente y reverso automático).":"1 página.";
   const rasterInfo=format.raster?`<strong>Resolución final:</strong> ${pxW} × ${pxH} px (escala ${quality.pngScale}x para PNG transparente).`:`<strong>Salida vectorial:</strong> mantiene líneas y formas sin rasterizar de forma innecesaria.`;
-  if(formatHelp){
-    formatHelp.innerHTML=`<strong>${format.label}</strong><br>${format.description}<br><br><strong>Calidad ${quality.label.toLowerCase()}</strong><br>${quality.description}`;
-  }
+ if(formatHelp){
+  formatHelp.innerHTML=`<strong>${format.label}</strong><br>${format.description}<br><br><strong>Recomendado:</strong> PDF vectorial para Canva e impresión. SVG para PowerPoint.<br><br><strong>Calidad ${quality.label.toLowerCase()}</strong><br>${quality.description}`;
+}
   if(exportSummary){
     exportSummary.innerHTML=`<strong>Tamaño final:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm.<br><strong>Salida:</strong> ${pagesInfo}<br>${rasterInfo}<br><strong>Sugerencia activa:</strong> ${usage.title}. ${usage.note}`;
   }
@@ -1457,7 +1537,7 @@ function bindDynamic(){
     if(state.sheetType==='rayada'){state.lineSpacing=7; state.showTopGuide=false; state.firstLineGap=0.5; state.fitLinesToSpace=true; state.lineColor='#94a3b8';}
     if(state.sheetType==='punteada'){state.dotGapX=5; state.dotGapY=5; state.dotSize=0.2; state.fitDotsToSpace=true; state.lineColor='#000000';}
     if(state.sheetType==='cuadriculada'){state.gridSize=5; state.fitGridToSpace=true; state.gridHeaderEnabled=false; state.gridHeaderHeight=12; state.gridRoundedCorners=true; state.lineColor='#94a3b8';}
-    if(state.sheetType==='lista'){state.listSpacing=9; state.fitListToSpace=true; state.checkbox=true; state.listMarkerStyle='cuadrado'; state.listMarkerFontSize=4.5; state.listMarkerSize=4; state.lineColor='#94a3b8'; state.listMarkerColor=state.lineColor; state.listMarkerColorLinked=true;}
+    if(state.sheetType==='lista'){state.listSpacing=9; state.fitListToSpace=true; state.checkbox=true; state.listMarkerStyle='cuadrado'; state.listMarkerFontSize=4.5; state.listMarkerSize=8; state.lineColor='#94a3b8'; state.listMarkerColor=state.lineColor; state.listMarkerColorLinked=true;}
     updateUI();
   });
   const mLeft=document.getElementById('marginLeftExtra'),mRight=document.getElementById('marginRightExtra');
