@@ -1326,7 +1326,7 @@ function svgPathToPdfOps(d){
   }
   return ops;
 }
- function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity()){
+function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity()){
   if(!node||node.nodeType!==1) return;
   const tag=node.tagName.toLowerCase();
   if(tag==='defs'||tag==='clippath') return;
@@ -1337,7 +1337,6 @@ function svgPathToPdfOps(d){
   }
   const paint=getPdfPaint(node,nodeMatrix);
   if(!paint.mode&&tag!=='text') return;
-
   if(tag==='line'){
     const x1=Number(node.getAttribute('x1'))||0, y1=Number(node.getAttribute('y1'))||0, x2=Number(node.getAttribute('x2'))||0, y2=Number(node.getAttribute('y2'))||0;
     const p1=applyMatrixToPoint(nodeMatrix,x1,y1);
@@ -1345,7 +1344,6 @@ function svgPathToPdfOps(d){
     if(paint.stroke) pdfCurrent.line(p1.x,p1.y,p2.x,p2.y);
     return;
   }
-
   if(tag==='rect'){
     const x=Number(node.getAttribute('x'))||0, y=Number(node.getAttribute('y'))||0, w=Number(node.getAttribute('width'))||0, h=Number(node.getAttribute('height'))||0, rx=Number(node.getAttribute('rx'))||0, ry=Number(node.getAttribute('ry'))||rx;
     const p1=applyMatrixToPoint(nodeMatrix,x,y);
@@ -1356,7 +1354,6 @@ function svgPathToPdfOps(d){
     else pdfCurrent.rect(p1.x,p1.y,p2.x-p1.x,p2.y-p1.y,paint.mode||'S');
     return;
   }
-
   if(tag==='circle'){
     const cx=Number(node.getAttribute('cx'))||0, cy=Number(node.getAttribute('cy'))||0, r=Number(node.getAttribute('r'))||0;
     const center=applyMatrixToPoint(nodeMatrix,cx,cy);
@@ -1364,7 +1361,6 @@ function svgPathToPdfOps(d){
     pdfCurrent.circle(center.x,center.y,r*Math.max(sx,sy),paint.mode||'S');
     return;
   }
-
   if(tag==='text'){
     const fill=parseColorValue(node.getAttribute('fill'))||{r:31,g:41,b:55};
     const fontSizeMm=Math.max(1,Number(node.getAttribute('font-size'))||3.5);
@@ -1378,7 +1374,6 @@ function svgPathToPdfOps(d){
     pdfCurrent.text(String(node.textContent||''),p.x,p.y,{align,baseline:'alphabetic'});
     return;
   }
-
   if(tag==='path'){
     const d=node.getAttribute('d');
     const ops=svgPathToPdfOps(d).map(op=>{
@@ -1397,6 +1392,20 @@ function svgPathToPdfOps(d){
     return;
   }
 }
+async function exportPdfVector(){
+  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
+  const pageSize=getPageSize();
+  if(!window.jspdf||!window.jspdf.jsPDF) throw new Error('El motor PDF no está disponible en esta sesión.');
+  const { jsPDF } = window.jspdf;
+  const pdf=new jsPDF({orientation:pageSize.width>pageSize.height?'landscape':'portrait',unit:'mm',format:[pageSize.width,pageSize.height],compress:true,precision:12});
+  const frontSvg=buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"front"});
+  const backSvg=state.printMode==="duplex"?buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"back"}):null;
+  if(typeof pdf.svg==='function'){
+    await pdf.svg(frontSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
+    if(backSvg){
+      pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
+      await pdf.svg(backSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
+    }
     pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
     return;
   }
