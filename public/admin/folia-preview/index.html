@@ -1233,8 +1233,10 @@ function getPdfPaint(node,matrix=matrixIdentity()){
   const stroke=parseColorValue(node.getAttribute('stroke'));
   const fill=parseColorValue(node.getAttribute('fill'));
   let lineWidth=Math.max(0.05,Number(node.getAttribute('stroke-width'))||0.2);
-  if(node.closest&&node.closest('[data-role="marker-outline"]')){
-  const {sx,sy}=getScaleFromMatrix(matrix);
+ if(node.closest&&node.closest('[data-role="marker-outline"]')){
+  const markerGroup=node.closest('[data-role="marker-outline"]');
+  const markerMatrix=markerGroup?parseTransform(markerGroup.getAttribute('transform')):matrixIdentity();
+  const {sx,sy}=getScaleFromMatrix(markerMatrix);
   const scale=Math.max(0.1,Math.min(sx,sy));
   lineWidth=Math.max(0.05,lineWidth*scale);
 }
