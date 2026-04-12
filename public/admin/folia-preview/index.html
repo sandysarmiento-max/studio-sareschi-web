@@ -1326,11 +1326,34 @@ function svgPathToPdfOps(d){
   }
   return ops;
 }
+  function getClipRect(node,nodeMatrix){
+  const clipPathAttr=node.getAttribute('clip-path');
+  const match=String(clipPathAttr||'').match(/^url\(#([^\)]+)\)$/);
+  if(!match) return null;
+  const clipNode=node.ownerSVGElement?.querySelector(`clipPath[id="${match[1]}"] > rect`);
+  if(!clipNode) return null;
+  const x=Number(clipNode.getAttribute('x'))||0;
+  const y=Number(clipNode.getAttribute('y'))||0;
+  const width=Number(clipNode.getAttribute('width'))||0;
+  const height=Number(clipNode.getAttribute('height'))||0;
+  const p1=applyMatrixToPoint(nodeMatrix,x,y);
+  const p2=applyMatrixToPoint(nodeMatrix,x+width,y+height);
+  return {x:p1.x,y:p1.y,width:p2.x-p1.x,height:p2.y-p1.y};
+}
 function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity()){
   if(!node||node.nodeType!==1) return;
   const tag=node.tagName.toLowerCase();
   if(tag==='defs'||tag==='clippath') return;
   const nodeMatrix=matrixMultiply(parentMatrix,parseTransform(node.getAttribute('transform')));
+  const clipRect=getClipRect(node,nodeMatrix);
+  const hasClip=!!clipRect&&typeof pdfCurrent.saveGraphicsState==='function'&&typeof pdfCurrent.restoreGraphicsState==='function'&&typeof pdfCurrent.clip==='function';
+  if(hasClip){
+    pdfCurrent.saveGraphicsState();
+    pdfCurrent.rect(clipRect.x,clipRect.y,clipRect.width,clipRect.height);
+    pdfCurrent.clip();
+    if(typeof pdfCurrent.discardPath==='function') pdfCurrent.discardPath();
+  }
+  try{
   if(tag==='svg'||tag==='g'){
     Array.from(node.childNodes).forEach(child=>drawSvgNodeToPdf(child,nodeMatrix));
     return;
@@ -1391,6 +1414,10 @@ function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity()){
     }
     return;
   }
+  } finally {
+    if(hasClip) pdfCurrent.restoreGraphicsState();
+  }
+}
 }
 async function exportPdfVector(){
   if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
