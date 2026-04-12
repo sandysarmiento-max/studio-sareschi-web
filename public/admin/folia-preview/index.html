@@ -212,7 +212,6 @@
                   <select id="exportFormat">
                     <option value="pdf-vector">PDF vectorial</option>
                     <option value="svg">SVG</option>
-                    <option value="png">PNG transparente</option>
                   </select>
                 </div>
                 <div class="field">
@@ -235,7 +234,6 @@
               <div class="modal-column wide">
                 <div class="modal-section-title">Sugerencias de uso</div>
                 <div class="usage-grid" id="usagePresetGrid">
-                  <button class="usage-card" type="button" data-usage="png"><strong>Imagen</strong><span>PNG transparente en máxima calidad para colocar sobre diseños con buena definición.</span></button>
                   <button class="usage-card" type="button" data-usage="powerpoint"><strong>PowerPoint</strong><span>SVG para conservar escalabilidad y líneas limpias.</span></button>
                   <button class="usage-card" type="button" data-usage="print"><strong>Impresión</strong><span>PDF vectorial con máxima precisión para líneas nítidas y tamaño exacto.</span></button>
                   <button class="usage-card" type="button" data-usage="general"><strong>Uso general</strong><span>PDF vectorial en máxima calidad como opción principal.</span></button>
@@ -249,7 +247,7 @@
             </div>
           </div>
         </div>
-        <div class="foot"><div style="font-size:20px;font-weight:700">Qué conserva esta versión</div><div class="chips"><div class="chip">Hojas rayadas con margen superior para escribir</div><div class="chip">Punteadas y cuadriculadas ajustables al área útil</div><div class="chip">Listas con marcador cuadrado, círculo, corazón o numerado</div><div class="chip">Anillado, cuadernillo, anillado superior y hoja suelta</div><div class="chip">Exportación PNG transparente, PDF vectorial y SVG</div><div class="chip">Base mucho más estable para seguir creciendo</div></div></div>
+        <div class="foot"><div style="font-size:20px;font-weight:700">Qué conserva esta versión</div><div class="chips"><div class="chip">Hojas rayadas con margen superior para escribir</div><div class="chip">Punteadas y cuadriculadas ajustables al área útil</div><div class="chip">Listas con marcador cuadrado, círculo, corazón o numerado</div><div class="chip">Anillado, cuadernillo, anillado superior y hoja suelta</div><div class="chip">Exportación PDF vectorial y SVG</div><div class="chip">Base mucho más estable para seguir creciendo</div></div></div>
       </div>
     </div>
   </div>
@@ -1440,9 +1438,9 @@ function updateExportSummary(){
   const usage=USAGE_PRESETS[state.exportUsage]||USAGE_PRESETS.general;
   const pagesInfo=(format.extension==="pdf"&&state.printMode==="duplex")?"2 páginas (frente y reverso automático).":"1 página.";
   const rasterInfo=format.raster?`<strong>Resolución final:</strong> ${pxW} × ${pxH} px (escala ${quality.pngScale}x para PNG transparente).`:`<strong>Salida vectorial:</strong> mantiene líneas y formas sin rasterizar de forma innecesaria.`;
-  if(formatHelp){
-    formatHelp.innerHTML=`<strong>${format.label}</strong><br>${format.description}<br><br><strong>Calidad ${quality.label.toLowerCase()}</strong><br>${quality.description}`;
-  }
+ if(formatHelp){
+  formatHelp.innerHTML=`<strong>${format.label}</strong><br>${format.description}<br><br><strong>Recomendado:</strong> PDF vectorial para Canva e impresión. SVG para PowerPoint.<br><br><strong>Calidad ${quality.label.toLowerCase()}</strong><br>${quality.description}`;
+}
   if(exportSummary){
     exportSummary.innerHTML=`<strong>Tamaño final:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm.<br><strong>Salida:</strong> ${pagesInfo}<br>${rasterInfo}<br><strong>Sugerencia activa:</strong> ${usage.title}. ${usage.note}`;
   }
