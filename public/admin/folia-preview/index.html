@@ -289,7 +289,7 @@ const MARKER_ASSETS={
   web:{label:"Web",file:"globe.svg",scale:0.84,padding:0.09},
   numerado:{label:"Numerado"}
 };
-const MARKER_STYLE_ORDER=["cuadrado","circuloContorno","corazonContorno","corazonRelleno","ubicacion","regalo","correo","whatsapp","web","numerado"];
+const MARKER_STYLE_ORDER=["cuadrado","circuloContorno","corazonContorno","corazonRelleno","ubicacion","correo","numerado"];
 const MARKER_ASSET_BASE_PATHS=["/icons/markers/","public/icons/markers/"];
 const markerAssetCache=new Map();
 const markerAssetUrlCache=new Map();
@@ -314,7 +314,7 @@ const CONTENT_CONFIG_DEFAULTS={
   checkbox:true,
   listMarkerStyle:"cuadrado",
   listMarkerFontSize:4.5,
-  listMarkerSize:4,
+  listMarkerSize:8,
   listMarkerColor:"#94a3b8"
 };
 function createContentConfig(){return {...CONTENT_CONFIG_DEFAULTS};}
@@ -358,7 +358,7 @@ const state={
   checkbox:true,
   listMarkerStyle:"cuadrado",
   listMarkerFontSize:4.5,
-  listMarkerSize:4,
+  listMarkerSize:8,
   listMarkerColor:"#94a3b8",
   listMarkerColorLinked:true,
   lineColor:"#94a3b8",
@@ -1540,7 +1540,7 @@ function bindDynamic(){
     if(state.sheetType==='rayada'){state.lineSpacing=7; state.showTopGuide=false; state.firstLineGap=0.5; state.fitLinesToSpace=true; state.lineColor='#94a3b8';}
     if(state.sheetType==='punteada'){state.dotGapX=5; state.dotGapY=5; state.dotSize=0.2; state.fitDotsToSpace=true; state.lineColor='#000000';}
     if(state.sheetType==='cuadriculada'){state.gridSize=5; state.fitGridToSpace=true; state.gridHeaderEnabled=false; state.gridHeaderHeight=12; state.gridRoundedCorners=true; state.lineColor='#94a3b8';}
-    if(state.sheetType==='lista'){state.listSpacing=9; state.fitListToSpace=true; state.checkbox=true; state.listMarkerStyle='cuadrado'; state.listMarkerFontSize=4.5; state.listMarkerSize=4; state.lineColor='#94a3b8'; state.listMarkerColor=state.lineColor; state.listMarkerColorLinked=true;}
+    if(state.sheetType==='lista'){state.listSpacing=9; state.fitListToSpace=true; state.checkbox=true; state.listMarkerStyle='cuadrado'; state.listMarkerFontSize=4.5; state.listMarkerSize=8; state.lineColor='#94a3b8'; state.listMarkerColor=state.lineColor; state.listMarkerColorLinked=true;}
     updateUI();
   });
   const mLeft=document.getElementById('marginLeftExtra'),mRight=document.getElementById('marginRightExtra');
