@@ -512,8 +512,8 @@ async function loadMarkerAsset(style){
   const rawFill=svgNode.getAttribute("fill");
 const rawStroke=svgNode.getAttribute("stroke");
 const defaults={
-  fill:rawFill&&rawFill!=="none"?rawFill:null,
-  stroke:rawStroke&&rawStroke!=="none"?rawStroke:null
+  fill:rawFill||null,
+  stroke:rawStroke||null
 };
   markerAssetCache.set(style,{viewBox,nodes,defaults});
   if(loadedUrl) markerAssetUrlCache.set(style,loadedUrl);
