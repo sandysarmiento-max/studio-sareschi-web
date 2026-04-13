@@ -1454,57 +1454,65 @@ async function exportPdfVector(){
         face:"back"
       })
     : null;
+const svg2pdfFn =
+  typeof pdf.svg === 'function'
+    ? async (node, doc, options) => doc.svg(node, options)
+    : typeof window.svg2pdf === 'function'
+      ? window.svg2pdf
+      : (window.svg2pdf && typeof window.svg2pdf.svg2pdf === 'function'
+          ? window.svg2pdf.svg2pdf
+          : null);
 
-  if(typeof pdf.svg==='function'){
-    const frontNode=new DOMParser()
-      .parseFromString(svgElementToMarkup(frontSvg),"image/svg+xml")
+if(svg2pdfFn){
+  const frontNode=new DOMParser()
+    .parseFromString(svgElementToMarkup(frontSvg),"image/svg+xml")
+    .documentElement;
+
+  await svg2pdfFn(frontNode,pdf,{
+    x:0,
+    y:0,
+    width:pageSize.width,
+    height:pageSize.height
+  });
+
+  if(backSvg){
+    const backNode=new DOMParser()
+      .parseFromString(svgElementToMarkup(backSvg),"image/svg+xml")
       .documentElement;
 
-    await pdf.svg(frontNode,{
+    pdf.addPage(
+      [pageSize.width,pageSize.height],
+      pageSize.width>pageSize.height?'landscape':'portrait'
+    );
+
+    await svg2pdfFn(backNode,pdf,{
       x:0,
       y:0,
       width:pageSize.width,
       height:pageSize.height
     });
-
-    if(backSvg){
-      const backNode=new DOMParser()
-        .parseFromString(svgElementToMarkup(backSvg),"image/svg+xml")
-        .documentElement;
-
-      pdf.addPage(
-        [pageSize.width,pageSize.height],
-        pageSize.width>pageSize.height?'landscape':'portrait'
-      );
-
-      await pdf.svg(backNode,{
-        x:0,
-        y:0,
-        width:pageSize.width,
-        height:pageSize.height
-      });
-    }
-
-    pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
-    return;
   }
 
-  pdfCurrent=pdf;
-  try{
-    drawSvgNodeToPdf(frontSvg);
+  pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
+  return;
+}
 
-    if(backSvg){
-      pdf.addPage(
-        [pageSize.width,pageSize.height],
-        pageSize.width>pageSize.height?'landscape':'portrait'
-      );
-      drawSvgNodeToPdf(backSvg);
-    }
+pdfCurrent=pdf;
+try{
+  drawSvgNodeToPdf(frontSvg);
 
-    pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
-  } finally {
-    pdfCurrent=null;
+  if(backSvg){
+    pdf.addPage(
+      [pageSize.width,pageSize.height],
+      pageSize.width>pageSize.height?'landscape':'portrait'
+    );
+    drawSvgNodeToPdf(backSvg);
   }
+
+  pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
+} finally {
+  pdfCurrent=null;
+}
 }
 async function exportSvgFile(){
   if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
