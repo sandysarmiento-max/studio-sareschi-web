@@ -1339,33 +1339,10 @@ function parseColorValue(value){
   }
   return null;
 }
-function parseInlineStyleMap(styleValue){
-  const map={};
-  String(styleValue||"").split(';').forEach(chunk=>{
-    const [key,...rest]=chunk.split(':');
-    if(!key||!rest.length) return;
-    map[key.trim().toLowerCase()]=rest.join(':').trim();
-  });
-  return map;
-}
-function getNodePaintValues(node,inherited={}){
-  const styleMap=parseInlineStyleMap(node.getAttribute('style'));
-  const fillRaw=node.getAttribute('fill')??styleMap.fill??inherited.fill??null;
-  const strokeRaw=node.getAttribute('stroke')??styleMap.stroke??inherited.stroke??null;
-  const strokeWidthRaw=node.getAttribute('stroke-width')??styleMap['stroke-width']??inherited.strokeWidth??null;
-  return {
-    fillRaw,
-    strokeRaw,
-    strokeWidthRaw,
-    fill:parseColorValue(fillRaw),
-    stroke:parseColorValue(strokeRaw)
-  };
-}
-function getPdfPaint(node,matrix=matrixIdentity(),inherited={}){
-  const values=getNodePaintValues(node,inherited);
-  const stroke=values.stroke;
-  const fill=values.fill;
-  let lineWidth=Math.max(0.05,Number(values.strokeWidthRaw)||0.2);
+function getPdfPaint(node,matrix=matrixIdentity()){
+  const stroke=parseColorValue(node.getAttribute('stroke'));
+  const fill=parseColorValue(node.getAttribute('fill'));
+  let lineWidth=Math.max(0.05,Number(node.getAttribute('stroke-width'))||0.2);
   if(node.closest&&node.closest('[data-role="marker-outline"]')){
     const {sx,sy}=getScaleFromMatrix(matrix);
     const scale=Math.max(0.1,Math.min(sx,sy));
@@ -1385,7 +1362,7 @@ function getPdfPaint(node,matrix=matrixIdentity(),inherited={}){
   else if(fill) mode='F';
   else if(stroke) mode='S';
   else mode=null;
-  return {stroke,fill,lineWidth,mode,values};
+  return {stroke,fill,lineWidth,mode};
 }
 let pdfCurrent=null;
 function matrixIdentity(){ return [1,0,0,1,0,0]; }
@@ -1457,22 +1434,16 @@ function svgPathToPdfOps(d){
   }
   return ops;
 }
-function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity(),inheritedPaint={}){
+function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity()){
   if(!node||node.nodeType!==1) return;
   const tag=node.tagName.toLowerCase();
   if(tag==='defs'||tag==='clippath') return;
   const nodeMatrix=matrixMultiply(parentMatrix,parseTransform(node.getAttribute('transform')));
-  const nodePaintValues=getNodePaintValues(node,inheritedPaint);
-  const nextInheritedPaint={
-    fill:nodePaintValues.fillRaw,
-    stroke:nodePaintValues.strokeRaw,
-    strokeWidth:nodePaintValues.strokeWidthRaw
-  };
   if(tag==='svg'||tag==='g'){
-    Array.from(node.childNodes).forEach(child=>drawSvgNodeToPdf(child,nodeMatrix,nextInheritedPaint));
+    Array.from(node.childNodes).forEach(child=>drawSvgNodeToPdf(child,nodeMatrix));
     return;
   }
-  const paint=getPdfPaint(node,nodeMatrix,inheritedPaint);
+  const paint=getPdfPaint(node,nodeMatrix);
   if(!paint.mode&&tag!=='text') return;
   if(tag==='line'){
     const x1=Number(node.getAttribute('x1'))||0, y1=Number(node.getAttribute('y1'))||0, x2=Number(node.getAttribute('x2'))||0, y2=Number(node.getAttribute('y2'))||0;
@@ -1499,7 +1470,7 @@ function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity(),inheritedPaint={}){
     return;
   }
   if(tag==='text'){
-    const fill=paint.values.fill||{r:31,g:41,b:55};
+    const fill=parseColorValue(node.getAttribute('fill'))||{r:31,g:41,b:55};
     const fontSizeMm=Math.max(1,Number(node.getAttribute('font-size'))||3.5);
     const anchor=node.getAttribute('text-anchor');
     const align=anchor==='middle'?'center':anchor==='end'?'right':'left';
