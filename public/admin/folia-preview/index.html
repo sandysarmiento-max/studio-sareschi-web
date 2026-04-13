@@ -478,6 +478,8 @@ async function loadMarkerAsset(style){
   const nodes=Array.from(svgNode.children).map(node=>node.cloneNode(true));
   const rawFill=svgNode.getAttribute("fill");
 const rawStroke=svgNode.getAttribute("stroke");
+const rawFill=svgNode.getAttribute("fill");
+const rawStroke=svgNode.getAttribute("stroke");
 const defaults={
   fill:rawFill&&rawFill!=="none"?rawFill:null,
   stroke:rawStroke&&rawStroke!=="none"?rawStroke:null
@@ -503,7 +505,6 @@ const group=el("g",{
   transform:`translate(${targetX} ${targetY}) scale(${roundMm(scaleX)} ${roundMm(scaleY)}) translate(${roundMm(-asset.viewBox.minX)} ${roundMm(-asset.viewBox.minY)})`,
   "data-role":"marker-outline"
 });
-if(asset.defaults?.fill) group.setAttribute("fill",asset.defaults.fill);
 if(asset.defaults?.stroke) group.setAttribute("stroke",asset.defaults.stroke);
   asset.nodes.forEach(baseNode=>{
     const node=baseNode.cloneNode(true);
