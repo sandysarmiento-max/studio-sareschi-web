@@ -138,6 +138,8 @@ continueLink.style.display = 'none';
   if (appSelector) appSelector.hidden = false;
 } else {
   if (accessCard) accessCard.style.display = 'block';
+  loginBtn.style.display = '';
+continueLink.style.display = '';
   continueLink.href = nextParam;
 
   const destinationName = nextParam.startsWith('/app/folia/') ? 'Folia' : 'Aral Calc';
