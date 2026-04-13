@@ -42,11 +42,23 @@
           Este acceso está disponible solo para usuarios invitados o autorizados.
        </p>
           </div>
-<div id="app-selector" hidden>
-   <a class="btn btn-primary" href="/acceso/?next=/aral-calc/">Entrar a Aral Calc</a>
-  <a class="btn btn-primary" href="/acceso/?next=/app/folia/">Entrar a Folia</a>
+<div id="app-selector" hidden style="display:grid; gap:14px; max-width:620px; margin-top:24px;">
+  <a class="card" href="/acceso/?next=/aral-calc/" style="display:block; text-decoration:none; color:inherit;">
+    <strong>Aral Calc</strong><br>
+    <span>Calculadora para encuadernación.</span>
+  </a>
+
+  <a class="card" href="/acceso/?next=/app/folia/" style="display:block; text-decoration:none; color:inherit;">
+    <strong>Folia</strong><br>
+    <span>Generador de hojas y formatos.</span>
+  </a>
+
+  <div class="card" style="opacity:.65;">
+    <strong>Calendarios</strong><br>
+    <span>Disponible muy pronto.</span>
   </div>
-          <article class="card" style="max-width: 620px">
+</div>
+          <article id="access-card" class="card" style="max-width: 620px">
             <form id="login-form" style="display: grid; gap: 12px">
               <label>
                 Email
