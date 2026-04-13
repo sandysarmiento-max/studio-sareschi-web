@@ -511,8 +511,6 @@ async function loadMarkerAsset(style){
   const nodes=Array.from(svgNode.children).map(node=>node.cloneNode(true));
   const rawFill=svgNode.getAttribute("fill");
 const rawStroke=svgNode.getAttribute("stroke");
-const rawFill=svgNode.getAttribute("fill");
-const rawStroke=svgNode.getAttribute("stroke");
 const defaults={
   fill:rawFill&&rawFill!=="none"?rawFill:null,
   stroke:rawStroke&&rawStroke!=="none"?rawStroke:null
