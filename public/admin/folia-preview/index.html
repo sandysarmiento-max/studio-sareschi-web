@@ -448,15 +448,48 @@ function parseMarkerViewBox(value,width,height){
   const parsed={minX:parts[0],minY:parts[1],width:Math.max(1,parts[2]),height:Math.max(1,parts[3])};
   return parsed;
 }
-function applyMarkerColor(node,markerColor){
+function applyMarkerColor(node,markerColor,inherited={}){
   if(!node||node.nodeType!==1) return;
-  ["stroke","fill","color"].forEach(attr=>{
-    const value=node.getAttribute(attr);
-    if(value&&String(value).includes("currentColor")) node.setAttribute(attr,markerColor);
-  });
+
+  const rawFill=node.getAttribute("fill");
+  const rawStroke=node.getAttribute("stroke");
+  const rawColor=node.getAttribute("color");
   const style=node.getAttribute("style");
-  if(style&&style.includes("currentColor")) node.setAttribute("style",style.replace(/currentColor/g,markerColor));
-  Array.from(node.children||[]).forEach(child=>applyMarkerColor(child,markerColor));
+
+  let fill=rawFill;
+  let stroke=rawStroke;
+  let color=rawColor;
+
+  if(fill&&String(fill).includes("currentColor")) fill=markerColor;
+  if(stroke&&String(stroke).includes("currentColor")) stroke=markerColor;
+  if(color&&String(color).includes("currentColor")) color=markerColor;
+
+  if(style&&style.includes("currentColor")){
+    node.setAttribute("style",style.replace(/currentColor/g,markerColor));
+  }
+
+  const inheritedFill=inherited.fill ?? null;
+  const inheritedStroke=inherited.stroke ?? null;
+
+  const effectiveFill=fill ?? inheritedFill;
+  const effectiveStroke=stroke ?? inheritedStroke;
+
+  if(effectiveFill!==null){
+    node.setAttribute("fill",effectiveFill);
+  }
+  if(effectiveStroke!==null){
+    node.setAttribute("stroke",effectiveStroke);
+  }
+  if(color){
+    node.setAttribute("color",color);
+  }
+
+  Array.from(node.children||[]).forEach(child=>
+    applyMarkerColor(child,markerColor,{
+      fill: effectiveFill,
+      stroke: effectiveStroke
+    })
+  );
 }
 async function loadMarkerAsset(style){
   const marker=MARKER_ASSETS[style];
@@ -508,7 +541,10 @@ const group=el("g",{
 if(asset.defaults?.stroke) group.setAttribute("stroke",asset.defaults.stroke);
   asset.nodes.forEach(baseNode=>{
     const node=baseNode.cloneNode(true);
-    applyMarkerColor(node,markerColor);
+    applyMarkerColor(node,markerColor,{
+  fill: asset.defaults?.fill ?? null,
+  stroke: asset.defaults?.stroke ?? null
+});
     group.appendChild(node);
   });
   svg.appendChild(group);
