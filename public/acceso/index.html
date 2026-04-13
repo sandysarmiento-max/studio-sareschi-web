@@ -122,17 +122,20 @@ const nextParam = params.get('next');
 const accessTitle = document.getElementById('access-title');
 const accessCopy = document.getElementById('access-copy');
 const appSelector = document.getElementById('app-selector');
+      const accessCard = document.getElementById('access-card');
 
 if (!nextParam) {
   form.style.display = 'none';
   sessionBox.style.display = 'none';
   if (statusEl) statusEl.style.display = 'none';
+  if (accessCard) accessCard.style.display = 'none';
 
   accessTitle.textContent = 'Elige la app a la que quieres acceder';
   accessCopy.textContent = 'Selecciona la herramienta que deseas abrir para continuar.';
 
   if (appSelector) appSelector.hidden = false;
 } else {
+  if (accessCard) accessCard.style.display = 'block';
   continueLink.href = nextParam;
 
   const destinationName = nextParam.startsWith('/app/folia/') ? 'Folia' : 'Aral Calc';
