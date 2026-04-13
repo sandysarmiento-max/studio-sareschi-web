@@ -1125,6 +1125,71 @@ function svgElementToMarkup(svg){
   const markup=new XMLSerializer().serializeToString(svg);
   return markup.startsWith('<?xml')?markup:`<?xml version="1.0" encoding="UTF-8"?>\n${markup}`;
 }
+function parseInlineStyleValue(styleText){
+  const out={};
+  String(styleText||"").split(";").forEach(entry=>{
+    const idx=entry.indexOf(":");
+    if(idx===-1) return;
+    const key=entry.slice(0,idx).trim().toLowerCase();
+    const value=entry.slice(idx+1).trim();
+    if(!key) return;
+    out[key]=value;
+  });
+  return out;
+}
+function resolveInheritedPaint(node,parentState){
+  const styleMap=parseInlineStyleValue(node.getAttribute("style"));
+  const ownColor=styleMap.color ?? node.getAttribute("color");
+  const ownFill=styleMap.fill ?? node.getAttribute("fill");
+  const ownStroke=styleMap.stroke ?? node.getAttribute("stroke");
+  const ownLinecap=styleMap["stroke-linecap"] ?? node.getAttribute("stroke-linecap");
+  const ownLinejoin=styleMap["stroke-linejoin"] ?? node.getAttribute("stroke-linejoin");
+  const ownFillRule=styleMap["fill-rule"] ?? node.getAttribute("fill-rule");
+  const state={
+    color: ownColor ?? parentState.color ?? null,
+    fill: ownFill ?? parentState.fill ?? null,
+    stroke: ownStroke ?? parentState.stroke ?? null,
+    linecap: ownLinecap ?? parentState.linecap ?? null,
+    linejoin: ownLinejoin ?? parentState.linejoin ?? null,
+    fillRule: ownFillRule ?? parentState.fillRule ?? null
+  };
+  const colorValue=state.color;
+  ["fill","stroke"].forEach(key=>{
+    if(typeof state[key]==="string"&&state[key].includes("currentColor")){
+      state[key]=colorValue||state[key].replace(/currentcolor/gi,"#000000");
+    }
+  });
+  if(typeof state.color==="string"&&state.color.includes("currentColor")){
+    state.color=parentState.color||"#000000";
+  }
+  return state;
+}
+function flattenMarkerStylesForPdf(svgRoot){
+  if(!svgRoot||!svgRoot.querySelectorAll) return svgRoot;
+  const markerGroups=svgRoot.querySelectorAll('[data-role="marker-outline"]');
+  markerGroups.forEach(group=>{
+    const baseState=resolveInheritedPaint(group,{
+      color:null,fill:null,stroke:null,linecap:null,linejoin:null,fillRule:null
+    });
+    const walk=(node,parentState)=>{
+      if(!node||node.nodeType!==1) return;
+      const current=resolveInheritedPaint(node,parentState);
+      const tag=node.tagName.toLowerCase();
+      if(tag!=="g"){
+        if(current.fill!==null) node.setAttribute("fill",current.fill);
+        if(current.stroke!==null) node.setAttribute("stroke",current.stroke);
+        if(current.linecap!==null) node.setAttribute("stroke-linecap",current.linecap);
+        if(current.linejoin!==null) node.setAttribute("stroke-linejoin",current.linejoin);
+        if(current.fillRule!==null) node.setAttribute("fill-rule",current.fillRule);
+      }
+      if(current.color!==null) node.setAttribute("color",current.color);
+      node.removeAttribute("style");
+      Array.from(node.children||[]).forEach(child=>walk(child,current));
+    };
+    Array.from(group.children||[]).forEach(child=>walk(child,baseState));
+  });
+  return svgRoot;
+}
 function downloadBlob(blob,filename){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1467,6 +1532,7 @@ if(svg2pdfFn){
   const frontNode=new DOMParser()
     .parseFromString(svgElementToMarkup(frontSvg),"image/svg+xml")
     .documentElement;
+  flattenMarkerStylesForPdf(frontNode);
 
   await svg2pdfFn(frontNode,pdf,{
     x:0,
@@ -1479,6 +1545,7 @@ if(svg2pdfFn){
     const backNode=new DOMParser()
       .parseFromString(svgElementToMarkup(backSvg),"image/svg+xml")
       .documentElement;
+    flattenMarkerStylesForPdf(backNode);
 
     pdf.addPage(
       [pageSize.width,pageSize.height],
