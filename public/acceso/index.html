@@ -101,15 +101,33 @@
       const logoutBtn = document.getElementById('logout-btn');
       const togglePasswordBtn = document.getElementById('toggle-password');
       const passwordInput = document.getElementById('password');
-      const nextParam = new URLSearchParams(window.location.search).get('next') || '/aral-calc/';
-      continueLink.href = nextParam;
-      const accessTitle = document.getElementById('access-title');
-      const accessCopy = document.getElementById('access-copy');
-      const destinationName = nextParam.startsWith('/app/folia/') ? 'Folia' : 'Aral Calc';
-      accessTitle.textContent = `Inicia sesión para acceder a ${destinationName}`;
-      accessCopy.textContent = `${destinationName} está disponible solo para usuarios invitados o autorizados.`;
-      loginBtn.textContent = `Entrar a ${destinationName}`;
-      continueLink.textContent = `Abrir ${destinationName}`;
+      const params = new URLSearchParams(window.location.search);
+const nextParam = params.get('next');
+
+const accessTitle = document.getElementById('access-title');
+const accessCopy = document.getElementById('access-copy');
+const appSelector = document.getElementById('app-selector');
+
+if (!nextParam) {
+  form.style.display = 'none';
+  sessionBox.style.display = 'none';
+  if (statusEl) statusEl.style.display = 'none';
+
+  accessTitle.textContent = 'Elige la app a la que quieres acceder';
+  accessCopy.textContent = 'Selecciona la herramienta que deseas abrir para continuar.';
+
+  if (appSelector) appSelector.hidden = false;
+} else {
+  continueLink.href = nextParam;
+
+  const destinationName = nextParam.startsWith('/app/folia/') ? 'Folia' : 'Aral Calc';
+  accessTitle.textContent = `Inicia sesión para acceder a ${destinationName}`;
+  accessCopy.textContent = `${destinationName} está disponible solo para usuarios invitados o autorizados.`;
+  loginBtn.textContent = `Entrar a ${destinationName}`;
+  continueLink.textContent = `Abrir ${destinationName}`;
+
+  if (appSelector) appSelector.hidden = true;
+}
 
       let supabaseClient = null;
 
