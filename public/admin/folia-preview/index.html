@@ -476,9 +476,11 @@ async function loadMarkerAsset(style){
   const svgNode=doc.documentElement;
   const viewBox=parseMarkerViewBox(svgNode.getAttribute("viewBox"),svgNode.getAttribute("width"),svgNode.getAttribute("height"));
   const nodes=Array.from(svgNode.children).map(node=>node.cloneNode(true));
-  const defaults={
-  fill:svgNode.getAttribute("fill")||"none",
-  stroke:svgNode.getAttribute("stroke")||null
+  const rawFill=svgNode.getAttribute("fill");
+const rawStroke=svgNode.getAttribute("stroke");
+const defaults={
+  fill:rawFill&&rawFill!=="none"?rawFill:null,
+  stroke:rawStroke&&rawStroke!=="none"?rawStroke:null
 };
   markerAssetCache.set(style,{viewBox,nodes,defaults});
   if(loadedUrl) markerAssetUrlCache.set(style,loadedUrl);
@@ -499,9 +501,9 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
   const scaleY=scaled/asset.viewBox.height;
 const group=el("g",{
   transform:`translate(${targetX} ${targetY}) scale(${roundMm(scaleX)} ${roundMm(scaleY)}) translate(${roundMm(-asset.viewBox.minX)} ${roundMm(-asset.viewBox.minY)})`,
-  fill:asset.defaults?.fill||"none",
   "data-role":"marker-outline"
 });
+if(asset.defaults?.fill) group.setAttribute("fill",asset.defaults.fill);
 if(asset.defaults?.stroke) group.setAttribute("stroke",asset.defaults.stroke);
   asset.nodes.forEach(baseNode=>{
     const node=baseNode.cloneNode(true);
@@ -1230,10 +1232,8 @@ function getPdfPaint(node,matrix=matrixIdentity()){
   const stroke=parseColorValue(node.getAttribute('stroke'));
   const fill=parseColorValue(node.getAttribute('fill'));
   let lineWidth=Math.max(0.05,Number(node.getAttribute('stroke-width'))||0.2);
- if(node.closest&&node.closest('[data-role="marker-outline"]')){
-  const markerGroup=node.closest('[data-role="marker-outline"]');
-  const markerMatrix=markerGroup?parseTransform(markerGroup.getAttribute('transform')):matrixIdentity();
-  const {sx,sy}=getScaleFromMatrix(markerMatrix);
+if(node.closest&&node.closest('[data-role="marker-outline"]')){
+  const {sx,sy}=getScaleFromMatrix(matrix);
   const scale=Math.max(0.1,Math.min(sx,sy));
   lineWidth=Math.max(0.05,lineWidth*scale);
 }
