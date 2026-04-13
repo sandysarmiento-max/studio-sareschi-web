@@ -1,0 +1,1598 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Folia</title>
+  <style>
+    :root{--bg:#F7F8FA;--panel:#FFFFFF;--preview:#E2E8F0;--line:#94a3b8;--text:#1F2937;--muted:#667085;--border:#D9E0E7;--soft:#F7F8FA;--accent:#E89AAE;--accent-soft:#F8E8EC;--accent-text:#B65E77;--green:#BFE3CC;--green-line:#A7D6BA;--pink:#F6D6DC;--pink-line:#E8B9C4}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    [hidden]{display:none !important}
+    .wrap{max-width:1560px;margin:0 auto;padding:8px}
+    .hero,.card{background:var(--panel);border:1px solid var(--border);border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.03)}
+    .hero{padding:10px 14px;margin-bottom:8px}
+    .hero-grid{display:grid;grid-template-columns:1fr;gap:6px;align-items:start}
+    h1{margin:0 0 4px;font-size:34px;line-height:1.02;letter-spacing:-.03em;font-weight:800}
+    .sub{color:var(--muted);margin:0;max-width:980px;font-size:14px;line-height:1.45}
+    .summary{display:none}
+    .summary strong{color:var(--text)}
+    .main{display:grid;grid-template-columns:minmax(300px,340px) minmax(0,1fr);gap:12px;align-items:start}
+    .left{display:grid;gap:8px;max-height:calc(100vh - 74px);overflow:auto;padding-right:4px}
+    .left::-webkit-scrollbar{width:8px}
+    .left::-webkit-scrollbar-thumb{background:#D9E0E7;border-radius:999px}
+    .right{display:grid;gap:10px;position:sticky;top:8px;align-self:start}
+    .section{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:10px;box-shadow:0 1px 2px rgba(15,23,42,.02)}
+    .section h3{margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)}
+    .field{display:grid;gap:4px;margin-bottom:8px}.field:last-child{margin-bottom:0}
+    label{font-size:12px;font-weight:600;color:#344054}
+    input[type=text],input[type=number],select{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:12.5px;color:var(--text)}
+    input[type=color]{width:100%;height:34px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:2px}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .toggle{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);border-radius:10px;background:#fff;padding:7px 10px;font-size:12.5px;color:#344054;margin-bottom:8px}.toggle:last-child{margin-bottom:0}
+    .icon-select{position:relative}
+    .icon-select summary{list-style:none;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:8px 10px;font-size:12.5px;color:var(--text);cursor:pointer}
+    .icon-select summary::-webkit-details-marker{display:none}
+    .icon-select-menu{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:40;border:1px solid var(--border);border-radius:12px;background:#fff;padding:6px;display:grid;gap:4px;box-shadow:0 12px 28px rgba(15,23,42,.08)}
+    .marker-option{width:100%;display:flex;align-items:center;gap:10px;padding:8px 9px;border:0;background:#fff;border-radius:9px;font-size:12.5px;color:var(--text);cursor:pointer;text-align:left}
+    .marker-option:hover{background:#F7F8FA}
+    .marker-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 18px;width:18px;height:18px;padding:1px}
+    .marker-icon img{width:100%;height:100%;object-fit:contain;display:block}
+    .marker-number{font-size:14px;font-weight:600;line-height:1;width:auto;height:auto}
+    .dropdown-caret{margin-left:auto;color:var(--muted)}
+    .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;grid-auto-rows:1fr}
+    .choice{border:1px solid var(--border);background:#fff;color:#475569;border-radius:12px;padding:8px 9px;font-size:12.5px;font-weight:600;cursor:pointer;min-height:42px;display:flex;align-items:center;justify-content:center;text-align:center}
+    .choice.active-rose{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-text)}
+    .choice.active-green{border-color:#A9D4B9;background:#EDF7F0;color:#39634A}
+    .preview{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:10px;box-shadow:0 2px 8px rgba(15,23,42,.04)}
+    .preview-top{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;margin-bottom:8px}
+    .meta{color:var(--muted);font-size:12px}
+    .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted);justify-content:flex-end}
+    .legend span.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+    .actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+    .zoom-controls{display:flex;align-items:center;gap:4px;margin-right:4px}
+    .zoom-label{min-width:44px;text-align:center;font-size:11px;color:var(--muted)}
+    button.btn{border:1px solid var(--border);background:#fff;color:#344054;padding:7px 10px;border-radius:10px;font-size:12.5px;cursor:pointer}
+    button.btn.primary{border-color:#E8B8C4;background:#FAEEF1;color:#B65E77}
+    button.btn.icon{padding:6px 9px;min-width:32px}
+    .canvas-wrap{background:var(--preview);border-radius:18px;padding:16px;display:flex;justify-content:center;align-items:flex-start;height:calc(100vh - 210px);min-height:calc(100vh - 210px);max-height:calc(100vh - 210px);overflow:auto}
+    #previewSvg{width:auto;height:auto;display:block;max-width:none;max-height:none;filter:drop-shadow(0 4px 14px rgba(15,23,42,.08))}
+    .preview-summary{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;line-height:1.45;color:var(--muted)}
+    .preview-summary strong{color:var(--text)}
+    .foot{background:#fff;border:1px solid var(--border);border-radius:18px;padding:12px;display:none}
+    .chips{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+    .chip{border:1px solid var(--border);border-radius:14px;background:var(--soft);padding:10px;color:var(--muted);font-size:12.5px}
+    .modal-backdrop{position:fixed;inset:0;z-index:120;background:rgba(15,23,42,.42);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto;-webkit-overflow-scrolling:touch}
+    .modal-card{width:min(900px,100%);max-height:min(88vh,780px);overflow:auto;background:#fff;border:1px solid var(--border);border-radius:22px;box-shadow:0 28px 60px rgba(15,23,42,.22);padding:18px;display:grid;gap:16px;margin:auto}
+    .modal-head{display:flex;justify-content:space-between;gap:12px;align-items:start}
+    .modal-kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text);font-weight:700;margin-bottom:5px}
+    .modal-head h2{margin:0 0 4px;font-size:24px;line-height:1.05}
+    .modal-sub{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+    .modal-body{display:grid;grid-template-columns:minmax(250px,290px) minmax(0,1fr);gap:16px}
+    .modal-column{display:grid;gap:12px;align-content:start}
+    .modal-column.wide{gap:14px}
+    .modal-section-title{font-size:12px;font-weight:700;color:#344054}
+    .usage-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .usage-card{border:1px solid var(--border);background:#fff;border-radius:16px;padding:12px;text-align:left;display:grid;gap:5px;cursor:pointer;color:var(--text)}
+    .usage-card strong{font-size:14px}
+    .usage-card span{font-size:12px;line-height:1.4;color:var(--muted)}
+    .usage-card.active{border-color:var(--accent);background:var(--accent-soft)}
+    .face-toggle{display:flex;gap:6px}
+    .face-toggle[hidden]{display:none}
+    .face-toggle .btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+    .export-notes,.export-summary{border:1px solid var(--border);background:var(--soft);border-radius:14px;padding:12px;font-size:12.5px;line-height:1.5;color:var(--muted)}
+    .export-notes strong,.export-summary strong{color:var(--text)}
+    .modal-actions{display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:linear-gradient(180deg,rgba(255,255,255,0.88),#fff 28%);padding-top:6px}
+    body.modal-open{overflow:hidden}
+    @media (max-width:1200px){
+      .hero-grid,.main{grid-template-columns:1fr}
+      .left{max-height:none;overflow:visible;padding-right:0}
+      .right{position:static}
+      .canvas-wrap{height:auto;min-height:auto;max-height:none}
+      #previewSvg{max-width:100%;height:auto}
+      .foot{display:block}
+      .summary{display:grid}
+      .preview-top{grid-template-columns:1fr}
+      .actions,.legend{justify-content:flex-start}
+      .modal-body,.usage-grid{grid-template-columns:1fr}
+      .modal-card{padding:16px;max-height:none}
+    }
+  
+    .auth-pending{opacity:0;pointer-events:none}
+    .protected-topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px 12px}
+    .protected-topbar__brand{font-size:13px;font-weight:700;color:var(--text);text-decoration:none}
+    .protected-topbar__actions{display:flex;gap:8px;align-items:center}
+    .protected-topbar__back{font-size:12px;color:var(--muted);text-decoration:none}
+
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/svg2pdf.js/2.2.1/svg2pdf.umd.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (async function enforceProtectedAccess() {
+      const next = encodeURIComponent('/app/folia/');
+      try {
+        const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
+        const config = await response.json();
+
+        if (!config.enabled) {
+          window.location.href = '/acceso/?next=' + next;
+          return;
+        }
+
+        const supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+        window.__foliaSupabaseClient = supabaseClient;
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+
+        if (!session) {
+          window.location.href = '/acceso/?next=' + next;
+          return;
+        }
+
+        document.body.classList.remove('auth-pending');
+      } catch (error) {
+        window.location.href = '/acceso/?next=' + next;
+      }
+    })();
+  </script>
+</head>
+<body class="auth-pending">
+  <div class="wrap">
+    
+    <div class="protected-topbar">
+      <a class="protected-topbar__brand" href="/">Studio Sareschi</a>
+      <div class="protected-topbar__actions">
+        <a class="protected-topbar__back" href="/acceso/">Área de acceso</a>
+        <button class="btn" id="logout-btn" type="button">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="hero">
+      <div class="hero-grid">
+        <div>
+          <h1>Folia</h1>
+          <p class="sub">Crea hojas personalizadas y listas para imprimir en segundos.</p>
+        </div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="left">
+        <div class="section">
+          <h3>Base del proyecto</h3>
+          <div class="field"><label>Nombre del proyecto</label><input id="projectName" type="text" value="Mi hoja base"></div>
+          <div class="field"><label>Tamaño</label><select id="sizePreset"></select></div>
+          <div class="row2" id="customSizeRow" style="display:none"><div class="field"><label>Ancho (mm)</label><input id="customWidth" type="number" min="50" max="500" value="148"></div><div class="field"><label>Alto (mm)</label><input id="customHeight" type="number" min="50" max="500" value="210"></div></div>
+          <div class="field"><label>Orientación</label><select id="orientation"><option>Vertical</option><option>Horizontal</option></select></div>
+        </div>
+        <div class="section"><h3>Tipo de armado</h3><div class="choice-grid" id="armadoChoices"></div><div id="armadoExtra" style="margin-top:12px"></div></div>
+        <div class="section">
+          <h3>Impresión</h3>
+          <div class="field">
+            <label>Modo de impresión</label>
+            <select id="printModeConfig">
+              <option value="single">Una cara</option>
+              <option value="duplex">Ambas caras</option>
+            </select>
+          </div>
+        </div>
+        <div class="section"><h3>Márgenes</h3><div class="row2"><div class="field"><label>Superior (mm)</label><input id="marginTop" type="number" min="0" max="50" value="10"></div><div class="field"><label>Inferior (mm)</label><input id="marginBottom" type="number" min="0" max="50" value="10"></div></div><div id="marginsExtra"></div></div>
+        <div class="section">
+          <h3>Tipo de hoja</h3>
+          <div class="field">
+            <label>Modo de diseño</label>
+            <select id="layoutMode">
+              <option value="single">Diseño único</option>
+              <option value="split">Diseño dividido arriba / abajo</option>
+            </select>
+          </div>
+          <div id="singleSheetConfig">
+            <div class="choice-grid" id="sheetChoices"></div>
+          </div>
+          <div id="splitSheetConfig" hidden>
+            <div class="field">
+              <label>Diseño superior</label>
+              <select id="splitTopSheetType"></select>
+            </div>
+            <div class="field">
+              <label>Diseño inferior</label>
+              <select id="splitBottomSheetType"></select>
+            </div>
+            <div class="field">
+              <label>Proporción superior / inferior</label>
+              <input id="splitRatio" type="range" min="20" max="80" step="1" value="50">
+              <div class="meta" id="splitRatioLabel">50% / 50%</div>
+            </div>
+          </div>
+        </div>
+        <div class="section"><h3>Configuración del contenido</h3><div id="contentFields"></div></div>
+        <div class="section"><h3>Estilo visual</h3><div class="row2"><div class="field"><label>Color de trazo</label><input id="lineColor" type="color" value="#94a3b8"></div><div class="field"><label>Grosor visual</label><input id="strokeWidth" type="number" min="0.1" max="2.5" step="0.1" value="0.2"></div></div></div>
+      </div>
+      <div class="right">
+        <div class="preview">
+          <div class="preview-top">
+            <div>
+              <div style="font-size:18px;font-weight:700">Vista previa en vivo</div>
+              <div class="meta" id="previewMeta"></div>
+            </div>
+            <div style="display:grid;gap:6px;justify-items:end">
+              <div class="legend">
+                <div><span class="sw" style="background:#fff;border:1px solid #cbd5e1"></span>Hoja</div>
+                <div><span class="sw" style="background:#ffe4e6;border:1px solid #fecdd3"></span>Zona reservada</div>
+                <div><span class="sw" style="background:#ecfdf5;border:1px solid #bbf7d0"></span>Área útil</div>
+              </div>
+              <div class="actions">
+                <div class="face-toggle" id="previewFaceToggle" hidden>
+                  <button class="btn active" id="previewFrontBtn" type="button">Frente</button>
+                  <button class="btn" id="previewBackBtn" type="button">Reverso</button>
+                </div>
+                <div class="zoom-controls">
+                  <button class="btn icon" id="zoomOutBtn" type="button">−</button>
+                  <span class="zoom-label" id="zoomLabel">100%</span>
+                  <button class="btn icon" id="zoomInBtn" type="button">+</button>
+                  <button class="btn icon" id="zoomResetBtn" type="button">↺</button>
+                </div>
+                <button class="btn primary" id="downloadBtn" type="button">Descargar</button>
+              </div>
+            </div>
+          </div>
+          <div class="canvas-wrap"><svg id="previewSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+          <div class="preview-summary" id="previewSummary"></div>
+          <svg id="exportSvg" xmlns="http://www.w3.org/2000/svg" style="position:absolute;left:-99999px;top:0" aria-hidden="true"></svg>
+        </div>
+        <div class="modal-backdrop" id="exportModal" hidden>
+          <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+            <div class="modal-head">
+              <div>
+                <div class="modal-kicker">Exportación</div>
+                <h2 id="exportTitle">Descargar hoja final</h2>
+                <p class="modal-sub">Elige el formato y la calidad según dónde vayas a usar la hoja.</p>
+              </div>
+              <button class="btn icon" id="closeExportModalBtn" type="button" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="modal-body">
+              <div class="modal-column">
+                <div class="field">
+                  <label>Formato</label>
+                  <select id="exportFormat">
+                    <option value="pdf-vector">PDF vectorial</option>
+                    <option value="svg">SVG</option>
+                    <option value="png">PNG transparente</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Calidad</label>
+                  <select id="exportQuality">
+                    <option value="standard">Estándar</option>
+                    <option value="high">Alta</option>
+                    <option value="max">Máxima</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Modo de impresión</label>
+                  <select id="printMode">
+                    <option value="single">Una cara</option>
+                    <option value="duplex">Ambas caras</option>
+                  </select>
+                </div>
+                <div class="export-notes" id="formatHelp"></div>
+              </div>
+              <div class="modal-column wide">
+                <div class="modal-section-title">Sugerencias de uso</div>
+                <div class="usage-grid" id="usagePresetGrid">
+                  <button class="usage-card" type="button" data-usage="png"><strong>Imagen</strong><span>PNG transparente en máxima calidad para colocar sobre diseños con buena definición.</span></button>
+                  <button class="usage-card" type="button" data-usage="powerpoint"><strong>PowerPoint</strong><span>SVG para conservar escalabilidad y líneas limpias.</span></button>
+                  <button class="usage-card" type="button" data-usage="print"><strong>Impresión</strong><span>PDF vectorial con máxima precisión para líneas nítidas y tamaño exacto.</span></button>
+                  <button class="usage-card" type="button" data-usage="general"><strong>Uso general</strong><span>PDF vectorial en máxima calidad como opción principal.</span></button>
+                </div>
+                <div class="export-summary" id="exportSummary"></div>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn" id="cancelExportBtn" type="button">Cancelar</button>
+              <button class="btn primary" id="confirmExportBtn" type="button">Descargar archivo</button>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><div style="font-size:20px;font-weight:700">Qué conserva esta versión</div><div class="chips"><div class="chip">Hojas rayadas con margen superior para escribir</div><div class="chip">Punteadas y cuadriculadas ajustables al área útil</div><div class="chip">Listas con marcador cuadrado, círculo, corazón o numerado</div><div class="chip">Anillado, cuadernillo, anillado superior y hoja suelta</div><div class="chip">Exportación PNG transparente, PDF vectorial y SVG</div><div class="chip">Base mucho más estable para seguir creciendo</div></div></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const SIZE_PRESETS={A4:{width:210,height:297},A5:{width:148,height:210},A6:{width:105,height:148},Carta:{width:216,height:279},"Media carta":{width:140,height:216},B5:{width:176,height:250},Personalizado:{width:148,height:210}};
+const ARMADOS=[["suelta","Hoja suelta"],["anillado","Anillado lateral"],["cuadernillo","Cuadernillo al centro"],["block","Anillado superior"]];
+const SHEETS=[["rayada","Rayada"],["punteada","Punteada"],["cuadriculada","Cuadriculada"],["lista","Lista"]];
+const PNG_BASE_DPI=300;
+const QUALITY_PRESETS={
+  standard:{label:"Estándar",pngScale:2,description:"Archivo más liviano con definición correcta para pantalla."},
+  high:{label:"Alta",pngScale:3,description:"Buena definición manteniendo un peso intermedio."},
+  max:{label:"Máxima",pngScale:4,description:"Mejor resultado para impresión o edición detallada."}
+};
+const FORMAT_META={
+  png:{label:"PNG transparente",extension:"png",raster:true,transparent:true,description:"Imagen raster con fondo transparente para superponer en otros diseños."},
+  "pdf-vector":{label:"PDF vectorial",extension:"pdf",raster:false,transparent:false,description:"Conserva líneas y formas como vectores reales para imprimir mejor, sin depender de rasterización."},
+  svg:{label:"SVG",extension:"svg",raster:false,transparent:true,description:"Archivo escalable, útil para PowerPoint y flujos que aceptan vectores."}
+};
+const USAGE_PRESETS={
+  png:{format:"png",quality:"max",title:"Imagen",note:"PNG transparente en máxima calidad para mantener mejor definición en composiciones."},
+  powerpoint:{format:"svg",quality:"max",title:"PowerPoint",note:"SVG conserva escalabilidad y edición sin perder nitidez."},
+  print:{format:"pdf-vector",quality:"max",title:"Impresión",note:"La mejor salida para conservar líneas limpias y medidas exactas en papel."},
+  general:{format:"pdf-vector",quality:"max",title:"Uso general",note:"Formato principal recomendado para descargar con máxima definición."},
+  manual:{format:"pdf-vector",quality:"max",title:"Configuración manual",note:"Elegiste el formato y la calidad directamente."}
+};
+const SPLIT_ZONE_GAP_MM=2;
+const MARKER_ASSETS={
+  cuadrado:{label:"Cuadrado",file:"square.svg",scale:0.86,padding:0.08},
+  circuloContorno:{label:"Círculo",file:"circle.svg",scale:0.88,padding:0.07},
+  corazonContorno:{label:"Corazón contorno",file:"heart-outline.svg",scale:0.86,padding:0.08},
+  corazonRelleno:{label:"Corazón relleno",file:"heart-filled.svg",scale:0.84,padding:0.08},
+  ubicacion:{label:"Ubicación",file:"location.svg",scale:0.82,padding:0.1},
+  regalo:{label:"Regalo",file:"gift.svg",scale:0.82,padding:0.1},
+  correo:{label:"Correo",file:"envelope.svg",scale:0.84,padding:0.09},
+  whatsapp:{label:"WhatsApp",file:"whatsapp.svg",scale:0.82,padding:0.1},
+  web:{label:"Web",file:"globe.svg",scale:0.84,padding:0.09},
+  numerado:{label:"Numerado"}
+};
+const MARKER_STYLE_ORDER=["cuadrado","circuloContorno","corazonContorno","corazonRelleno","ubicacion","regalo","correo","whatsapp","web","numerado"];
+const MARKER_ASSET_BASE_PATHS=["/icons/markers/","public/icons/markers/"];
+const markerAssetCache=new Map();
+const markerAssetUrlCache=new Map();
+let markerAssetsReady=false;
+let markerAssetsPromise=null;
+const CONTENT_CONFIG_DEFAULTS={
+  lineSpacing:7,
+  showTopGuide:false,
+  firstLineGap:0.5,
+  fitLinesToSpace:true,
+  dotGapX:5,
+  dotGapY:5,
+  dotSize:0.2,
+  fitDotsToSpace:true,
+  gridSize:5,
+  fitGridToSpace:true,
+  gridHeaderEnabled:false,
+  gridHeaderHeight:12,
+  gridRoundedCorners:true,
+  listSpacing:9,
+  fitListToSpace:true,
+  checkbox:true,
+  listMarkerStyle:"cuadrado",
+  listMarkerFontSize:4.5,
+  listMarkerSize:4,
+  listMarkerColor:"#94a3b8"
+};
+function createContentConfig(){return {...CONTENT_CONFIG_DEFAULTS};}
+const state={
+  projectName:"Mi hoja base",
+  sizePreset:"A5",
+  customWidth:148,
+  customHeight:210,
+  orientation:"Vertical",
+  previewZoom:1.15,
+  armado:"suelta",
+  bindingSide:"left",
+  bindingReserve:11,
+  blockTopReserve:11,
+  marginTop:10,
+  marginBottom:10,
+  marginLeft:7,
+  marginRight:7,
+  marginOuter:8,
+  marginCenter:10,
+  layoutMode:"single",
+  sheetType:"rayada",
+  splitTopSheetType:"rayada",
+  splitBottomSheetType:"punteada",
+  splitRatio:50,
+  lineSpacing:7,
+  showTopGuide:false,
+  firstLineGap:0.5,
+  fitLinesToSpace:true,
+  dotGapX:5,
+  dotGapY:5,
+  dotSize:0.2,
+  fitDotsToSpace:true,
+  gridSize:5,
+  fitGridToSpace:true,
+  gridHeaderEnabled:false,
+  gridHeaderHeight:12,
+  gridRoundedCorners:true,
+  listSpacing:9,
+  fitListToSpace:true,
+  checkbox:true,
+  listMarkerStyle:"cuadrado",
+  listMarkerFontSize:4.5,
+  listMarkerSize:4,
+  listMarkerColor:"#94a3b8",
+  listMarkerColorLinked:true,
+  lineColor:"#94a3b8",
+  strokeWidth:0.2,
+  exportFormat:"pdf-vector",
+  exportQuality:"max",
+  exportUsage:"general",
+  printMode:"single",
+  previewFace:"front"
+};
+state.splitConfigs={top:createContentConfig(),bottom:createContentConfig()};
+
+const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+const range=n=>Array.from({length:Math.max(0,n)},(_,i)=>i);
+const mmToPx=(mm,dpi=300)=>Math.round((mm/25.4)*dpi);
+const roundMm=(n,decimals=3)=>{const f=10**decimals; return Math.round(Number(n||0)*f)/f;};
+const pxPerMm=dpi=>dpi/25.4;
+
+function sanitizeFileName(name){
+  return ((name||"hoja").trim().toLowerCase().split(" ").filter(Boolean).join("-").replace(/[\/\\:*?"<>|]/g,"")||"hoja");
+}
+function getPageSize(){
+  const preset=SIZE_PRESETS[state.sizePreset]||SIZE_PRESETS.A5;
+  const width=state.sizePreset==="Personalizado"?Number(state.customWidth):preset.width;
+  const height=state.sizePreset==="Personalizado"?Number(state.customHeight):preset.height;
+  return state.orientation==="Horizontal"?{width:height,height:width}:{width,height};
+}
+function getRects(pageSize,layoutState=state){
+  const top=clamp(+layoutState.marginTop,0,999),bottom=clamp(+layoutState.marginBottom,0,999);
+  if(layoutState.armado==="cuadernillo"){
+    const foldX=pageSize.width/2,outer=clamp(+layoutState.marginOuter,0,999),center=clamp(+layoutState.marginCenter,0,999);
+    return {foldX,reserved:[{x:foldX-center,y:0,width:center*2,height:pageSize.height}],usableRects:[{x:outer,y:top,width:Math.max(0,foldX-center-outer),height:Math.max(0,pageSize.height-top-bottom),side:"left"},{x:foldX+center,y:top,width:Math.max(0,pageSize.width-(foldX+center)-outer),height:Math.max(0,pageSize.height-top-bottom),side:"right"}]};
+  }
+  if(layoutState.armado==="block"){
+    const left=clamp(+layoutState.marginLeft,0,999),right=clamp(+layoutState.marginRight,0,999),reserveTop=clamp(+layoutState.blockTopReserve,0,999);
+    return {reserved:[{x:0,y:0,width:pageSize.width,height:reserveTop}],usableRects:[{x:left,y:reserveTop+top,width:Math.max(0,pageSize.width-left-right),height:Math.max(0,pageSize.height-reserveTop-top-bottom),side:"single"}]};
+  }
+  if(layoutState.armado==="anillado"){
+    const reserve=clamp(+layoutState.bindingReserve,0,999),left=clamp(+layoutState.marginLeft,0,999),right=clamp(+layoutState.marginRight,0,999),side=layoutState.bindingSide;
+    let x=left,y=top,width=pageSize.width-left-right,height=pageSize.height-top-bottom;
+    const reserved=[];
+    if(side==="left"){
+      reserved.push({x:0,y:0,width:reserve,height:pageSize.height});
+      x=reserve+left;
+      width=pageSize.width-reserve-left-right;
+    } else {
+      reserved.push({x:pageSize.width-reserve,y:0,width:reserve,height:pageSize.height});
+      width=pageSize.width-reserve-left-right;
+    }
+    return {reserved,usableRects:[{x,y,width:Math.max(0,width),height:Math.max(0,height),side:"single"}]};
+  }
+  const left=clamp(+layoutState.marginLeft,0,999),right=clamp(+layoutState.marginRight,0,999);
+  return {reserved:[],usableRects:[{x:left,y:top,width:Math.max(0,pageSize.width-left-right),height:Math.max(0,pageSize.height-top-bottom),side:"single"}]};
+}
+
+function el(name,attrs={}){
+  const node=document.createElementNS("http://www.w3.org/2000/svg",name);
+  Object.entries(attrs).forEach(([key,value])=>node.setAttribute(key,String(value)));
+  if(["line","rect","circle","path"].includes(name)){
+    node.setAttribute("vector-effect","non-scaling-stroke");
+    node.setAttribute("stroke-linecap",node.getAttribute("stroke-linecap")||"butt");
+    node.setAttribute("stroke-linejoin",node.getAttribute("stroke-linejoin")||"miter");
+  }
+  if(name==="text"){
+    node.setAttribute("font-family","Inter, Arial, Helvetica, sans-serif");
+  }
+  return node;
+}
+function uid(prefix="id"){return `${prefix}-${Math.random().toString(36).slice(2,10)}`;}
+function markerLabel(style){
+  return MARKER_ASSETS[style]?.label||"Cuadrado";
+}
+function markerIconHtml(style,color="#334155"){
+  const marker=MARKER_ASSETS[style];
+  if(marker?.file){
+    const src=markerAssetUrlCache.get(style)||`${MARKER_ASSET_BASE_PATHS[0]}${marker.file}`;
+    return `<span class="marker-icon"><img src="${src}" alt="${marker.label}"></span>`;
+  }
+  return `<span class="marker-icon marker-number" style="color:${color}">1.</span>`;
+}
+function markerPickerHtml(selectedStyle,color,zone="single"){
+  return `<details class="icon-select"><summary>${markerIconHtml(selectedStyle,color)}<span>${markerLabel(selectedStyle)}</span><span class="dropdown-caret">▾</span></summary><div class="icon-select-menu">${MARKER_STYLE_ORDER.map(style=>`<button type="button" class="marker-option" data-marker-option="${style}" data-marker-zone="${zone}">${markerIconHtml(style,color)}<span>${markerLabel(style)}</span></button>`).join("")}</div></details>`;
+}
+function parseMarkerViewBox(value,width,height){
+  const fallback={minX:0,minY:0,width:Math.max(1,Number(width)||24),height:Math.max(1,Number(height)||24)};
+  if(!value) return fallback;
+  const parts=String(value).trim().split(/[\s,]+/).map(Number);
+  if(parts.length!==4||parts.some(part=>!Number.isFinite(part))) return fallback;
+  const parsed={minX:parts[0],minY:parts[1],width:Math.max(1,parts[2]),height:Math.max(1,parts[3])};
+  return parsed;
+}
+function applyMarkerColor(node,markerColor){
+  if(!node||node.nodeType!==1) return;
+  ["stroke","fill","color"].forEach(attr=>{
+    const value=node.getAttribute(attr);
+    if(value&&String(value).includes("currentColor")) node.setAttribute(attr,markerColor);
+  });
+  const style=node.getAttribute("style");
+  if(style&&style.includes("currentColor")) node.setAttribute("style",style.replace(/currentColor/g,markerColor));
+  Array.from(node.children||[]).forEach(child=>applyMarkerColor(child,markerColor));
+}
+async function loadMarkerAsset(style){
+  const marker=MARKER_ASSETS[style];
+  if(!marker?.file||markerAssetCache.has(style)) return;
+  let source="";
+  let loadedUrl="";
+  for(const basePath of MARKER_ASSET_BASE_PATHS){
+    const candidate=`${basePath}${marker.file}`;
+    const response=await fetch(candidate);
+    if(!response.ok) continue;
+    source=await response.text();
+    loadedUrl=candidate;
+    break;
+  }
+  if(!source) throw new Error(`No se pudo cargar ${marker.file}`);
+  const doc=new DOMParser().parseFromString(source,"image/svg+xml");
+  const svgNode=doc.documentElement;
+  const viewBox=parseMarkerViewBox(svgNode.getAttribute("viewBox"),svgNode.getAttribute("width"),svgNode.getAttribute("height"));
+  const nodes=Array.from(svgNode.children).map(node=>node.cloneNode(true));
+  markerAssetCache.set(style,{viewBox,nodes});
+  if(loadedUrl) markerAssetUrlCache.set(style,loadedUrl);
+}
+function drawMarkerAsset(svg,style,x,top,size,markerColor){
+  const marker=MARKER_ASSETS[style];
+  const asset=markerAssetCache.get(style);
+  if(!marker?.file||!asset) return false;
+  const padding=Math.max(0,Math.min(0.2,marker.padding??0.08));
+  const iconSize=size*(1-(padding*2));
+  const offset=(size-iconSize)/2;
+  const scale=Math.max(0.72,Math.min(1,marker.scale??0.85));
+  const scaled=iconSize*scale;
+  const scaleOffset=(iconSize-scaled)/2;
+  const targetX=roundMm(x+offset+scaleOffset);
+  const targetY=roundMm(top+offset+scaleOffset);
+  const scaleX=scaled/asset.viewBox.width;
+  const scaleY=scaled/asset.viewBox.height;
+  const group=el("g",{
+    transform:`translate(${targetX} ${targetY}) scale(${roundMm(scaleX)} ${roundMm(scaleY)}) translate(${roundMm(-asset.viewBox.minX)} ${roundMm(-asset.viewBox.minY)})`,
+    "data-role":"marker-outline"
+  });
+  asset.nodes.forEach(baseNode=>{
+    const node=baseNode.cloneNode(true);
+    applyMarkerColor(node,markerColor);
+    group.appendChild(node);
+  });
+  svg.appendChild(group);
+  return true;
+}
+async function preloadMarkerAssets(){
+  const styles=MARKER_STYLE_ORDER.filter(style=>MARKER_ASSETS[style]?.file);
+  await Promise.all(styles.map(loadMarkerAsset));
+  markerAssetsReady=true;
+}
+function ensureMarkerAssetsReady(){
+  if(markerAssetsReady) return Promise.resolve();
+  if(!markerAssetsPromise){
+    markerAssetsPromise=preloadMarkerAssets().catch(error=>{
+      console.error("No se pudieron cargar algunos marcadores SVG",error);
+      throw error;
+    });
+  }
+  return markerAssetsPromise;
+}
+function sheetConfigNeedsMarkerAssets(sheetType,config){
+  return sheetType==="lista" && !!config?.checkbox && config?.listMarkerStyle!=="numerado";
+}
+function stateNeedsMarkerAssets(layoutState=state){
+  if(layoutState.layoutMode==="single") return sheetConfigNeedsMarkerAssets(layoutState.sheetType,layoutState);
+  return sheetConfigNeedsMarkerAssets(layoutState.splitTopSheetType,layoutState.splitConfigs?.top)
+    || sheetConfigNeedsMarkerAssets(layoutState.splitBottomSheetType,layoutState.splitConfigs?.bottom);
+}
+
+function addLine(svg,x1,y1,x2,y2,stroke=state.lineColor,strokeWidth=state.strokeWidth,extra={}){
+  svg.appendChild(el("line",{x1:roundMm(x1),y1:roundMm(y1),x2:roundMm(x2),y2:roundMm(y2),stroke,"stroke-width":roundMm(strokeWidth),...extra}));
+}
+function addRule(svg,x1,y1,x2,y2,stroke=state.lineColor,strokeWidth=state.strokeWidth,extra={}){
+  const sw=Math.max(0.08,Number(strokeWidth)||state.strokeWidth||0.2);
+  const horizontal=Math.abs(y1-y2)<0.0001;
+  const vertical=Math.abs(x1-x2)<0.0001;
+  if(horizontal){
+    const left=Math.min(x1,x2), right=Math.max(x1,x2);
+    svg.appendChild(el("rect",{x:roundMm(left),y:roundMm(y1-(sw/2)),width:roundMm(right-left),height:roundMm(sw),fill:stroke,stroke:"none","fill-opacity":"1",opacity:"1","data-role":"rule-rect","data-orientation":"h",...extra}));
+    return;
+  }
+  if(vertical){
+    const top=Math.min(y1,y2), bottom=Math.max(y1,y2);
+    svg.appendChild(el("rect",{x:roundMm(x1-(sw/2)),y:roundMm(top),width:roundMm(sw),height:roundMm(bottom-top),fill:stroke,stroke:"none","fill-opacity":"1",opacity:"1","data-role":"rule-rect","data-orientation":"v",...extra}));
+    return;
+  }
+  addLine(svg,x1,y1,x2,y2,stroke,sw,extra);
+}
+function getStrokeSet(config=state){
+  const baseStroke=Number(config.strokeWidth)||0.2;
+  const gridStroke=Math.max(baseStroke,0.2);
+  const frameStroke=gridStroke;
+  const iconStroke=gridStroke;
+  return {baseStroke,gridStroke,frameStroke,iconStroke};
+}
+function addRect(svg,x,y,width,height,attrs={}){
+  svg.appendChild(el("rect",{x:roundMm(x),y:roundMm(y),width:roundMm(width),height:roundMm(height),...attrs}));
+}
+function addCircle(svg,cx,cy,r,attrs={}){
+  svg.appendChild(el("circle",{cx:roundMm(cx),cy:roundMm(cy),r:roundMm(r),...attrs}));
+}
+function addText(svg,x,y,text,attrs={}){
+  const node=el("text",{x:roundMm(x),y:roundMm(y),...attrs});
+  node.textContent=text;
+  svg.appendChild(node);
+  return node;
+}
+function getPreviewMinMm(previewScale,minPx=0.95){
+  return Math.max(0,minPx/Math.max(0.01,previewScale||1));
+}
+function getPreviewStrokeConfig(config=state){
+  const {gridStroke}=getStrokeSet(config);
+  return {
+    gridStrokePreview:gridStroke,
+    frameStrokePreview:Math.max(gridStroke,0.34),
+    iconStrokePreview:Math.max(gridStroke,0.34)
+  };
+}
+function tunePreviewStrokes(root,previewStrokeConfig){
+  if(!root||!previewStrokeConfig) return root;
+  const nodes=[];
+  if(root.nodeType===1&&root.hasAttribute&&root.hasAttribute('stroke-width')) nodes.push(root);
+  if(root.querySelectorAll) nodes.push(...root.querySelectorAll('[stroke-width]'));
+  nodes.forEach(node=>{
+    const role=(node.getAttribute('data-role')||'').toLowerCase();
+    const strokeWidth=Number(node.getAttribute('stroke-width'))||0;
+    if(role==='frame-outline'){
+      node.setAttribute('stroke-width',String(roundMm(Math.max(strokeWidth,previewStrokeConfig.frameStrokePreview))));
+      return;
+    }
+    if(role==='marker-outline'){
+      node.setAttribute('stroke-width',String(roundMm(Math.max(strokeWidth,previewStrokeConfig.iconStrokePreview))));
+    }
+  });
+  return root;
+}
+function tunePreviewRuleRects(root,previewScale){
+  const nodes=[];
+  if(root&&root.nodeType===1&&root.getAttribute&&root.getAttribute("data-role")==="rule-rect") nodes.push(root);
+  if(root&&root.querySelectorAll) nodes.push(...root.querySelectorAll('[data-role="rule-rect"]'));
+  const minMm=getPreviewMinMm(previewScale,0.95);
+  nodes.forEach(node=>{
+    const orientation=node.getAttribute('data-orientation');
+    const x=Number(node.getAttribute('x'))||0;
+    const y=Number(node.getAttribute('y'))||0;
+    const width=Number(node.getAttribute('width'))||0;
+    const height=Number(node.getAttribute('height'))||0;
+    node.setAttribute('shape-rendering','geometricPrecision');
+    if(orientation==='h'){
+      const nextHeight=Math.max(height,minMm);
+      node.setAttribute('y',String(roundMm(y-((nextHeight-height)/2))));
+      node.setAttribute('height',String(roundMm(nextHeight)));
+    }
+    if(orientation==='v'){
+      const nextWidth=Math.max(width,minMm);
+      node.setAttribute('x',String(roundMm(x-((nextWidth-width)/2))));
+      node.setAttribute('width',String(roundMm(nextWidth)));
+    }
+  });
+  return root;
+}
+function cloneNodeForPreview(node,previewScale){
+  const clone=node.cloneNode(true);
+  const previewStrokeConfig=getPreviewStrokeConfig(state);
+  tunePreviewStrokes(clone,previewStrokeConfig);
+  return tunePreviewRuleRects(clone,previewScale);
+}
+
+function drawLined(svg,rect,config=state){
+  const spacing=Math.max(3,+config.lineSpacing),fit=!!config.fitLinesToSpace,showDouble=!!config.showTopGuide,firstGap=clamp(+config.firstLineGap||0.5,0.5,1);
+  const add=y=>addRule(svg,rect.x,y,rect.x+rect.width,y,state.lineColor,state.strokeWidth);
+  if(fit){
+    const lineCount=Math.max(1,Math.floor(rect.height/spacing));
+    const step=rect.height/lineCount;
+    range(lineCount).forEach(i=>{
+      const y=rect.y+step*(i+1);
+      add(y);
+      if(i===0&&showDouble&&y+firstGap<=rect.y+rect.height+0.01) add(y+firstGap);
+    });
+    return;
+  }
+  const lineCount=Math.max(1,Math.floor(rect.height/spacing)-1);
+  range(lineCount).forEach(i=>{
+    const y=rect.y+spacing*(i+1);
+    if(y>rect.y+rect.height+0.01) return;
+    add(y);
+    if(i===0&&showDouble&&y+firstGap<=rect.y+rect.height+0.01) add(y+firstGap);
+  });
+}
+function drawDots(svg,rect,config=state){
+  const gap=Math.max(3,+config.dotGapX),fit=!!config.fitDotsToSpace,dotSize=+config.dotSize;
+  const cols=Math.max(1,Math.floor(rect.width/gap)),rows=Math.max(1,Math.floor(rect.height/gap));
+  const stepX=fit?rect.width/cols:gap,stepY=fit?rect.height/rows:gap,maxCols=fit?cols:Math.floor(rect.width/gap),maxRows=fit?rows:Math.floor(rect.height/gap);
+  for(let row=0;row<=maxRows;row++){
+    for(let col=0;col<=maxCols;col++){
+      const x=rect.x+col*stepX,y=rect.y+row*stepY;
+      if(x<=rect.x+rect.width+0.01&&y<=rect.y+rect.height+0.01){
+        addCircle(svg,x,y,Math.max(0.08,dotSize/2),{fill:state.lineColor,stroke:state.lineColor,"stroke-width":0});
+      }
+    }
+  }
+}
+function drawGrid(svg,rect,config=state,options={}){
+  const {gridStroke}=getStrokeSet(config);
+  const size=Math.max(4,+config.gridSize),fit=!!config.fitGridToSpace,skipOuter=!!options.skipOuter;
+  const cols=Math.max(1,Math.floor(rect.width/size)),rows=Math.max(1,Math.floor(rect.height/size));
+  const stepX=fit?rect.width/cols:size,stepY=fit?rect.height/rows:size,maxCols=fit?cols:Math.floor(rect.width/size),maxRows=fit?rows:Math.floor(rect.height/size),startCol=skipOuter?1:0,startRow=skipOuter?1:0,endCol=skipOuter?Math.max(startCol-1,maxCols-1):maxCols,endRow=skipOuter?Math.max(startRow-1,maxRows-1):maxRows;
+  for(let col=startCol;col<=endCol;col++){
+    const x=rect.x+col*stepX;
+    if(x<=rect.x+rect.width+0.01) addRule(svg,x,rect.y,x,rect.y+rect.height,state.lineColor,gridStroke);
+  }
+  for(let row=startRow;row<=endRow;row++){
+    const y=rect.y+row*stepY;
+    if(y<=rect.y+rect.height+0.01) addRule(svg,rect.x,y,rect.x+rect.width,y,state.lineColor,gridStroke);
+  }
+}
+function drawGridSheet(svg,rect,config=state){
+  const {gridStroke,frameStroke}=getStrokeSet(config);
+  const radius=config.gridRoundedCorners?2.5:0;
+  function appendClippedGrid(targetRect){
+    if(!radius){
+      drawGrid(svg,targetRect,config,{skipOuter:true});
+      return;
+    }
+    const clipId=uid("gridclip");
+    const defs=el("defs");
+    const clipPath=el("clipPath",{id:clipId});
+    clipPath.appendChild(el("rect",{x:roundMm(targetRect.x),y:roundMm(targetRect.y),width:roundMm(targetRect.width),height:roundMm(targetRect.height),rx:roundMm(radius),ry:roundMm(radius)}));
+    defs.appendChild(clipPath);
+    svg.appendChild(defs);
+    const group=el("g",{"clip-path":`url(#${clipId})`});
+    svg.appendChild(group);
+    drawGrid(group,targetRect,config,{skipOuter:true});
+  }
+  if(!config.gridHeaderEnabled){
+    addRect(svg,rect.x,rect.y,rect.width,rect.height,{rx:radius,ry:radius,fill:"none",stroke:state.lineColor,"stroke-width":roundMm(frameStroke),"data-role":"frame-outline"});
+    appendClippedGrid(rect);
+    return;
+  }
+  const headerHeight=clamp(+config.gridHeaderHeight,6,Math.max(8,rect.height*0.3)),gap=4;
+  const headerRect={x:rect.x,y:rect.y,width:rect.width,height:Math.min(headerHeight,rect.height*0.35)};
+  const bodyRect={x:rect.x,y:rect.y+headerRect.height+gap,width:rect.width,height:Math.max(0,rect.height-headerRect.height-gap)};
+  addRect(svg,headerRect.x,headerRect.y,headerRect.width,headerRect.height,{rx:radius,ry:radius,fill:"none",stroke:state.lineColor,"stroke-width":roundMm(frameStroke),"data-role":"frame-outline"});
+  addRect(svg,bodyRect.x,bodyRect.y,bodyRect.width,bodyRect.height,{rx:radius,ry:radius,fill:"none",stroke:state.lineColor,"stroke-width":roundMm(frameStroke),"data-role":"frame-outline"});
+  appendClippedGrid(bodyRect);
+}
+function drawList(svg,rect,config=state){
+  const {gridStroke}=getStrokeSet(config);
+  const spacing=Math.max(7,+config.listSpacing),fit=!!config.fitListToSpace,rowCount=fit?Math.max(1,Math.floor(rect.height/spacing)):Math.max(1,Math.floor(rect.height/spacing)-1),step=fit?rect.height/rowCount:spacing;
+  function drawMarker(x,lineY,index){
+    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,markerColor=config.listMarkerColor||state.lineColor;
+    if(style==="numerado"){
+      const fontSize=+config.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*1.15,fontSize*(maxDigits*0.62+0.62)),gap=Math.max(1.2,fontSize*0.18),textX=x+numberBoxWidth;
+      addText(svg,textX,lineY-0.35,label,{fill:markerColor,"font-size":roundMm(fontSize),"text-anchor":"end"});
+      return numberBoxWidth+gap;
+    }
+    drawMarkerAsset(svg,style,x,top,size,markerColor);
+    return size+2.2;
+  }
+  for(let i=0;i<rowCount;i++){
+    const y=rect.y+step*(i+1);
+    if(y>rect.y+rect.height+0.01) continue;
+    let x1=rect.x;
+    if(config.checkbox) x1=rect.x+drawMarker(rect.x,y,i);
+    addRule(svg,x1,y,rect.x+rect.width,y,state.lineColor,gridStroke);
+  }
+}
+function drawSheetByType(svg,rect,sheetType,config=state){
+  if(sheetType==="rayada") drawLined(svg,rect,config);
+  if(sheetType==="punteada") drawDots(svg,rect,config);
+  if(sheetType==="cuadriculada") drawGridSheet(svg,rect,config);
+  if(sheetType==="lista") drawList(svg,rect,config);
+}
+function getSplitRects(rect){
+  const safeGap=Math.min(SPLIT_ZONE_GAP_MM,Math.max(0,rect.height-2));
+  const totalHeight=Math.max(0,rect.height-safeGap);
+  const ratio=clamp((+state.splitRatio||50)/100,0.2,0.8);
+  const topHeight=roundMm(totalHeight*ratio);
+  const bottomHeight=Math.max(0,roundMm(totalHeight-topHeight));
+  return {
+    top:{x:rect.x,y:rect.y,width:rect.width,height:topHeight},
+    bottom:{x:rect.x,y:rect.y+topHeight+safeGap,width:rect.width,height:bottomHeight}
+  };
+}
+
+function getExportLayoutState(face="front"){
+  if(face!=="back") return state;
+  if(state.armado!=="anillado") return state;
+  return {
+    ...state,
+    bindingSide:state.bindingSide==="left"?"right":"left",
+    marginLeft:state.marginRight,
+    marginRight:state.marginLeft
+  };
+}
+function buildSheetSvg(face="front"){
+  const pageSize=getPageSize();
+  const svg=el("svg");
+  configureSvgCanvas(svg,pageSize);
+  buildSheetContent(svg,getRects(pageSize,getExportLayoutState(face)));
+  return svg;
+}
+
+function configureSvgCanvas(svg,pageSize){
+  svg.setAttribute("xmlns","http://www.w3.org/2000/svg");
+  svg.setAttribute("viewBox",`0 0 ${roundMm(pageSize.width)} ${roundMm(pageSize.height)}`);
+  svg.setAttribute("shape-rendering","geometricPrecision");
+  svg.setAttribute("text-rendering","geometricPrecision");
+}
+function buildSheetContent(svg,rectInfo){
+  rectInfo.usableRects.forEach(rect=>{
+    if(state.layoutMode==="single"){
+      drawSheetByType(svg,rect,state.sheetType,state);
+      return;
+    }
+    const splitRects=getSplitRects(rect);
+    if(splitRects.top.height>0) drawSheetByType(svg,splitRects.top,state.splitTopSheetType,state.splitConfigs.top);
+    if(splitRects.bottom.height>0) drawSheetByType(svg,splitRects.bottom,state.splitBottomSheetType,state.splitConfigs.bottom);
+  });
+}
+function renderPreview(){
+  if(stateNeedsMarkerAssets()&&!markerAssetsReady){
+    ensureMarkerAssetsReady().then(()=>renderPreview());
+    return;
+  }
+  const pageSize=getPageSize(),previewLayoutState=getExportLayoutState(state.previewFace),rectInfo=getRects(pageSize,previewLayoutState),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta";
+  const singleSheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
+  const topSheetLabel=(SHEETS.find(([id])=>id===state.splitTopSheetType)||[])[1]||"Rayada";
+  const bottomSheetLabel=(SHEETS.find(([id])=>id===state.splitBottomSheetType)||[])[1]||"Punteada";
+  const sheetLabel=state.layoutMode==="single"?singleSheetLabel:`Dividida (${topSheetLabel} / ${bottomSheetLabel})`;
+  const printModeLabel=state.printMode==="duplex"?"Ambas caras":"Una cara";
+  const previewFaceLabel=state.printMode==="duplex"?(state.previewFace==="back"?" · Reverso":" · Frente"):"";
+  document.getElementById("previewMeta").textContent=`${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · ${armadoLabel} · ${printModeLabel}`;
+  const previewFaceToggle=document.getElementById("previewFaceToggle");
+  if(previewFaceToggle) previewFaceToggle.hidden=state.printMode!=="duplex";
+  const previewFrontBtn=document.getElementById("previewFrontBtn");
+  const previewBackBtn=document.getElementById("previewBackBtn");
+  if(previewFrontBtn) previewFrontBtn.classList.toggle("active",state.previewFace==="front");
+  if(previewBackBtn) previewBackBtn.classList.toggle("active",state.previewFace==="back");
+  const previewSummary=document.getElementById("previewSummary");
+  if(previewSummary){
+    previewSummary.innerHTML=`<div><strong>Proyecto:</strong> ${state.projectName} · <strong>Formato:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm · <strong>Hoja:</strong> ${sheetLabel}</div><div><strong>Armado:</strong> ${armadoLabel} · <strong>Impresión:</strong> ${printModeLabel}${previewFaceLabel} · <strong>Márgenes:</strong> ${previewLayoutState.marginTop}/${previewLayoutState.marginBottom}/${previewLayoutState.marginLeft}/${previewLayoutState.marginRight} mm</div>`;
+  }
+  const zoomLabel=document.getElementById("zoomLabel");
+  if(zoomLabel) zoomLabel.textContent=`${Math.round(state.previewZoom*100)}%`;
+
+  const previewSvg=document.getElementById("previewSvg"),exportSvg=document.getElementById("exportSvg"),canvasWrap=document.querySelector(".canvas-wrap");
+  const availableW=Math.max(520,(canvasWrap?.clientWidth||980)-18),availableH=Math.max(520,(window.innerHeight||900)-170),baseScale=Math.min(availableW/pageSize.width,availableH/pageSize.height),previewScale=baseScale*state.previewZoom;
+  previewSvg.setAttribute("width",roundMm(pageSize.width*previewScale));
+  previewSvg.setAttribute("height",roundMm(pageSize.height*previewScale));
+  exportSvg.setAttribute("width",roundMm(pageSize.width));
+  exportSvg.setAttribute("height",roundMm(pageSize.height));
+  configureSvgCanvas(previewSvg,pageSize);
+  configureSvgCanvas(exportSvg,pageSize);
+  previewSvg.innerHTML="";
+  exportSvg.innerHTML="";
+
+  buildSheetContent(exportSvg,rectInfo);
+
+  addRect(previewSvg,0,0,pageSize.width,pageSize.height,{fill:"#ffffff",rx:0,ry:0,stroke:"#D8DEE6","stroke-width":0.45});
+  rectInfo.reserved.forEach(zone=>addRect(previewSvg,zone.x,zone.y,zone.width,zone.height,{fill:"#ffe4e6",stroke:"#fecdd3","stroke-width":0.35}));
+  if(state.armado==="cuadernillo"&&rectInfo.foldX){
+    addLine(previewSvg,rectInfo.foldX,0,rectInfo.foldX,pageSize.height,"#fb7185",0.6,{"stroke-dasharray":"7 6"});
+  }
+  rectInfo.usableRects.forEach(rect=>addRect(previewSvg,rect.x,rect.y,rect.width,rect.height,{fill:"#ecfdf5",stroke:"#bbf7d0","stroke-width":0.35,"fill-opacity":"0.45"}));
+  if(state.layoutMode==="split"){
+    rectInfo.usableRects.forEach(rect=>{
+      const splitRects=getSplitRects(rect);
+      if(splitRects.top.height>0){
+        addRect(previewSvg,splitRects.top.x,splitRects.top.y,splitRects.top.width,splitRects.top.height,{fill:"#ecfeff",stroke:"#99f6e4","stroke-width":0.25,"fill-opacity":"0.18"});
+      }
+      if(splitRects.bottom.height>0){
+        addRect(previewSvg,splitRects.bottom.x,splitRects.bottom.y,splitRects.bottom.width,splitRects.bottom.height,{fill:"#f5f3ff",stroke:"#c4b5fd","stroke-width":0.25,"fill-opacity":"0.18"});
+      }
+      const dividerY=splitRects.top.y+splitRects.top.height+(SPLIT_ZONE_GAP_MM/2);
+      addLine(previewSvg,rect.x,dividerY,rect.x+rect.width,dividerY,"#a78bfa",0.35,{"stroke-dasharray":"3 2"});
+    });
+  }
+  Array.from(exportSvg.childNodes).forEach(node=>previewSvg.appendChild(cloneNodeForPreview(node,previewScale)));
+  updateExportSummary();
+}
+
+function populateChoices(){
+  document.getElementById("sizePreset").innerHTML=Object.keys(SIZE_PRESETS).map(k=>`<option ${state.sizePreset===k?'selected':''}>${k}</option>`).join("");
+  document.getElementById("armadoChoices").innerHTML=ARMADOS.map(([id,label])=>`<button class="choice ${state.armado===id?'active-rose':''}" data-armado="${id}">${label}</button>`).join("");
+  document.getElementById("sheetChoices").innerHTML=SHEETS.map(([id,label])=>`<button class="choice ${state.sheetType===id?'active-green':''}" data-sheet="${id}">${label}</button>`).join("");
+  document.getElementById("splitTopSheetType").innerHTML=SHEETS.map(([id,label])=>`<option value="${id}" ${state.splitTopSheetType===id?'selected':''}>${label}</option>`).join("");
+  document.getElementById("splitBottomSheetType").innerHTML=SHEETS.map(([id,label])=>`<option value="${id}" ${state.splitBottomSheetType===id?'selected':''}>${label}</option>`).join("");
+}
+function renderLayoutModeFields(){
+  const isSplit=state.layoutMode==="split";
+  const single=document.getElementById("singleSheetConfig");
+  const split=document.getElementById("splitSheetConfig");
+  if(single) single.hidden=isSplit;
+  if(split) split.hidden=!isSplit;
+  const ratioInput=document.getElementById("splitRatio");
+  const ratioLabel=document.getElementById("splitRatioLabel");
+  if(ratioInput) ratioInput.value=String(state.splitRatio);
+  if(ratioLabel){
+    const top=clamp(+state.splitRatio||50,20,80);
+    ratioLabel.textContent=`${top}% / ${100-top}%`;
+  }
+}
+function renderArmadoExtra(){
+  const div=document.getElementById("armadoExtra");
+  if(state.armado==="anillado"){
+    div.innerHTML=`<div class="row2"><div class="field"><label>Lado del anillado</label><select id="bindingSideExtra"><option value="left" ${state.bindingSide==='left'?'selected':''}>Izquierda</option><option value="right" ${state.bindingSide==='right'?'selected':''}>Derecha</option></select></div><div class="field"><label>Zona reservada (mm)</label><input id="bindingReserveExtra" type="number" min="0" max="50" value="${state.bindingReserve}"></div></div>`;
+  } else if(state.armado==="cuadernillo"){
+    div.innerHTML=`<div class="row2"><div class="field"><label>Margen exterior (mm)</label><input id="marginOuterExtra" type="number" min="0" max="40" value="${state.marginOuter}"></div><div class="field"><label>Margen central (mm)</label><input id="marginCenterExtra" type="number" min="0" max="40" value="${state.marginCenter}"></div></div>`;
+  } else if(state.armado==="block"){
+    div.innerHTML=`<div class="field"><label>Zona superior reservada (mm)</label><input id="blockTopReserveExtra" type="number" min="0" max="40" value="${state.blockTopReserve}"></div>`;
+  } else div.innerHTML="";
+}
+function renderMarginsExtra(){
+  const div=document.getElementById("marginsExtra");
+  if(state.armado==="cuadernillo"){div.innerHTML=""; return;}
+  if(state.armado==="block"){
+    div.innerHTML=`<div class="field"><label>Margen lateral (mm)</label><input id="marginLeftExtra" type="number" min="0" max="50" value="${state.marginLeft}"></div>`;
+  } else {
+    div.innerHTML=`<div class="row2"><div class="field"><label>Izquierdo (mm)</label><input id="marginLeftExtra" type="number" min="0" max="50" value="${state.marginLeft}"></div><div class="field"><label>Derecho (mm)</label><input id="marginRightExtra" type="number" min="0" max="50" value="${state.marginRight}"></div></div>`;
+  }
+}
+function contentFieldsByType(sheetType,config,prefix,zoneLabel=""){
+  const title=zoneLabel?`<div class="modal-section-title" style="margin:2px 0 6px">${zoneLabel}</div>`:"";
+  if(sheetType==="rayada"){
+    return `${title}<div class="field"><label>Separación entre líneas (mm)</label><input id="${prefix}lineSpacingExtra" type="number" min="3" max="20" value="${config.lineSpacing}"></div><label class="toggle"><span>Mostrar primera línea doble</span><input id="${prefix}showTopGuideExtra" type="checkbox" ${config.showTopGuide?'checked':''}></label>${config.showTopGuide?`<div class="field"><label>Separación de línea doble</label><select id="${prefix}firstLineGapExtra"><option value="0.5" ${String(config.firstLineGap)==='0.5'?'selected':''}>0.5 mm</option><option value="1" ${String(config.firstLineGap)==='1'?'selected':''}>1 mm</option></select></div>`:''}<label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitLinesToSpaceExtra" type="checkbox" ${config.fitLinesToSpace?'checked':''}></label>`;
+  }
+  if(sheetType==="punteada"){
+    return `${title}<div class="field"><label>Separación entre puntos (mm)</label><input id="${prefix}dotGapExtra" type="number" min="3" max="20" value="${config.dotGapX}"></div><div class="field"><label>Tamaño del punto</label><input id="${prefix}dotSizeExtra" type="number" min="0.05" max="2" step="0.05" value="${config.dotSize}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitDotsToSpaceExtra" type="checkbox" ${config.fitDotsToSpace?'checked':''}></label>`;
+  }
+  if(sheetType==="cuadriculada"){
+    return `${title}<div class="field"><label>Tamaño del cuadro (mm)</label><input id="${prefix}gridSizeExtra" type="number" min="4" max="20" value="${config.gridSize}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitGridToSpaceExtra" type="checkbox" ${config.fitGridToSpace?'checked':''}></label><label class="toggle"><span>Espacio superior para fecha o datos</span><input id="${prefix}gridHeaderEnabledExtra" type="checkbox" ${config.gridHeaderEnabled?'checked':''}></label>${config.gridHeaderEnabled?`<div class="field"><label>Altura del espacio superior (mm)</label><input id="${prefix}gridHeaderHeightExtra" type="number" min="6" max="40" value="${config.gridHeaderHeight}"></div>`:''}<label class="toggle"><span>Usar esquinas boleadas</span><input id="${prefix}gridRoundedCornersExtra" type="checkbox" ${config.gridRoundedCorners?'checked':''}></label>`;
+  }
+  return `${title}<div class="field"><label>Separación entre renglones (mm)</label><input id="${prefix}listSpacingExtra" type="number" min="6" max="20" value="${config.listSpacing}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitListToSpaceExtra" type="checkbox" ${config.fitListToSpace?'checked':''}></label><label class="toggle"><span>Incluir marcador</span><input id="${prefix}checkboxExtra" type="checkbox" ${config.checkbox?'checked':''}></label>${config.checkbox?`<div class="field"><label>Tipo de marcador</label>${markerPickerHtml(config.listMarkerStyle,config.listMarkerColor,prefix||"single")}</div>${config.listMarkerStyle==='numerado'?`<div class="field"><label>Tamaño del número</label><input id="${prefix}listMarkerFontSizeExtra" type="number" min="3" max="18" step="0.5" value="${config.listMarkerFontSize}"></div><div class="field"><label>Color del número</label><input id="${prefix}listMarkerColorExtra" type="color" value="${config.listMarkerColor}"></div>`:`<div class="field"><label>Tamaño del ícono (mm)</label><input id="${prefix}listMarkerSizeExtra" type="number" min="2" max="10" step="0.5" value="${config.listMarkerSize}"></div><div class="field"><label>Color del ícono</label><input id="${prefix}listMarkerColorExtra" type="color" value="${config.listMarkerColor}"></div>`}`:''}`;
+}
+function renderContentFields(){
+  const div=document.getElementById("contentFields");
+  if(state.layoutMode==="single"){
+    div.innerHTML=contentFieldsByType(state.sheetType,state,"");
+    return;
+  }
+  div.innerHTML=`${contentFieldsByType(state.splitTopSheetType,state.splitConfigs.top,"top","Zona superior")}<div style="height:8px"></div>${contentFieldsByType(state.splitBottomSheetType,state.splitConfigs.bottom,"bottom","Zona inferior")}`;
+}
+function syncBasic(){
+  document.getElementById('projectName').value=state.projectName;
+  document.getElementById('sizePreset').value=state.sizePreset;
+  document.getElementById('orientation').value=state.orientation;
+  document.getElementById('customWidth').value=state.customWidth;
+  document.getElementById('customHeight').value=state.customHeight;
+  document.getElementById('customSizeRow').style.display=state.sizePreset==='Personalizado'?'grid':'none';
+  document.getElementById('marginTop').value=state.marginTop;
+  document.getElementById('marginBottom').value=state.marginBottom;
+  document.getElementById('lineColor').value=state.lineColor;
+  document.getElementById('strokeWidth').value=state.strokeWidth;
+  const exportFormat=document.getElementById('exportFormat');
+  const exportQuality=document.getElementById('exportQuality');
+  if(exportFormat) exportFormat.value=state.exportFormat;
+  if(exportQuality) exportQuality.value=state.exportQuality;
+  const printModeConfig=document.getElementById('printModeConfig');
+  if(printModeConfig) printModeConfig.value=state.printMode;
+  const printMode=document.getElementById('printMode');
+  if(printMode) printMode.value=state.printMode;
+  const layoutMode=document.getElementById('layoutMode');
+  if(layoutMode) layoutMode.value=state.layoutMode;
+}
+function updateUI(){
+  if(state.printMode!=="duplex") state.previewFace="front";
+  populateChoices();
+  renderLayoutModeFields();
+  renderArmadoExtra();
+  renderMarginsExtra();
+  renderContentFields();
+  syncBasic();
+  renderPreview();
+  bindDynamic();
+}
+function setArmado(id){
+  state.armado=id;
+  if(id==='suelta'){
+    state.marginLeft=7;
+    state.marginRight=7;
+  }
+  if(id==='anillado'){
+    state.bindingReserve=11;
+    if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;}
+    if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;}
+  }
+  if(id==='block'){
+    state.blockTopReserve=11;
+    state.marginLeft=7;
+    state.marginRight=7;
+  }
+  updateUI();
+}
+
+function snapRasterEdgeMm(value,dpi){const scale=pxPerMm(dpi); return Math.round(value*scale)/scale;}
+function snapRasterCenterMm(value,dpi){const scale=pxPerMm(dpi); return (Math.round(value*scale-0.5)+0.5)/scale;}
+function snapStrokeWidthMm(value,dpi){const scale=pxPerMm(dpi); return Math.max(1,Math.round(Math.max(value,0.05)*scale))/scale;}
+function getRasterStrokeWidthMm(node,value,dpi,rasterStrokeConfig={}){
+  const base=snapStrokeWidthMm(value,dpi);
+  const role=(node&&node.getAttribute?node.getAttribute('data-role'):'')||'';
+  const frameMin=Math.max(0,Number(rasterStrokeConfig.frameMin)||0);
+  const iconMin=Math.max(0,Number(rasterStrokeConfig.iconMin)||0);
+  let boosted=base;
+  if(role==='frame-outline') boosted=Math.max(boosted,roundMm(frameMin));
+  if(role==='marker-outline') boosted=Math.max(boosted,roundMm(iconMin));
+  return roundMm(boosted);
+}
+function convertRuleRectsToLines(root){
+  root.querySelectorAll('rect[data-role="rule-rect"]').forEach(rect=>{
+    const orientation=rect.getAttribute('data-orientation');
+    const x=Number(rect.getAttribute('x'))||0;
+    const y=Number(rect.getAttribute('y'))||0;
+    const w=Number(rect.getAttribute('width'))||0;
+    const h=Number(rect.getAttribute('height'))||0;
+    const fill=rect.getAttribute('fill')||state.lineColor;
+    const line=el('line',{
+      stroke:fill,
+      'stroke-width':roundMm(orientation==='h'?h:w),
+      'data-role':'rule-line',
+      'stroke-linecap':'butt',
+      'stroke-linejoin':'miter'
+    });
+    if(orientation==='h'){
+      const cy=y+(h/2);
+      line.setAttribute('x1',String(roundMm(x)));
+      line.setAttribute('y1',String(roundMm(cy)));
+      line.setAttribute('x2',String(roundMm(x+w)));
+      line.setAttribute('y2',String(roundMm(cy)));
+    } else if(orientation==='v'){
+      const cx=x+(w/2);
+      line.setAttribute('x1',String(roundMm(cx)));
+      line.setAttribute('y1',String(roundMm(y)));
+      line.setAttribute('x2',String(roundMm(cx)));
+      line.setAttribute('y2',String(roundMm(y+h)));
+    } else {
+      return;
+    }
+    rect.replaceWith(line);
+  });
+  return root;
+}
+
+function normalizeSvgForExport(svg,{forRaster=false,dpi=300,includeBackground=false,rasterStrokeConfig=null}={}){
+  const pageSize=getPageSize();
+  const rasterWidth=mmToPx(pageSize.width,dpi);
+  const rasterHeight=mmToPx(pageSize.height,dpi);
+  svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  svg.setAttribute('width',forRaster?String(rasterWidth):`${roundMm(pageSize.width)}mm`);
+  svg.setAttribute('height',forRaster?String(rasterHeight):`${roundMm(pageSize.height)}mm`);
+  svg.setAttribute('viewBox',`0 0 ${roundMm(pageSize.width)} ${roundMm(pageSize.height)}`);
+  svg.setAttribute('preserveAspectRatio','none');
+  svg.setAttribute('shape-rendering',forRaster?'geometricPrecision':'geometricPrecision');
+  svg.setAttribute('text-rendering','geometricPrecision');
+  svg.setAttribute('version','1.1');
+  if(includeBackground){
+    const bg=el('rect',{x:0,y:0,width:roundMm(pageSize.width),height:roundMm(pageSize.height),fill:'#ffffff',stroke:'none','data-role':'page-bg'});
+    svg.insertBefore(bg,svg.firstChild);
+  }
+  const nodes=svg.querySelectorAll('*');
+  nodes.forEach(node=>{
+    if(node.hasAttribute('stroke-width')){
+      const sw=Number(node.getAttribute('stroke-width'))||0;
+      node.setAttribute('stroke-width',String(roundMm(forRaster?getRasterStrokeWidthMm(node,sw,dpi,rasterStrokeConfig||{}):sw)));
+      node.setAttribute('vector-effect','non-scaling-stroke');
+      node.setAttribute('stroke-linecap',node.getAttribute('stroke-linecap')||'butt');
+      node.setAttribute('stroke-linejoin',node.getAttribute('stroke-linejoin')||'miter');
+    }
+    if(node.tagName.toLowerCase()==='rect' && node.getAttribute('data-role')==='rule-rect'){
+      const x=Number(node.getAttribute('x'))||0;
+      const y=Number(node.getAttribute('y'))||0;
+      const w=Number(node.getAttribute('width'))||0;
+      const h=Number(node.getAttribute('height'))||0;
+      const orientation=node.getAttribute('data-orientation');
+      if(forRaster){
+        const minStep=1/pxPerMm(dpi);
+        if(orientation==='h'){
+          const left=snapRasterEdgeMm(x,dpi);
+          const right=snapRasterEdgeMm(x+w,dpi);
+          const snappedHeight=Math.max(minStep,getRasterStrokeWidthMm(node,h,dpi,rasterStrokeConfig||{}));
+          const centerY=snapRasterCenterMm(y+(h/2),dpi);
+          node.setAttribute('x',String(roundMm(left)));
+          node.setAttribute('y',String(roundMm(centerY-(snappedHeight/2))));
+          node.setAttribute('width',String(roundMm(Math.max(minStep,right-left))));
+          node.setAttribute('height',String(roundMm(snappedHeight)));
+        } else if(orientation==='v'){
+          const top=snapRasterEdgeMm(y,dpi);
+          const bottom=snapRasterEdgeMm(y+h,dpi);
+          const snappedWidth=Math.max(minStep,getRasterStrokeWidthMm(node,w,dpi,rasterStrokeConfig||{}));
+          const centerX=snapRasterCenterMm(x+(w/2),dpi);
+          node.setAttribute('x',String(roundMm(centerX-(snappedWidth/2))));
+          node.setAttribute('y',String(roundMm(top)));
+          node.setAttribute('width',String(roundMm(snappedWidth)));
+          node.setAttribute('height',String(roundMm(Math.max(minStep,bottom-top))));
+        } else {
+          const left=snapRasterEdgeMm(x,dpi);
+          const right=snapRasterEdgeMm(x+w,dpi);
+          const top=snapRasterEdgeMm(y,dpi);
+          const bottom=snapRasterEdgeMm(y+h,dpi);
+          node.setAttribute('x',String(roundMm(left)));
+          node.setAttribute('y',String(roundMm(top)));
+          node.setAttribute('width',String(roundMm(Math.max(minStep,right-left))));
+          node.setAttribute('height',String(roundMm(Math.max(minStep,bottom-top))));
+        }
+      }
+      node.setAttribute('fill-opacity','1');
+      node.setAttribute('opacity','1');
+      node.setAttribute('shape-rendering',forRaster?'crispEdges':'geometricPrecision');
+      return;
+    }
+    if(node.tagName.toLowerCase()==='text') node.setAttribute('text-rendering','geometricPrecision');
+  });
+  return svg;
+}
+function buildExportSvgElement({includeBackground=false,optimizeForRaster=false,dpi=300,face="front",rasterStrokeConfig=null}={}){
+  const svg=buildSheetSvg(face);
+  if(!optimizeForRaster) convertRuleRectsToLines(svg);
+  return normalizeSvgForExport(svg,{forRaster:optimizeForRaster,dpi,includeBackground,rasterStrokeConfig});
+}
+function svgElementToMarkup(svg){
+  const markup=new XMLSerializer().serializeToString(svg);
+  return markup.startsWith('<?xml')?markup:`<?xml version="1.0" encoding="UTF-8"?>\n${markup}`;
+}
+function downloadBlob(blob,filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),600);
+}
+async function exportSvgToCanvas({transparent=true,dpi=300,face="front",renderScale=1,rasterStrokeConfig=null}={}){
+  const pageSize=getPageSize();
+  const safeRenderScale=Math.max(1,Number(renderScale)||1);
+  const renderDpi=Math.round(dpi*safeRenderScale);
+  const targetWidth=mmToPx(pageSize.width,renderDpi);
+  const targetHeight=mmToPx(pageSize.height,renderDpi);
+  const svg=buildExportSvgElement({includeBackground:!transparent,optimizeForRaster:true,dpi:renderDpi,face,rasterStrokeConfig});
+  const markup=svgElementToMarkup(svg);
+  const blob=new Blob([markup],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  try{
+    const img=await new Promise((resolve,reject)=>{
+      const image=new Image();
+      image.decoding='sync';
+      image.onload=()=>resolve(image);
+      image.onerror=reject;
+      image.src=url;
+    });
+    const canvas=document.createElement('canvas');
+    canvas.width=targetWidth;
+    canvas.height=targetHeight;
+    const ctx=canvas.getContext('2d',{alpha:true});
+    ctx.imageSmoothingEnabled=false;
+    if('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality='high';
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(!transparent){
+      ctx.fillStyle='#ffffff';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
+    ctx.drawImage(img,0,0,targetWidth,targetHeight);
+    return canvas;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function pngReadU32(bytes,offset){return ((bytes[offset]<<24)>>>0)|((bytes[offset+1]<<16)>>>0)|((bytes[offset+2]<<8)>>>0)|(bytes[offset+3]>>>0);}
+function pngWriteU32(value){return new Uint8Array([(value>>>24)&255,(value>>>16)&255,(value>>>8)&255,value&255]);}
+function crc32(bytes){
+  let crc=0xffffffff;
+  for(let i=0;i<bytes.length;i++){
+    crc^=bytes[i];
+    for(let j=0;j<8;j++) crc=(crc&1)?(0xedb88320^(crc>>>1)):(crc>>>1);
+  }
+  return (crc^0xffffffff)>>>0;
+}
+function makePngChunk(type,data){
+  const typeBytes=new TextEncoder().encode(type);
+  const chunk=new Uint8Array(12+data.length);
+  chunk.set(pngWriteU32(data.length),0);
+  chunk.set(typeBytes,4);
+  chunk.set(data,8);
+  const crcBytes=new Uint8Array(typeBytes.length+data.length);
+  crcBytes.set(typeBytes,0);
+  crcBytes.set(data,typeBytes.length);
+  chunk.set(pngWriteU32(crc32(crcBytes)),8+data.length);
+  return chunk;
+}
+async function setPngDpi(blob,dpi){
+  const bytes=new Uint8Array(await blob.arrayBuffer());
+  const signature=bytes.slice(0,8);
+  const ppm=Math.round(dpi/0.0254);
+  const physData=new Uint8Array(9);
+  physData.set(pngWriteU32(ppm),0);
+  physData.set(pngWriteU32(ppm),4);
+  physData[8]=1;
+  const physChunk=makePngChunk('pHYs',physData);
+  const out=[signature];
+  let offset=8;
+  let inserted=false;
+  while(offset<bytes.length){
+    const length=pngReadU32(bytes,offset);
+    const type=String.fromCharCode(...bytes.slice(offset+4,offset+8));
+    const end=offset+12+length;
+    const chunk=bytes.slice(offset,end);
+    if(type==='pHYs'){
+      if(!inserted){out.push(physChunk); inserted=true;}
+    } else {
+      out.push(chunk);
+      if(type==='IHDR'&&!inserted){out.push(physChunk); inserted=true;}
+    }
+    offset=end;
+  }
+  return new Blob(out,{type:'image/png'});
+}
+
+async function exportPng(scale=4){
+  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
+  const canvas=await exportSvgToCanvas({transparent:true,dpi:PNG_BASE_DPI,renderScale:Math.max(1,Number(scale)||1)});
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+  downloadBlob(blob,`${sanitizeFileName(state.projectName)}.png`);
+}
+async function exportPdfRaster(dpi){
+  const rasterRenderScale=3;
+  const {gridStroke}=getStrokeSet(state);
+  const rasterStrokeConfig={frameMin:Math.max(gridStroke,0.38),iconMin:Math.max(gridStroke,0.40)};
+  const pageSize=getPageSize();
+  if(!window.jspdf||!window.jspdf.jsPDF) throw new Error('El motor PDF no está disponible en esta sesión.');
+  const { jsPDF } = window.jspdf;
+  const pdf=new jsPDF({orientation:pageSize.width>pageSize.height?'landscape':'portrait',unit:'mm',format:[pageSize.width,pageSize.height],compress:true,precision:12});
+  const frontCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"front",renderScale:rasterRenderScale,rasterStrokeConfig});
+  pdf.addImage(frontCanvas.toDataURL('image/png'),'PNG',0,0,pageSize.width,pageSize.height,undefined,'NONE');
+  if(state.printMode==="duplex"){
+    const backCanvas=await exportSvgToCanvas({transparent:false,dpi,face:"back",renderScale:rasterRenderScale,rasterStrokeConfig});
+    pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
+    pdf.addImage(backCanvas.toDataURL('image/png'),'PNG',0,0,pageSize.width,pageSize.height,undefined,'NONE');
+  }
+  pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
+}
+function parseColorValue(value){
+  if(!value||value==='none'||value==='transparent') return null;
+  const raw=String(value).trim();
+  if(raw.startsWith('#')){
+    const hex=raw.slice(1);
+    if(hex.length===3){
+      return {r:parseInt(hex[0]+hex[0],16),g:parseInt(hex[1]+hex[1],16),b:parseInt(hex[2]+hex[2],16)};
+    }
+    if(hex.length===6){
+      return {r:parseInt(hex.slice(0,2),16),g:parseInt(hex.slice(2,4),16),b:parseInt(hex.slice(4,6),16)};
+    }
+  }
+  const rgb=raw.match(/rgba?\(([^)]+)\)/i);
+  if(rgb){
+    const parts=rgb[1].split(',').map(part=>Number(part.trim()));
+    return {r:Math.round(parts[0]||0),g:Math.round(parts[1]||0),b:Math.round(parts[2]||0)};
+  }
+  return null;
+}
+function getPdfPaint(node){
+  const stroke=parseColorValue(node.getAttribute('stroke'));
+  const fill=parseColorValue(node.getAttribute('fill'));
+  const lineWidth=Math.max(0.05,Number(node.getAttribute('stroke-width'))||0.2);
+  if(stroke){
+    try{ pdfCurrent.setDrawColor(stroke.r,stroke.g,stroke.b); }catch(_){}
+    try{ pdfCurrent.setLineWidth(lineWidth); }catch(_){}
+    try{ pdfCurrent.setLineCap('butt'); }catch(_){}
+    try{ pdfCurrent.setLineJoin('miter'); }catch(_){}
+  }
+  if(fill){
+    try{ pdfCurrent.setFillColor(fill.r,fill.g,fill.b); }catch(_){}
+  }
+  let mode='S';
+  if(fill&&stroke) mode='FD';
+  else if(fill) mode='F';
+  else if(stroke) mode='S';
+  else mode=null;
+  return {stroke,fill,lineWidth,mode};
+}
+let pdfCurrent=null;
+function tokenizeSvgPath(d){
+  return String(d||'').match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g)||[];
+}
+function svgPathToPdfOps(d){
+  const tokens=tokenizeSvgPath(d);
+  const ops=[];
+  let i=0, cmd='';
+  while(i<tokens.length){
+    const token=tokens[i++];
+    if(/[a-zA-Z]/.test(token)){ cmd=token; }
+    else { i--; }
+    if(cmd==='M'){ const x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'m', c:[x,y]}); cmd='L'; continue; }
+    if(cmd==='L'){ const x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'l', c:[x,y]}); continue; }
+    if(cmd==='C'){ const x1=Number(tokens[i++]), y1=Number(tokens[i++]), x2=Number(tokens[i++]), y2=Number(tokens[i++]), x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'c', c:[x1,y1,x2,y2,x,y]}); continue; }
+    if(cmd==='Z'||cmd==='z'){ ops.push({op:'h', c:[]}); continue; }
+    if(cmd==='m'){ const x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'m', c:[x,y]}); cmd='l'; continue; }
+    if(cmd==='l'){ const x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'l', c:[x,y]}); continue; }
+    if(cmd==='c'){ const x1=Number(tokens[i++]), y1=Number(tokens[i++]), x2=Number(tokens[i++]), y2=Number(tokens[i++]), x=Number(tokens[i++]), y=Number(tokens[i++]); ops.push({op:'c', c:[x1,y1,x2,y2,x,y]}); continue; }
+    break;
+  }
+  return ops;
+}
+function drawSvgNodeToPdf(node){
+  if(!node||node.nodeType!==1) return;
+  const tag=node.tagName.toLowerCase();
+  if(tag==='defs'||tag==='clippath') return;
+  if(tag==='svg'||tag==='g'){ Array.from(node.childNodes).forEach(drawSvgNodeToPdf); return; }
+  const paint=getPdfPaint(node);
+  if(!paint.mode&&tag!=='text') return;
+  if(tag==='line'){
+    const x1=Number(node.getAttribute('x1'))||0, y1=Number(node.getAttribute('y1'))||0, x2=Number(node.getAttribute('x2'))||0, y2=Number(node.getAttribute('y2'))||0;
+    if(paint.stroke) pdfCurrent.line(x1,y1,x2,y2);
+    return;
+  }
+  if(tag==='rect'){
+    const x=Number(node.getAttribute('x'))||0, y=Number(node.getAttribute('y'))||0, w=Number(node.getAttribute('width'))||0, h=Number(node.getAttribute('height'))||0, rx=Number(node.getAttribute('rx'))||0, ry=Number(node.getAttribute('ry'))||rx;
+    if(rx||ry) pdfCurrent.roundedRect(x,y,w,h,rx,ry,paint.mode||'S'); else pdfCurrent.rect(x,y,w,h,paint.mode||'S');
+    return;
+  }
+  if(tag==='circle'){
+    const cx=Number(node.getAttribute('cx'))||0, cy=Number(node.getAttribute('cy'))||0, r=Number(node.getAttribute('r'))||0;
+    pdfCurrent.circle(cx,cy,r,paint.mode||'S');
+    return;
+  }
+  if(tag==='text'){
+    const fill=parseColorValue(node.getAttribute('fill'))||{r:31,g:41,b:55};
+    const fontSizeMm=Math.max(1,Number(node.getAttribute('font-size'))||3.5);
+    const anchor=node.getAttribute('text-anchor');
+    const align=anchor==='middle'?'center':anchor==='end'?'right':'left';
+    pdfCurrent.setTextColor(fill.r,fill.g,fill.b);
+    pdfCurrent.setFont('helvetica','normal');
+    pdfCurrent.setFontSize(fontSizeMm*72/25.4);
+    const x=Number(node.getAttribute('x'))||0, y=Number(node.getAttribute('y'))||0;
+    pdfCurrent.text(String(node.textContent||''),x,y,{align,baseline:'alphabetic'});
+    return;
+  }
+  if(tag==='path'){
+    const d=node.getAttribute('d');
+    const ops=svgPathToPdfOps(d);
+    if(ops.length&&typeof pdfCurrent.path==='function'){
+      pdfCurrent.path(ops,paint.mode||'S');
+    }
+    return;
+  }
+}
+async function exportPdfVector(){
+  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
+  const pageSize=getPageSize();
+  if(!window.jspdf||!window.jspdf.jsPDF) throw new Error('El motor PDF no está disponible en esta sesión.');
+  const { jsPDF } = window.jspdf;
+  const pdf=new jsPDF({orientation:pageSize.width>pageSize.height?'landscape':'portrait',unit:'mm',format:[pageSize.width,pageSize.height],compress:true,precision:12});
+  const frontSvg=buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"front"});
+  const backSvg=state.printMode==="duplex"?buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"back"}):null;
+  if(typeof pdf.svg==='function'){
+    await pdf.svg(frontSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
+    if(backSvg){
+      pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
+      await pdf.svg(backSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
+    }
+    pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
+    return;
+  }
+  pdfCurrent=pdf;
+  try{
+    drawSvgNodeToPdf(frontSvg);
+    if(backSvg){
+      pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
+      drawSvgNodeToPdf(backSvg);
+    }
+    pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
+  } finally {
+    pdfCurrent=null;
+  }
+}
+async function exportSvgFile(){
+  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
+  const svg=buildExportSvgElement({includeBackground:false,optimizeForRaster:false,face:"front"});
+  const blob=new Blob([svgElementToMarkup(svg)],{type:'image/svg+xml;charset=utf-8'});
+  downloadBlob(blob,`${sanitizeFileName(state.projectName)}.svg`);
+}
+
+function getSelectedQuality(){return QUALITY_PRESETS[state.exportQuality]||QUALITY_PRESETS.max;}
+function getSelectedFormat(){return FORMAT_META[state.exportFormat]||FORMAT_META["pdf-vector"];}
+function updateExportSummary(){
+  const quality=getSelectedQuality();
+  const format=getSelectedFormat();
+  const pageSize=getPageSize();
+  const formatHelp=document.getElementById('formatHelp');
+  const exportSummary=document.getElementById('exportSummary');
+  const pngDpi=PNG_BASE_DPI*Math.max(1,Number(quality.pngScale)||1);
+  const pxW=mmToPx(pageSize.width,pngDpi),pxH=mmToPx(pageSize.height,pngDpi);
+  const usage=USAGE_PRESETS[state.exportUsage]||USAGE_PRESETS.general;
+  const pagesInfo=(format.extension==="pdf"&&state.printMode==="duplex")?"2 páginas (frente y reverso automático).":"1 página.";
+  const rasterInfo=format.raster?`<strong>Resolución final:</strong> ${pxW} × ${pxH} px (escala ${quality.pngScale}x para PNG transparente).`:`<strong>Salida vectorial:</strong> mantiene líneas y formas sin rasterizar de forma innecesaria.`;
+  if(formatHelp){
+    formatHelp.innerHTML=`<strong>${format.label}</strong><br>${format.description}<br><br><strong>Calidad ${quality.label.toLowerCase()}</strong><br>${quality.description}`;
+  }
+  if(exportSummary){
+    exportSummary.innerHTML=`<strong>Tamaño final:</strong> ${pageSize.width.toFixed(0)} × ${pageSize.height.toFixed(0)} mm.<br><strong>Salida:</strong> ${pagesInfo}<br>${rasterInfo}<br><strong>Sugerencia activa:</strong> ${usage.title}. ${usage.note}`;
+  }
+  document.querySelectorAll('[data-usage]').forEach(btn=>btn.classList.toggle('active',btn.dataset.usage===state.exportUsage));
+}
+function applyUsagePreset(key){
+  const preset=USAGE_PRESETS[key]||USAGE_PRESETS.general;
+  state.exportUsage=key;
+  state.exportFormat=preset.format;
+  state.exportQuality=preset.quality;
+  syncBasic();
+  updateExportSummary();
+}
+function openExportModal(){
+  const modal=document.getElementById('exportModal');
+  modal.hidden=false;
+  document.body.classList.add('modal-open');
+  updateExportSummary();
+  const card=modal.querySelector('.modal-card');
+  if(card) card.scrollTop=0;
+  const firstField=document.getElementById('exportFormat');
+  if(firstField) setTimeout(()=>firstField.focus(),0);
+}
+function closeExportModal(){
+  const modal=document.getElementById('exportModal');
+  modal.hidden=true;
+  document.body.classList.remove('modal-open');
+  const trigger=document.getElementById('downloadBtn');
+  if(trigger) trigger.focus();
+}
+async function runExport(){
+  const quality=getSelectedQuality();
+  const confirmBtn=document.getElementById('confirmExportBtn');
+  confirmBtn.disabled=true;
+  const originalLabel=confirmBtn.textContent;
+  confirmBtn.textContent='Generando...';
+  try{
+    if(state.exportFormat==='png') await exportPng(quality.pngScale);
+    if(state.exportFormat==='pdf-vector') await exportPdfVector();
+    if(state.exportFormat==='svg') await exportSvgFile();
+    closeExportModal();
+  } catch(error){
+    console.error(error);
+    const detail=error&&error.message?`
+
+Detalle: ${error.message}`:'';
+    alert(`No se pudo generar el archivo.${detail}`);
+  } finally {
+    confirmBtn.disabled=false;
+    confirmBtn.textContent=originalLabel;
+  }
+}
+
+function bindStatic(){
+  document.getElementById('projectName').addEventListener('input',e=>{state.projectName=e.target.value; updateUI();});
+  document.getElementById('zoomOutBtn').addEventListener('click',()=>{state.previewZoom=Math.max(0.7, +(state.previewZoom-0.1).toFixed(2)); renderPreview();});
+  document.getElementById('zoomInBtn').addEventListener('click',()=>{state.previewZoom=Math.min(2.2, +(state.previewZoom+0.1).toFixed(2)); renderPreview();});
+  document.getElementById('zoomResetBtn').addEventListener('click',()=>{state.previewZoom=1; renderPreview();});
+  document.getElementById('sizePreset').addEventListener('change',e=>{state.sizePreset=e.target.value; updateUI();});
+  document.getElementById('orientation').addEventListener('change',e=>{state.orientation=e.target.value; updateUI();});
+  document.getElementById('customWidth').addEventListener('input',e=>{state.customWidth=+e.target.value; updateUI();});
+  document.getElementById('customHeight').addEventListener('input',e=>{state.customHeight=+e.target.value; updateUI();});
+  document.getElementById('marginTop').addEventListener('input',e=>{state.marginTop=+e.target.value; updateUI();});
+  document.getElementById('marginBottom').addEventListener('input',e=>{state.marginBottom=+e.target.value; updateUI();});
+  document.getElementById('lineColor').addEventListener('input',e=>{const previousLineColor=state.lineColor; state.lineColor=e.target.value; if(state.listMarkerColorLinked||state.listMarkerColor===previousLineColor) state.listMarkerColor=e.target.value; updateUI();});
+  document.getElementById('strokeWidth').addEventListener('input',e=>{state.strokeWidth=+e.target.value; updateUI();});
+
+  document.getElementById('downloadBtn').addEventListener('click',openExportModal);
+  document.getElementById('closeExportModalBtn').addEventListener('click',closeExportModal);
+  document.getElementById('cancelExportBtn').addEventListener('click',closeExportModal);
+  document.getElementById('exportModal').addEventListener('click',e=>{if(e.target.id==='exportModal') closeExportModal();});
+  document.getElementById('exportFormat').addEventListener('change',e=>{state.exportFormat=e.target.value; state.exportUsage='manual'; updateExportSummary();});
+  document.getElementById('exportQuality').addEventListener('change',e=>{state.exportQuality=e.target.value; state.exportUsage='manual'; updateExportSummary();});
+  document.getElementById('printModeConfig').addEventListener('change',e=>{state.printMode=e.target.value; updateUI();});
+  document.getElementById('printMode').addEventListener('change',e=>{state.printMode=e.target.value; if(state.printMode!=='duplex') state.previewFace='front'; syncBasic(); renderPreview(); updateExportSummary();});
+  document.getElementById('layoutMode').addEventListener('change',e=>{state.layoutMode=e.target.value; if(state.layoutMode==="split") state.sheetType=state.splitTopSheetType; updateUI();});
+  document.getElementById('splitTopSheetType').addEventListener('change',e=>{state.splitTopSheetType=e.target.value; if(state.layoutMode==="split") state.sheetType=state.splitTopSheetType; updateUI();});
+  document.getElementById('splitBottomSheetType').addEventListener('change',e=>{state.splitBottomSheetType=e.target.value; updateUI();});
+  document.getElementById('splitRatio').addEventListener('input',e=>{state.splitRatio=clamp(+e.target.value,20,80); renderLayoutModeFields(); renderPreview();});
+  document.getElementById('previewFrontBtn').addEventListener('click',()=>{state.previewFace='front'; renderPreview();});
+  document.getElementById('previewBackBtn').addEventListener('click',()=>{if(state.printMode!=='duplex') return; state.previewFace='back'; renderPreview();});
+  document.getElementById('confirmExportBtn').addEventListener('click',runExport);
+  document.querySelectorAll('[data-usage]').forEach(btn=>btn.addEventListener('click',()=>applyUsagePreset(btn.dataset.usage)));
+  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('exportModal').hidden) closeExportModal();});
+  window.addEventListener('keydown',e=>{if(e.key==='Tab'&&!document.getElementById('exportModal').hidden){const focusables=[...document.querySelectorAll('#exportModal button,#exportModal select,#exportModal input,[href],[tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled&&el.offsetParent!==null); if(!focusables.length) return; const first=focusables[0],last=focusables[focusables.length-1]; if(e.shiftKey&&document.activeElement===first){e.preventDefault(); last.focus();} else if(!e.shiftKey&&document.activeElement===last){e.preventDefault(); first.focus();}}});
+  let resizeRenderFrame=null;
+  window.addEventListener('resize',()=>{ if(resizeRenderFrame) cancelAnimationFrame(resizeRenderFrame); resizeRenderFrame=requestAnimationFrame(()=>renderPreview()); });
+}
+function bindDynamic(){
+  document.querySelectorAll('[data-armado]').forEach(btn=>btn.onclick=()=>setArmado(btn.dataset.armado));
+  document.querySelectorAll('[data-sheet]').forEach(btn=>btn.onclick=()=>{
+    if(state.layoutMode!=="single") return;
+    state.sheetType=btn.dataset.sheet;
+    if(state.sheetType==='rayada'){state.lineSpacing=7; state.showTopGuide=false; state.firstLineGap=0.5; state.fitLinesToSpace=true; state.lineColor='#94a3b8';}
+    if(state.sheetType==='punteada'){state.dotGapX=5; state.dotGapY=5; state.dotSize=0.2; state.fitDotsToSpace=true; state.lineColor='#000000';}
+    if(state.sheetType==='cuadriculada'){state.gridSize=5; state.fitGridToSpace=true; state.gridHeaderEnabled=false; state.gridHeaderHeight=12; state.gridRoundedCorners=true; state.lineColor='#94a3b8';}
+    if(state.sheetType==='lista'){state.listSpacing=9; state.fitListToSpace=true; state.checkbox=true; state.listMarkerStyle='cuadrado'; state.listMarkerFontSize=4.5; state.listMarkerSize=4; state.lineColor='#94a3b8'; state.listMarkerColor=state.lineColor; state.listMarkerColorLinked=true;}
+    updateUI();
+  });
+  const mLeft=document.getElementById('marginLeftExtra'),mRight=document.getElementById('marginRightExtra');
+  if(mLeft) mLeft.oninput=e=>{state.marginLeft=+e.target.value; if(state.armado==='block') state.marginRight=state.marginLeft; updateUI();};
+  if(mRight) mRight.oninput=e=>{state.marginRight=+e.target.value; updateUI();};
+  const bindSide=document.getElementById('bindingSideExtra');
+  if(bindSide) bindSide.onchange=e=>{state.bindingSide=e.target.value; state.bindingReserve=11; if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;} if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;} updateUI();};
+  const bindReserve=document.getElementById('bindingReserveExtra');
+  if(bindReserve) bindReserve.oninput=e=>{state.bindingReserve=+e.target.value; updateUI();};
+  const marginOuter=document.getElementById('marginOuterExtra');
+  if(marginOuter) marginOuter.oninput=e=>{state.marginOuter=+e.target.value; updateUI();};
+  const marginCenter=document.getElementById('marginCenterExtra');
+  if(marginCenter) marginCenter.oninput=e=>{state.marginCenter=+e.target.value; updateUI();};
+  const blockTop=document.getElementById('blockTopReserveExtra');
+  if(blockTop) blockTop.oninput=e=>{state.blockTopReserve=+e.target.value; updateUI();};
+  function bindContentConfig(prefix,target){
+    const lineSpacing=document.getElementById(`${prefix}lineSpacingExtra`);
+    if(lineSpacing) lineSpacing.oninput=e=>{target.lineSpacing=+e.target.value; updateUI();};
+    const showTop=document.getElementById(`${prefix}showTopGuideExtra`);
+    if(showTop) showTop.onchange=e=>{target.showTopGuide=e.target.checked; updateUI();};
+    const firstGap=document.getElementById(`${prefix}firstLineGapExtra`);
+    if(firstGap) firstGap.onchange=e=>{target.firstLineGap=+e.target.value; updateUI();};
+    const fitLines=document.getElementById(`${prefix}fitLinesToSpaceExtra`);
+    if(fitLines) fitLines.onchange=e=>{target.fitLinesToSpace=e.target.checked; updateUI();};
+    const dotGap=document.getElementById(`${prefix}dotGapExtra`);
+    if(dotGap) dotGap.oninput=e=>{target.dotGapX=+e.target.value; target.dotGapY=+e.target.value; updateUI();};
+    const dotSize=document.getElementById(`${prefix}dotSizeExtra`);
+    if(dotSize) dotSize.oninput=e=>{target.dotSize=+e.target.value; updateUI();};
+    const fitDots=document.getElementById(`${prefix}fitDotsToSpaceExtra`);
+    if(fitDots) fitDots.onchange=e=>{target.fitDotsToSpace=e.target.checked; updateUI();};
+    const gridSize=document.getElementById(`${prefix}gridSizeExtra`);
+    if(gridSize) gridSize.oninput=e=>{target.gridSize=+e.target.value; updateUI();};
+    const fitGrid=document.getElementById(`${prefix}fitGridToSpaceExtra`);
+    if(fitGrid) fitGrid.onchange=e=>{target.fitGridToSpace=e.target.checked; updateUI();};
+    const headerEnabled=document.getElementById(`${prefix}gridHeaderEnabledExtra`);
+    if(headerEnabled) headerEnabled.onchange=e=>{target.gridHeaderEnabled=e.target.checked; updateUI();};
+    const headerHeight=document.getElementById(`${prefix}gridHeaderHeightExtra`);
+    if(headerHeight) headerHeight.oninput=e=>{target.gridHeaderHeight=+e.target.value; updateUI();};
+    const rounded=document.getElementById(`${prefix}gridRoundedCornersExtra`);
+    if(rounded) rounded.onchange=e=>{target.gridRoundedCorners=e.target.checked; updateUI();};
+    const listSpacing=document.getElementById(`${prefix}listSpacingExtra`);
+    if(listSpacing) listSpacing.oninput=e=>{target.listSpacing=+e.target.value; updateUI();};
+    const fitList=document.getElementById(`${prefix}fitListToSpaceExtra`);
+    if(fitList) fitList.onchange=e=>{target.fitListToSpace=e.target.checked; updateUI();};
+    const checkbox=document.getElementById(`${prefix}checkboxExtra`);
+    if(checkbox) checkbox.onchange=e=>{target.checkbox=e.target.checked; updateUI();};
+    const markerFont=document.getElementById(`${prefix}listMarkerFontSizeExtra`);
+    if(markerFont) markerFont.oninput=e=>{target.listMarkerFontSize=+e.target.value; updateUI();};
+    const markerSize=document.getElementById(`${prefix}listMarkerSizeExtra`);
+    if(markerSize) markerSize.oninput=e=>{target.listMarkerSize=+e.target.value; updateUI();};
+    const markerColor=document.getElementById(`${prefix}listMarkerColorExtra`);
+    if(markerColor) markerColor.oninput=e=>{target.listMarkerColor=e.target.value; if(target===state){state.listMarkerColorLinked=(state.listMarkerColor===state.lineColor);} updateUI();};
+  }
+  bindContentConfig("",state);
+  if(state.layoutMode==="split"){
+    bindContentConfig("top",state.splitConfigs.top);
+    bindContentConfig("bottom",state.splitConfigs.bottom);
+  }
+  document.querySelectorAll('[data-marker-option]').forEach(btn=>btn.onclick=e=>{
+    e.preventDefault();
+    const zone=btn.dataset.markerZone||"single";
+    if(zone==="single") state.listMarkerStyle=btn.dataset.markerOption;
+    if(zone==="top") state.splitConfigs.top.listMarkerStyle=btn.dataset.markerOption;
+    if(zone==="bottom") state.splitConfigs.bottom.listMarkerStyle=btn.dataset.markerOption;
+    const details=btn.closest('details');
+    if(details) details.open=false;
+    updateUI();
+  });
+}
+
+async function initApp(){
+  bindStatic();
+  applyUsagePreset('general');
+  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
+  updateUI();
+}
+initApp();
+</script>
+
+
+  <script>
+    const logoutBtn = document.getElementById('logout-btn');
+    logoutBtn?.addEventListener('click', async () => {
+      const supabaseClient = window.__foliaSupabaseClient;
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+      }
+      window.location.href = '/acceso/?next=' + encodeURIComponent('/app/folia/');
+    });
+  </script>
+</body>
+</html>

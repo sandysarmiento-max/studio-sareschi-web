@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Acceso Aral Calc | Studio Sareschi</title>
+    <title>Acceso privado | Studio Sareschi</title>
     <meta
       name="description"
-      content="Inicia sesión para acceder a Aral Calc en Studio Sareschi."
+      content="Inicia sesión para acceder a tus herramientas privadas en Studio Sareschi."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,6 +26,7 @@
             <li><a href="/#home">Home</a></li>
             <li><a href="/#apps">Apps</a></li>
             <li><a href="/aral-calc-guia/">Aral Calc</a></li>
+            <li><a href="/folia-guia/">Folia</a></li>
           </ul>
         </nav>
       </div>
@@ -36,13 +37,28 @@
         <div class="container">
           <div class="section-heading">
             <p class="eyebrow">Acceso protegido</p>
-            <h1>Inicia sesión para acceder a Aral Calc</h1>
-            <p class="hero-copy" style="margin: 0">
-              Aral Calc está disponible solo para usuarios con acceso autorizado.
-            </p>
+            <h1 id="access-title">Inicia sesión para acceder</h1>
+                <p id="access-copy" style="margin: 0;">
+          Este acceso está disponible solo para usuarios invitados o autorizados.
+       </p>
           </div>
+<div id="app-selector" hidden style="display:grid; gap:14px; max-width:620px; margin-top:24px;">
+  <a class="card" href="/acceso/?next=/aral-calc/" style="display:block; text-decoration:none; color:inherit;">
+    <strong>Aral Calc</strong><br>
+    <span>Calculadora para encuadernación.</span>
+  </a>
 
-          <article class="card" style="max-width: 620px">
+  <a class="card" href="/acceso/?next=/app/folia/" style="display:block; text-decoration:none; color:inherit;">
+    <strong>Folia</strong><br>
+    <span>Generador de hojas y formatos.</span>
+  </a>
+
+  <div class="card" style="opacity:.65;">
+    <strong>Calendarios</strong><br>
+    <span>Disponible muy pronto.</span>
+  </div>
+</div>
+          <article id="access-card" class="card" style="max-width: 620px">
             <form id="login-form" style="display: grid; gap: 12px">
               <label>
                 Email
@@ -71,19 +87,19 @@
                 </div>
               </label>
               <a href="/acceso/recuperar/" class="tiny-note" style="display:inline-block">¿Olvidaste tu contraseña?</a>
-              <button id="login-btn" class="btn btn-primary" type="submit">Entrar a Aral Calc</button>
+              <button id="login-btn" class="btn btn-primary" type="submit">Entrar</button>
             </form>
 
             <div id="session-box" hidden>
-              <p><strong>Sesión activa.</strong> Ya puedes ingresar a Aral Calc.</p>
+              <p><strong>Sesión activa.</strong> Ya puedes ingresar.</p>
               <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <a class="btn btn-primary" id="continue-link" href="/aral-calc/">Abrir Aral Calc</a>
+                <a class="btn btn-primary" id="continue-link" href="/aral-calc/">Continuar</a>
                 <button class="btn btn-secondary" id="logout-btn" type="button">Cerrar sesión</button>
               </div>
             </div>
 
             <p class="tiny-note" style="margin-top: 12px">
-              Si compraste Aral Calc, tu acceso se envía al correo registrado al momento de la compra.
+              No hay registro libre. Si tienes una invitación o acceso autorizado, inicia sesión con tu correo y contraseña.
             </p>
             <p id="status" class="tiny-note" aria-live="polite" style="margin-top: 12px"></p>
           </article>
@@ -100,8 +116,40 @@
       const logoutBtn = document.getElementById('logout-btn');
       const togglePasswordBtn = document.getElementById('toggle-password');
       const passwordInput = document.getElementById('password');
-      const nextParam = new URLSearchParams(window.location.search).get('next') || '/aral-calc/';
-      continueLink.href = nextParam;
+      const params = new URLSearchParams(window.location.search);
+const nextParam = params.get('next');
+
+const accessTitle = document.getElementById('access-title');
+const accessCopy = document.getElementById('access-copy');
+const appSelector = document.getElementById('app-selector');
+      const accessCard = document.getElementById('access-card');
+
+if (!nextParam) {
+  form.style.display = 'none';
+  sessionBox.style.display = 'none';
+  if (statusEl) statusEl.style.display = 'none';
+  if (accessCard) accessCard.style.display = 'none';
+  loginBtn.style.display = 'none';
+continueLink.style.display = 'none';
+
+  accessTitle.textContent = 'Elige la app a la que quieres acceder';
+  accessCopy.textContent = 'Selecciona la herramienta que deseas abrir para continuar.';
+
+  if (appSelector) appSelector.style.display = 'grid';
+} else {
+  if (accessCard) accessCard.style.display = 'block';
+  loginBtn.style.display = '';
+continueLink.style.display = '';
+  continueLink.href = nextParam;
+
+  const destinationName = nextParam.startsWith('/app/folia/') ? 'Folia' : 'Aral Calc';
+  accessTitle.textContent = `Inicia sesión para acceder a ${destinationName}`;
+  accessCopy.textContent = `${destinationName} está disponible solo para usuarios invitados o autorizados.`;
+  loginBtn.textContent = `Entrar a ${destinationName}`;
+  continueLink.textContent = `Abrir ${destinationName}`;
+
+  if (appSelector) appSelector.style.display = 'none';
+}
 
       let supabaseClient = null;
 
@@ -138,9 +186,9 @@
           form.hidden = true;
           sessionBox.hidden = !allowed;
           if (allowed) {
-            setStatus('Sesión detectada. Continúa a Aral Calc.');
+            setStatus(`Sesión detectada. Continúa a ${destinationName}.`);
           } else {
-            setStatus('Tu cuenta inició sesión, pero todavía no tiene acceso a Aral Calc.', true);
+            setStatus(`Tu cuenta inició sesión, pero todavía no tiene acceso a ${destinationName}.`, true);
           }
         }
       }
@@ -168,7 +216,7 @@
 
         const allowed = await hasAralAccess(data.user);
         if (!allowed) {
-          setStatus('Tu sesión está activa, pero todavía no tienes permiso para Aral Calc.', true);
+          setStatus(`Tu sesión está activa, pero todavía no tienes permiso para ${destinationName}.`, true);
           return;
         }
 
