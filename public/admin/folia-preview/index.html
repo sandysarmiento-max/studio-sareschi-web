@@ -753,7 +753,7 @@ function drawList(svg,rect,config=state){
   const {gridStroke}=getStrokeSet(config);
   const spacing=Math.max(7,+config.listSpacing),fit=!!config.fitListToSpace,rowCount=fit?Math.max(1,Math.floor(rect.height/spacing)):Math.max(1,Math.floor(rect.height/spacing)-1),step=fit?rect.height/rowCount:spacing;
   function drawMarker(x,lineY,index){
-    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,markerColor=config.listMarkerColor||state.lineColor;
+    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,markerColor=(config.listMarkerColor&&String(config.listMarkerColor).trim()) || state.listMarkerColor || state.lineColor;
     if(style==="numerado"){
       const fontSize=+config.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*1.15,fontSize*(maxDigits*0.62+0.62)),gap=Math.max(1.2,fontSize*0.18),textX=x+numberBoxWidth;
       addText(svg,textX,lineY-0.35,label,{fill:markerColor,"font-size":roundMm(fontSize),"text-anchor":"end"});
@@ -1681,7 +1681,10 @@ function bindDynamic(){
     if(markerSize) markerSize.oninput=e=>{target.listMarkerSize=+e.target.value; updateUI();};
     const markerColor=document.getElementById(`${prefix}listMarkerColorExtra`);
 if(markerColor) markerColor.oninput=e=>{
-  target.listMarkerColor=e.target.value;
+  const nextColor=e.target.value;
+  target.listMarkerColor=nextColor;
+  if(prefix==="") state.listMarkerColor=nextColor;
+  state.listMarkerColorLinked=false;
   updateUI();
 };
   }
