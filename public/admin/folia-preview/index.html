@@ -311,9 +311,11 @@ const MARKER_INTERNAL_VECTORS={
     ]
   }
 };
+const PDF_RASTER_MARKER_STYLES=new Set(["whatsapp","correo","corazonRelleno"]);
 const markerAssetCache=new Map();
 const markerAssetUrlCache=new Map();
 const markerInlineThumbCache=new Map();
+const markerPdfRasterCache=new Map();
 let markerAssetsReady=false;
 let markerAssetsPromise=null;
 const CONTENT_CONFIG_DEFAULTS={
@@ -600,7 +602,13 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
   const scaleY=scaled/asset.viewBox.height;
   const group=el("g",{
   transform:`translate(${targetX} ${targetY}) scale(${roundMm(scaleX)} ${roundMm(scaleY)}) translate(${roundMm(-asset.viewBox.minX)} ${roundMm(-asset.viewBox.minY)})`,
-  "data-role":"marker-outline"
+  "data-role":"marker-outline",
+  "data-marker-style":style,
+  "data-marker-color":markerColor,
+  "data-marker-x":roundMm(targetX),
+  "data-marker-y":roundMm(targetY),
+  "data-marker-width":roundMm(scaled),
+  "data-marker-height":roundMm(scaled)
 });
 if(asset.defaults?.stroke) group.setAttribute("stroke",asset.defaults.stroke);
   asset.nodes.forEach(baseNode=>{
@@ -1457,7 +1465,81 @@ function svgPathToPdfOps(d){
   }
   return ops;
 }
-function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity(),inheritedPaint={}){
+function shouldRasterizePdfMarkerStyle(style){
+  return PDF_RASTER_MARKER_STYLES.has(style);
+}
+function buildMarkerSvgMarkup(style,markerColor){
+  const template=MARKER_INTERNAL_VECTORS[style];
+  if(template){
+    const vb=template.viewBox;
+    const nodes=buildMarkerNodesFromTemplate(template,markerColor)
+      .map(node=>new XMLSerializer().serializeToString(node))
+      .join("");
+    return {
+      width:vb.width,
+      height:vb.height,
+      markup:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.minX} ${vb.minY} ${vb.width} ${vb.height}">${nodes}</svg>`
+    };
+  }
+  const asset=markerAssetCache.get(style);
+  if(!asset) return null;
+  const cloned=el("svg",{xmlns:"http://www.w3.org/2000/svg"});
+  cloned.setAttribute("viewBox",`${asset.viewBox.minX} ${asset.viewBox.minY} ${asset.viewBox.width} ${asset.viewBox.height}`);
+  asset.nodes.forEach(baseNode=>{
+    const node=baseNode.cloneNode(true);
+    applyMarkerColor(node,markerColor,{
+      fill:asset.defaults?.fill ?? null,
+      stroke:asset.defaults?.stroke ?? null
+    });
+    cloned.appendChild(node);
+  });
+  return {
+    width:asset.viewBox.width,
+    height:asset.viewBox.height,
+    markup:new XMLSerializer().serializeToString(cloned)
+  };
+}
+async function getPdfRasterMarkerDataUrl(style,markerColor,pixelSize=320){
+  const cacheKey=`${style}:${markerColor}:${pixelSize}`;
+  if(markerPdfRasterCache.has(cacheKey)) return markerPdfRasterCache.get(cacheKey);
+  const markerSvg=buildMarkerSvgMarkup(style,markerColor);
+  if(!markerSvg) return "";
+  const imageWidth=Math.max(1,Math.round(pixelSize));
+  const aspect=markerSvg.height>0?markerSvg.width/markerSvg.height:1;
+  const imageHeight=Math.max(1,Math.round(imageWidth/Math.max(0.05,aspect)));
+  const svgBlob=new Blob([markerSvg.markup],{type:"image/svg+xml;charset=utf-8"});
+  const url=URL.createObjectURL(svgBlob);
+  const dataUrl=await new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const canvas=document.createElement("canvas");
+        canvas.width=imageWidth;
+        canvas.height=imageHeight;
+        const ctx=canvas.getContext("2d");
+        if(!ctx){
+          resolve("");
+          return;
+        }
+        ctx.clearRect(0,0,imageWidth,imageHeight);
+        ctx.drawImage(img,0,0,imageWidth,imageHeight);
+        resolve(canvas.toDataURL("image/png"));
+      }catch(error){
+        reject(error);
+      }finally{
+        URL.revokeObjectURL(url);
+      }
+    };
+    img.onerror=()=>{
+      URL.revokeObjectURL(url);
+      reject(new Error("No se pudo rasterizar el marcador para PDF."));
+    };
+    img.src=url;
+  });
+  markerPdfRasterCache.set(cacheKey,dataUrl);
+  return dataUrl;
+}
+async function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity(),inheritedPaint={}){
   if(!node||node.nodeType!==1) return;
   const tag=node.tagName.toLowerCase();
   if(tag==='defs'||tag==='clippath') return;
@@ -1468,8 +1550,27 @@ function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity(),inheritedPaint={}){
     stroke:nodePaintValues.strokeRaw,
     strokeWidth:nodePaintValues.strokeWidthRaw
   };
+  if(tag==="g"&&node.getAttribute("data-role")==="marker-outline"){
+    const markerStyle=node.getAttribute("data-marker-style")||"";
+    if(shouldRasterizePdfMarkerStyle(markerStyle)){
+      const markerColor=node.getAttribute("data-marker-color")||state.listMarkerColor||state.lineColor||"#334155";
+      const x=Number(node.getAttribute("data-marker-x"))||0;
+      const y=Number(node.getAttribute("data-marker-y"))||0;
+      const w=Number(node.getAttribute("data-marker-width"))||0;
+      const h=Number(node.getAttribute("data-marker-height"))||0;
+      if(w>0&&h>0){
+        const markerPng=await getPdfRasterMarkerDataUrl(markerStyle,markerColor,320);
+        if(markerPng){
+          pdfCurrent.addImage(markerPng,"PNG",x,y,w,h,undefined,"NONE");
+          return;
+        }
+      }
+    }
+  }
   if(tag==='svg'||tag==='g'){
-    Array.from(node.childNodes).forEach(child=>drawSvgNodeToPdf(child,nodeMatrix,nextInheritedPaint));
+    for(const child of Array.from(node.childNodes)){
+      await drawSvgNodeToPdf(child,nodeMatrix,nextInheritedPaint);
+    }
     return;
   }
   const paint=getPdfPaint(node,nodeMatrix,inheritedPaint);
@@ -1561,14 +1662,14 @@ async function exportPdfVector(){
     : null;
 pdfCurrent=pdf;
 try{
-  drawSvgNodeToPdf(frontSvg);
+  await drawSvgNodeToPdf(frontSvg);
 
   if(backSvg){
     pdf.addPage(
       [pageSize.width,pageSize.height],
       pageSize.width>pageSize.height?'landscape':'portrait'
     );
-    drawSvgNodeToPdf(backSvg);
+    await drawSvgNodeToPdf(backSvg);
   }
 
   pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
