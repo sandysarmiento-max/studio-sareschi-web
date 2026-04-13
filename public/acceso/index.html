@@ -135,7 +135,7 @@ continueLink.style.display = 'none';
   accessTitle.textContent = 'Elige la app a la que quieres acceder';
   accessCopy.textContent = 'Selecciona la herramienta que deseas abrir para continuar.';
 
-  if (appSelector) appSelector.hidden = false;
+  if (appSelector) appSelector.style.display = 'grid';
 } else {
   if (accessCard) accessCard.style.display = 'block';
   loginBtn.style.display = '';
@@ -148,7 +148,7 @@ continueLink.style.display = '';
   loginBtn.textContent = `Entrar a ${destinationName}`;
   continueLink.textContent = `Abrir ${destinationName}`;
 
-  if (appSelector) appSelector.hidden = true;
+  if (appSelector) appSelector.style.display = 'none';
 }
 
       let supabaseClient = null;
