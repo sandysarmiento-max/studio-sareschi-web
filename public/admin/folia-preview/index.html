@@ -1441,52 +1441,70 @@ async function exportPdfVector(){
     precision:12
   });
 
-  if(typeof pdf.svg!=='function'){
-    throw new Error('SVG2PDF no está disponible en esta sesión.');
-  }
-
   const frontSvg=buildExportSvgElement({
     includeBackground:true,
     optimizeForRaster:false,
     face:"front"
   });
 
-  const frontNode=new DOMParser()
-    .parseFromString(svgElementToMarkup(frontSvg),"image/svg+xml")
-    .documentElement;
+  const backSvg=state.printMode==="duplex"
+    ? buildExportSvgElement({
+        includeBackground:true,
+        optimizeForRaster:false,
+        face:"back"
+      })
+    : null;
 
-  await pdf.svg(frontNode,{
-    x:0,
-    y:0,
-    width:pageSize.width,
-    height:pageSize.height
-  });
-
-  if(state.printMode==="duplex"){
-    const backSvg=buildExportSvgElement({
-      includeBackground:true,
-      optimizeForRaster:false,
-      face:"back"
-    });
-
-    const backNode=new DOMParser()
-      .parseFromString(svgElementToMarkup(backSvg),"image/svg+xml")
+  if(typeof pdf.svg==='function'){
+    const frontNode=new DOMParser()
+      .parseFromString(svgElementToMarkup(frontSvg),"image/svg+xml")
       .documentElement;
 
-    pdf.addPage(
-      [pageSize.width,pageSize.height],
-      pageSize.width>pageSize.height?'landscape':'portrait'
-    );
-
-    await pdf.svg(backNode,{
+    await pdf.svg(frontNode,{
       x:0,
       y:0,
       width:pageSize.width,
       height:pageSize.height
     });
+
+    if(backSvg){
+      const backNode=new DOMParser()
+        .parseFromString(svgElementToMarkup(backSvg),"image/svg+xml")
+        .documentElement;
+
+      pdf.addPage(
+        [pageSize.width,pageSize.height],
+        pageSize.width>pageSize.height?'landscape':'portrait'
+      );
+
+      await pdf.svg(backNode,{
+        x:0,
+        y:0,
+        width:pageSize.width,
+        height:pageSize.height
+      });
+    }
+
+    pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
+    return;
   }
 
-  pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
+  pdfCurrent=pdf;
+  try{
+    drawSvgNodeToPdf(frontSvg);
+
+    if(backSvg){
+      pdf.addPage(
+        [pageSize.width,pageSize.height],
+        pageSize.width>pageSize.height?'landscape':'portrait'
+      );
+      drawSvgNodeToPdf(backSvg);
+    }
+
+    pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
+  } finally {
+    pdfCurrent=null;
+  }
 }
 async function exportSvgFile(){
   if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
