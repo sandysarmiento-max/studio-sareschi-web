@@ -281,11 +281,11 @@ const MARKER_ASSETS={
   cuadrado:{label:"Cuadrado",file:"square.svg",scale:0.86,padding:0.08},
   circuloContorno:{label:"Círculo",file:"circle.svg",scale:0.88,padding:0.07},
   corazonContorno:{label:"Corazón contorno",file:"heart-outline.svg",scale:0.86,padding:0.08},
-  corazonRelleno:{label:"Corazón relleno",file:"heart-filled.svg",scale:0.84,padding:0.08},
+  corazonRelleno:{label:"Corazón relleno",char:"♥",scale:0.9,textYOffset:-0.04},
   ubicacion:{label:"Ubicación",file:"location.svg",scale:0.82,padding:0.1},
   regalo:{label:"Regalo",file:"gift.svg",scale:0.82,padding:0.1},
-  correo:{label:"Correo",file:"envelope.svg",scale:0.84,padding:0.09},
-  whatsapp:{label:"WhatsApp",file:"whatsapp.svg",scale:0.82,padding:0.1},
+  correo:{label:"Correo",char:"✉",fallbackChars:["@"],scale:0.86,textYOffset:-0.03},
+  whatsapp:{label:"WhatsApp",char:"☎",fallbackChars:["☏","✆"],scale:0.86,textYOffset:-0.03},
   web:{label:"Web",file:"globe.svg",scale:0.84,padding:0.09},
   numerado:{label:"Numerado"}
 };
@@ -433,6 +433,9 @@ function markerLabel(style){
 }
 function markerIconHtml(style,color="#334155"){
   const marker=MARKER_ASSETS[style];
+  if(marker?.char){
+    return `<span class="marker-icon marker-number" style="color:${color}">${marker.char}</span>`;
+  }
   if(marker?.file){
     const src=markerAssetUrlCache.get(style)||`${MARKER_ASSET_BASE_PATHS[0]}${marker.file}`;
     return `<span class="marker-icon"><img src="${src}" alt="${marker.label}"></span>`;
@@ -505,6 +508,24 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
     group.appendChild(node);
   });
   svg.appendChild(group);
+  return true;
+}
+function drawUnicodeMarker(svg,style,x,top,size,markerColor){
+  const marker=MARKER_ASSETS[style];
+  if(!marker?.char) return false;
+  const symbolOptions=[marker.char,...(marker.fallbackChars||[])].filter(Boolean);
+  const symbol=symbolOptions.find(char=>typeof char==="string"&&char.trim().length>0);
+  if(!symbol) return false;
+  const scale=Math.max(0.72,Math.min(1,marker.scale??0.86));
+  const fontSize=roundMm(size*scale);
+  const centerX=roundMm(x+(size/2));
+  const centerY=roundMm(top+(size/2)+(fontSize*0.34)+(fontSize*(marker.textYOffset??0)));
+  addText(svg,centerX,centerY,symbol,{
+    fill:markerColor,
+    "font-size":fontSize,
+    "text-anchor":"middle",
+    "data-role":"marker-unicode"
+  });
   return true;
 }
 async function preloadMarkerAssets(){
@@ -718,6 +739,7 @@ function drawList(svg,rect,config=state){
       addText(svg,textX,lineY-0.35,label,{fill:markerColor,"font-size":roundMm(fontSize),"text-anchor":"end"});
       return numberBoxWidth+gap;
     }
+    if(drawUnicodeMarker(svg,style,x,top,size,markerColor)) return size+2.2;
     drawMarkerAsset(svg,style,x,top,size,markerColor);
     return size+2.2;
   }
