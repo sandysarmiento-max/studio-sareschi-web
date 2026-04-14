@@ -294,6 +294,33 @@ const markerAssetUrlCache=new Map();
 const PDF_SAFE_MARKER_STYLES=new Set(["corazonRelleno","correo","whatsapp"]);
 let markerAssetsReady=false;
 let markerAssetsPromise=null;
+const PDF_SAFE_MARKER_VIEWBOX={minX:0,minY:0,width:24,height:24};
+const PDF_SAFE_MARKERS={
+  whatsapp:{
+    parts:[
+      {type:"circle",cx:12,cy:11.6,r:8.2,color:"primary"},
+      {type:"path",d:"M7 18.8 L7.8 15.1 L10.9 16.8 Z",color:"primary"},
+      {type:"path",d:"M9.2 7.8 C9.6 7.2 10.4 7 11 7.4 L12.6 8.6 C13.2 9 13.3 9.8 12.9 10.4 L12.1 11.5 C12 11.7 12 12 12.2 12.2 C12.9 13.4 13.9 14.4 15.1 15.1 C15.3 15.2 15.6 15.2 15.8 15.1 L16.9 14.3 C17.5 13.9 18.3 14 18.7 14.6 L19.9 16.2 C20.3 16.8 20.1 17.6 19.5 18 C18.6 18.6 17.5 18.8 16.5 18.4 C13.9 17.4 11.8 15.3 10.8 12.7 C10.4 11.7 10.6 10.6 11.2 9.7 Z",color:"knockout"}
+    ]
+  },
+  correo:{
+    parts:[
+      {type:"rect",x:3,y:5,w:18,h:14,rx:1.6,ry:1.6,color:"primary"},
+      {type:"path",d:"M4.5 7.5 L12 12.8 L19.5 7.5 L19.5 9.3 L12 14.3 L4.5 9.3 Z",color:"knockout"}
+    ]
+  },
+  corazonRelleno:{
+    parts:[
+      {type:"path",d:"M12 21.35 L10.55 20.03 C5.4 15.36 2 12.28 2 8.5 C2 5.42 4.42 3 7.5 3 C9.24 3 10.91 3.81 12 5.09 C13.09 3.81 14.76 3 16.5 3 C19.58 3 22 5.42 22 8.5 C22 12.28 18.6 15.36 13.45 20.04 Z",color:"primary"}
+    ]
+  }
+};
+function isPdfSafeMarkerStyle(style){
+  return !!PDF_SAFE_MARKERS[style];
+}
+function markerPdfSafeColor(kind,markerColor){
+  return kind==="knockout"?"#ffffff":markerColor;
+}
 const CONTENT_CONFIG_DEFAULTS={
   lineSpacing:7,
   showTopGuide:false,
@@ -492,37 +519,6 @@ function applyMarkerColor(node,markerColor,inherited={}){
     })
   );
 }
-  function getPdfSafeMarkerParts(style){
-  if(style==="corazonRelleno"){
-    return [
-      {name:"path",attrs:{d:"M12 20.2L10.76 19.06C6.44 15.12 3.65 12.58 3.65 9.34C3.65 6.75 5.68 4.85 8.12 4.85C9.5 4.85 10.82 5.5 11.65 6.56L12 7.01L12.35 6.56C13.18 5.5 14.5 4.85 15.88 4.85C18.32 4.85 20.35 6.75 20.35 9.34C20.35 12.58 17.56 15.12 13.24 19.06L12 20.2Z",fill:"currentColor",stroke:"none"}}
-    ];
-  }
-  if(style==="correo"){
-    return [
-      {name:"rect",attrs:{x:"4",y:"6.25",width:"16",height:"11.5",rx:"2.1",fill:"none",stroke:"currentColor","stroke-width":"1.45","stroke-linecap":"round","stroke-linejoin":"round"}},
-      {name:"path",attrs:{d:"M5.4 7.4L12 12.75L18.6 7.4",fill:"none",stroke:"currentColor","stroke-width":"1.45","stroke-linecap":"round","stroke-linejoin":"round"}}
-    ];
-  }
-  if(style==="whatsapp"){
-    return [
-      {name:"path",attrs:{d:"M12 5.15C8.22 5.15 5.25 8.04 5.25 11.6C5.25 13.3 5.92 14.83 7.03 15.96L6.35 18.65L9.02 17.93C9.92 18.28 10.92 18.48 12 18.48C15.78 18.48 18.75 15.59 18.75 12.03C18.75 8.47 15.78 5.15 12 5.15Z",fill:"none",stroke:"currentColor","stroke-width":"1.45","stroke-linecap":"round","stroke-linejoin":"round"}},
-      {name:"path",attrs:{d:"M9.52 9.56C9.28 9.56 9.05 9.67 8.9 9.87C8.62 10.23 8.42 10.79 8.58 11.43C8.87 12.53 9.72 13.66 10.78 14.38C11.87 15.13 13.15 15.44 14.16 15.19C14.74 15.05 15.16 14.72 15.37 14.34C15.47 14.16 15.43 13.93 15.28 13.78L14.61 13.12C14.42 12.93 14.11 12.92 13.91 13.1L13.53 13.44C13.41 13.55 13.23 13.58 13.08 13.51C12.62 13.29 12.18 12.99 11.77 12.63C11.39 12.24 11.08 11.82 10.86 11.38C10.79 11.23 10.81 11.05 10.91 10.92L11.21 10.57C11.38 10.37 11.37 10.08 11.18 9.9L10.58 9.3C10.43 9.14 10.2 9.08 10.02 9.16C9.86 9.23 9.69 9.34 9.52 9.56Z",fill:"currentColor",stroke:"none"}}
-    ];
-  }
-  return null;
-}
-function createPdfSafeMarkerAsset(style){
-  const parts=getPdfSafeMarkerParts(style);
-  if(!parts) return null;
-  const nodes=parts.map(part=>el(part.name,part.attrs));
-  return {
-    viewBox:{minX:0,minY:0,width:24,height:24},
-    nodes,
-    defaults:{fill:null,stroke:null},
-    pdfSafeParts:parts
-  };
-}
 function appendPdfSafeMarkerParts(group,style,markerColor){
   const asset=createPdfSafeMarkerAsset(style);
   if(!asset) return false;
@@ -533,11 +529,26 @@ function appendPdfSafeMarkerParts(group,style,markerColor){
   });
   return true;
 }
+function createMarkerTransform(x,top,size,marker){
+  const padding=Math.max(0,Math.min(0.2,marker.padding??0.08));
+  const iconSize=size*(1-(padding*2));
+  const offset=(size-iconSize)/2;
+  const scale=Math.max(0.72,Math.min(1,marker.scale??0.85));
+  const scaled=iconSize*scale;
+  const scaleOffset=(iconSize-scaled)/2;
+  const targetX=roundMm(x+offset+scaleOffset);
+  const targetY=roundMm(top+offset+scaleOffset);
+  return {
+    targetX,
+    targetY,
+    scaled
+  };
+}
 async function loadMarkerAsset(style){
   const marker=MARKER_ASSETS[style];
   if(!marker?.file||markerAssetCache.has(style)) return;
 
-   if(PDF_SAFE_MARKER_STYLES.has(style)){
+  if(PDF_SAFE_MARKER_STYLES.has(style)){
     const safeAsset=createPdfSafeMarkerAsset(style);
     if(safeAsset){
       markerAssetCache.set(style,safeAsset);
@@ -570,16 +581,11 @@ const defaults={
 }
 function drawMarkerAsset(svg,style,x,top,size,markerColor){
   const marker=MARKER_ASSETS[style];
-  const asset=markerAssetCache.get(style);
-  if(!marker?.file||!asset) return false;
-  const padding=Math.max(0,Math.min(0.2,marker.padding??0.08));
-  const iconSize=size*(1-(padding*2));
-  const offset=(size-iconSize)/2;
-  const scale=Math.max(0.72,Math.min(1,marker.scale??0.85));
-  const scaled=iconSize*scale;
-  const scaleOffset=(iconSize-scaled)/2;
-  const targetX=roundMm(x+offset+scaleOffset);
-  const targetY=roundMm(top+offset+scaleOffset);
+  if(!marker?.file) return false;
+  const isPdfSafe=isPdfSafeMarkerStyle(style);
+  const asset=isPdfSafe?{viewBox:PDF_SAFE_MARKER_VIEWBOX}:markerAssetCache.get(style);
+  if(!asset) return false;
+  const {targetX,targetY,scaled}=createMarkerTransform(x,top,size,marker);
   const scaleX=scaled/asset.viewBox.width;
   const scaleY=scaled/asset.viewBox.height;
 const group=el("g",{
@@ -602,7 +608,7 @@ if(!(PDF_SAFE_MARKER_STYLES.has(style)&&appendPdfSafeMarkerParts(group,style,mar
   return true;
 }
 async function preloadMarkerAssets(){
-  const styles=MARKER_STYLE_ORDER.filter(style=>MARKER_ASSETS[style]?.file);
+  const styles=MARKER_STYLE_ORDER.filter(style=>MARKER_ASSETS[style]?.file&&!isPdfSafeMarkerStyle(style));
   await Promise.all(styles.map(loadMarkerAsset));
   markerAssetsReady=true;
 }
@@ -623,6 +629,17 @@ function stateNeedsMarkerAssets(layoutState=state){
   if(layoutState.layoutMode==="single") return sheetConfigNeedsMarkerAssets(layoutState.sheetType,layoutState);
   return sheetConfigNeedsMarkerAssets(layoutState.splitTopSheetType,layoutState.splitConfigs?.top)
     || sheetConfigNeedsMarkerAssets(layoutState.splitBottomSheetType,layoutState.splitConfigs?.bottom);
+}
+function configUsesPdfSafeMarker(sheetType,config){
+  if(sheetType!=="lista"||!config?.checkbox) return false;
+  return isPdfSafeMarkerStyle(config?.listMarkerStyle);
+}
+function stateUsesPdfSafeMarkers(layoutState=state){
+  if(layoutState.layoutMode==="single"){
+    return configUsesPdfSafeMarker(layoutState.sheetType,layoutState);
+  }
+  return configUsesPdfSafeMarker(layoutState.splitTopSheetType,layoutState.splitConfigs?.top)
+    || configUsesPdfSafeMarker(layoutState.splitBottomSheetType,layoutState.splitConfigs?.bottom);
 }
 
 function addLine(svg,x1,y1,x2,y2,stroke=state.lineColor,strokeWidth=state.strokeWidth,extra={}){
@@ -1411,7 +1428,8 @@ function svgPathToPdfOps(d){
   }
   return ops;
 }
-  function drawPdfSafeMarkerToPdf(node,nodeMatrix){
+
+ function drawPdfSafeMarkerToPdf(node,nodeMatrix){
   if(!node||node.nodeType!==1) return false;
   const markerStyle=node.getAttribute('data-marker-style');
   if(!PDF_SAFE_MARKER_STYLES.has(markerStyle)) return false;
@@ -1423,7 +1441,8 @@ function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity()){
   const tag=node.tagName.toLowerCase();
   if(tag==='defs'||tag==='clippath') return;
   const nodeMatrix=matrixMultiply(parentMatrix,parseTransform(node.getAttribute('transform')));
- if(tag==='svg'||tag==='g'){
+
+if(tag==='svg'||tag==='g'){
   if(drawPdfSafeMarkerToPdf(node,nodeMatrix)) return;
   Array.from(node.childNodes).forEach(child=>drawSvgNodeToPdf(child,nodeMatrix));
   return;
@@ -1525,6 +1544,8 @@ const svg2pdfFn =
           : null);
 
 if(svg2pdfFn){
+  const canUseSvg2Pdf=!stateUsesPdfSafeMarkers();
+  if(canUseSvg2Pdf){
   const frontNode=new DOMParser()
     .parseFromString(svgElementToMarkup(frontSvg),"image/svg+xml")
     .documentElement;
@@ -1556,6 +1577,7 @@ if(svg2pdfFn){
 
   pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
   return;
+  }
 }
 
 pdfCurrent=pdf;
