@@ -1371,17 +1371,9 @@ function getPdfPaint(node,matrix=matrixIdentity(),inherited={}){
   const fill=values.fill;
   let lineWidth=Math.max(0.05,Number(values.strokeWidthRaw)||0.2);
   if(node.closest&&node.closest('[data-role="marker-outline"]')){
-  const markerGroup=node.closest('[data-role="marker-outline"]');
-  const markerStyle=((markerGroup&&markerGroup.getAttribute('data-marker-style'))||'').trim();
-
   const {sx,sy}=getScaleFromMatrix(matrix);
   const scale=Math.max(0.1,Math.min(sx,sy));
-
-  let markerBoost=1;
-  if(markerStyle==='whatsapp') markerBoost=1.12;
-  if(markerStyle==='correo') markerBoost=1.18;
-
-  lineWidth=Math.max(0.05,lineWidth*scale*markerBoost);
+  lineWidth=Math.max(0.05,lineWidth*scale);
 }
   if(stroke){
     try{ pdfCurrent.setDrawColor(stroke.r,stroke.g,stroke.b); }catch(_){}
