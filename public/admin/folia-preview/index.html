@@ -1601,10 +1601,15 @@ function bindStatic(){
   document.getElementById('customHeight').addEventListener('input',e=>{state.customHeight=+e.target.value; updateUI();});
   document.getElementById('marginTop').addEventListener('input',e=>{state.marginTop=+e.target.value; updateUI();});
   document.getElementById('marginBottom').addEventListener('input',e=>{state.marginBottom=+e.target.value; updateUI();});
-  document.getElementById('lineColor').addEventListener('input',e=>{
-  state.lineColor=e.target.value;
-  updateUI();
-});
+  const lineColorInput=document.getElementById('lineColor');
+  lineColorInput.addEventListener('input',e=>{
+    state.lineColor=e.target.value;
+    renderPreview();
+  });
+  lineColorInput.addEventListener('change',e=>{
+    state.lineColor=e.target.value;
+    updateUI();
+  });
   document.getElementById('strokeWidth').addEventListener('input',e=>{state.strokeWidth=+e.target.value; updateUI();});
 
   document.getElementById('downloadBtn').addEventListener('click',openExportModal);
@@ -1688,13 +1693,22 @@ function bindDynamic(){
     const markerSize=document.getElementById(`${prefix}listMarkerSizeExtra`);
     if(markerSize) markerSize.oninput=e=>{target.listMarkerSize=+e.target.value; updateUI();};
     const markerColor=document.getElementById(`${prefix}listMarkerColorExtra`);
-if(markerColor) markerColor.oninput=e=>{
-  const nextColor=e.target.value;
-  target.listMarkerColor=nextColor;
-  if(prefix==="") state.listMarkerColor=nextColor;
-  state.listMarkerColorLinked=false;
-  updateUI();
-};
+if(markerColor){
+  markerColor.oninput=e=>{
+    const nextColor=e.target.value;
+    target.listMarkerColor=nextColor;
+    if(prefix==="") state.listMarkerColor=nextColor;
+    state.listMarkerColorLinked=false;
+    renderPreview();
+  };
+  markerColor.onchange=e=>{
+    const nextColor=e.target.value;
+    target.listMarkerColor=nextColor;
+    if(prefix==="") state.listMarkerColor=nextColor;
+    state.listMarkerColorLinked=false;
+    updateUI();
+  };
+}
   }
   bindContentConfig("",state);
   if(state.layoutMode==="split"){
