@@ -1409,6 +1409,16 @@ async function rasterizeMarkerNodeForPdf(node,dpi=600){
   }
   const px=Math.max(32,Math.round(mmToPx(size,dpi)));
   const markerClone=node.cloneNode(true);
+  const markerStyle=((node.getAttribute('data-marker-style'))||'').trim();
+if(markerStyle==='whatsapp' || markerStyle==='correo'){
+  const boost=markerStyle==='correo' ? 1.18 : 1.12;
+  [markerClone,...markerClone.querySelectorAll('[stroke-width]')].forEach(el=>{
+    const sw=Number(el.getAttribute('stroke-width'));
+    if(Number.isFinite(sw) && sw>0){
+      el.setAttribute('stroke-width', String(roundMm(sw*boost)));
+    }
+  });
+}
   const svgMarkup=`<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="${x} ${top} ${size} ${size}" preserveAspectRatio="none">${new XMLSerializer().serializeToString(markerClone)}</svg>`;
   const blob=new Blob([svgMarkup],{type:'image/svg+xml;charset=utf-8'});
   const blobUrl=URL.createObjectURL(blob);
