@@ -497,7 +497,11 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
   const scaleY=scaled/asset.viewBox.height;
   const group=el("g",{
     transform:`translate(${targetX} ${targetY}) scale(${roundMm(scaleX)} ${roundMm(scaleY)}) translate(${roundMm(-asset.viewBox.minX)} ${roundMm(-asset.viewBox.minY)})`,
-    "data-role":"marker-outline"
+    "data-role":"marker-outline",
+    "data-marker-style":style,
+    "data-marker-x":String(roundMm(x)),
+    "data-marker-top":String(roundMm(top)),
+    "data-marker-size":String(roundMm(size))
   });
   asset.nodes.forEach(baseNode=>{
     const node=baseNode.cloneNode(true);
@@ -1244,6 +1248,45 @@ function getPdfPaint(node){
   return {stroke,fill,lineWidth,mode};
 }
 let pdfCurrent=null;
+const PDF_RASTER_MARKER_STYLES=new Set(["whatsapp","correo","corazonRelleno"]);
+function markerNodeNeedsPdfRaster(node){
+  if(!node||node.nodeType!==1) return false;
+  const role=(node.getAttribute('data-role')||'').toLowerCase();
+  if(role!=='marker-outline') return false;
+  const style=(node.getAttribute('data-marker-style')||'').trim();
+  return PDF_RASTER_MARKER_STYLES.has(style);
+}
+async function rasterizeMarkerNodeForPdf(node,dpi=600){
+  const x=Number(node.getAttribute('data-marker-x'));
+  const top=Number(node.getAttribute('data-marker-top'));
+  const size=Number(node.getAttribute('data-marker-size'));
+  if(!Number.isFinite(x)||!Number.isFinite(top)||!Number.isFinite(size)||size<=0){
+    return null;
+  }
+  const px=Math.max(32,Math.round(mmToPx(size,dpi)));
+  const markerClone=node.cloneNode(true);
+  const svgMarkup=`<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="${x} ${top} ${size} ${size}" preserveAspectRatio="none">${new XMLSerializer().serializeToString(markerClone)}</svg>`;
+  const blob=new Blob([svgMarkup],{type:'image/svg+xml;charset=utf-8'});
+  const blobUrl=URL.createObjectURL(blob);
+  try{
+    const img=await new Promise((resolve,reject)=>{
+      const image=new Image();
+      image.onload=()=>resolve(image);
+      image.onerror=()=>reject(new Error('No se pudo rasterizar el marcador híbrido para PDF.'));
+      image.src=blobUrl;
+    });
+    const canvas=document.createElement('canvas');
+    canvas.width=px;
+    canvas.height=px;
+    const ctx=canvas.getContext('2d');
+    if(!ctx) throw new Error('Canvas 2D no disponible para rasterizar el marcador.');
+    ctx.clearRect(0,0,px,px);
+    ctx.drawImage(img,0,0,px,px);
+    return {imageDataUrl:canvas.toDataURL('image/png'),x,top,size};
+  } finally {
+    URL.revokeObjectURL(blobUrl);
+  }
+}
 function tokenizeSvgPath(d){
   return String(d||'').match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g)||[];
 }
@@ -1266,11 +1309,23 @@ function svgPathToPdfOps(d){
   }
   return ops;
 }
-function drawSvgNodeToPdf(node){
+async function drawSvgNodeToPdf(node){
   if(!node||node.nodeType!==1) return;
   const tag=node.tagName.toLowerCase();
   if(tag==='defs'||tag==='clippath') return;
-  if(tag==='svg'||tag==='g'){ Array.from(node.childNodes).forEach(drawSvgNodeToPdf); return; }
+  if(markerNodeNeedsPdfRaster(node)){
+    const stamp=await rasterizeMarkerNodeForPdf(node);
+    if(stamp){
+      pdfCurrent.addImage(stamp.imageDataUrl,'PNG',stamp.x,stamp.top,stamp.size,stamp.size,undefined,'NONE');
+      return;
+    }
+  }
+  if(tag==='svg'||tag==='g'){
+    for(const child of Array.from(node.childNodes)){
+      await drawSvgNodeToPdf(child);
+    }
+    return;
+  }
   const paint=getPdfPaint(node);
   if(!paint.mode&&tag!=='text') return;
   if(tag==='line'){
@@ -1317,21 +1372,12 @@ async function exportPdfVector(){
   const pdf=new jsPDF({orientation:pageSize.width>pageSize.height?'landscape':'portrait',unit:'mm',format:[pageSize.width,pageSize.height],compress:true,precision:12});
   const frontSvg=buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"front"});
   const backSvg=state.printMode==="duplex"?buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"back"}):null;
-  if(typeof pdf.svg==='function'){
-    await pdf.svg(frontSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
-    if(backSvg){
-      pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
-      await pdf.svg(backSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
-    }
-    pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
-    return;
-  }
   pdfCurrent=pdf;
   try{
-    drawSvgNodeToPdf(frontSvg);
+    await drawSvgNodeToPdf(frontSvg);
     if(backSvg){
       pdf.addPage([pageSize.width,pageSize.height],pageSize.width>pageSize.height?'landscape':'portrait');
-      drawSvgNodeToPdf(backSvg);
+      await drawSvgNodeToPdf(backSvg);
     }
     pdf.save(`${sanitizeFileName(state.projectName)}.pdf`);
   } finally {
