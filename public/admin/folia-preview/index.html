@@ -247,7 +247,7 @@
             </div>
           </div>
         </div>
-        <div class="foot"><div style="font-size:20px;font-weight:700">Qué conserva esta versión</div><div class="chips"><div class="chip">Hojas rayadas con margen superior para escribir</div><div class="chip">Punteadas y cuadriculadas ajustables al área útil</div><div class="chip">Listas con marcador cuadrado, círculo, corazón o numerado</div><div class="chip">Anillado, cuadernillo, anillado superior y hoja suelta</div><div class="chip">Exportación PDF vectorial y SVG</div><div class="chip">Base mucho más estable para seguir creciendo</div></div></div>
+        <div class="foot"><div style="font-size:20px;font-weight:700">Qué conserva esta versión</div><div class="chips"><div class="chip">Hojas rayadas con margen superior para escribir</div><div class="chip">Punteadas y cuadriculadas ajustables al área útil</div><div class="chip">Listas con marcador cuadrado, círculo, punto o numerado</div><div class="chip">Anillado, cuadernillo, anillado superior y hoja suelta</div><div class="chip">Exportación PDF vectorial y SVG</div><div class="chip">Base mucho más estable para seguir creciendo</div></div></div>
       </div>
     </div>
   </div>
@@ -276,23 +276,22 @@ const USAGE_PRESETS={
 };
 const SPLIT_ZONE_GAP_MM=2;
 const MARKER_ASSETS={
-  cuadrado:{label:"Cuadrado",file:"square.svg",scale:0.86,padding:0.08},
-  circuloContorno:{label:"Círculo",file:"circle.svg",scale:0.88,padding:0.07},
-  corazonContorno:{label:"Corazón contorno",file:"heart-outline.svg",scale:0.86,padding:0.08},
-  corazonRelleno:{label:"Corazón relleno",file:"heart-filled.svg",scale:0.84,padding:0.08},
-  ubicacion:{label:"Ubicación",file:"location.svg",scale:0.82,padding:0.1},
-  regalo:{label:"Regalo",file:"gift.svg",scale:0.82,padding:0.1},
-  correo:{label:"Correo",file:"envelope.svg",scale:0.84,padding:0.09},
-  whatsapp:{label:"WhatsApp",file:"whatsapp.svg",scale:0.82,padding:0.1},
-  web:{label:"Web",file:"globe.svg",scale:0.84,padding:0.09},
+  cuadrado:{label:"Cuadrado"},
+  circulo:{label:"Círculo"},
+  punto:{label:"Punto"},
   numerado:{label:"Numerado"}
 };
-const MARKER_STYLE_ORDER=["cuadrado","circuloContorno","corazonContorno","corazonRelleno","ubicacion","whatsapp","correo","numerado"];
-const MARKER_ASSET_BASE_PATHS=["/icons/markers/","public/icons/markers/"];
-const markerAssetCache=new Map();
-const markerAssetUrlCache=new Map();
-let markerAssetsReady=false;
-let markerAssetsPromise=null;
+const MARKER_STYLE_ORDER=["cuadrado","circulo","punto","numerado"];
+const LEGACY_MARKER_STYLE_MAP={
+  circuloContorno:"circulo",
+  corazonContorno:"punto",
+  corazonRelleno:"punto",
+  ubicacion:"punto",
+  whatsapp:"punto",
+  correo:"punto",
+  regalo:"punto",
+  web:"punto"
+};
 const CONTENT_CONFIG_DEFAULTS={
   lineSpacing:7,
   showTopGuide:false,
@@ -427,149 +426,49 @@ function el(name,attrs={}){
 }
 function uid(prefix="id"){return `${prefix}-${Math.random().toString(36).slice(2,10)}`;}
 function markerLabel(style){
-  return MARKER_ASSETS[style]?.label||"Cuadrado";
+  return MARKER_ASSETS[normalizeMarkerStyle(style)]?.label||"Cuadrado";
+}
+function normalizeMarkerStyle(style){
+  const mapped=LEGACY_MARKER_STYLE_MAP[style]||style;
+  return MARKER_ASSETS[mapped]?mapped:"cuadrado";
 }
 function markerIconHtml(style,color="#334155"){
-  const marker=MARKER_ASSETS[style];
-  if(marker?.file){
-    const src=markerAssetUrlCache.get(style)||`${MARKER_ASSET_BASE_PATHS[0]}${marker.file}`;
-    return `<span class="marker-icon"><img src="${src}" alt="${marker.label}"></span>`;
-  }
-  return `<span class="marker-icon marker-number" style="color:${color}">1.</span>`;
+  const normalized=normalizeMarkerStyle(style);
+  if(normalized==="numerado") return `<span class="marker-icon marker-number" style="color:${color}">1.</span>`;
+  if(normalized==="punto") return `<span class="marker-icon marker-number" style="color:${color}">•</span>`;
+  if(normalized==="circulo") return `<span class="marker-icon marker-number" style="color:${color}">○</span>`;
+  return `<span class="marker-icon marker-number" style="color:${color}">■</span>`;
 }
 function markerPickerHtml(selectedStyle,color,zone="single"){
   return `<details class="icon-select"><summary>${markerIconHtml(selectedStyle,color)}<span>${markerLabel(selectedStyle)}</span><span class="dropdown-caret">▾</span></summary><div class="icon-select-menu">${MARKER_STYLE_ORDER.map(style=>`<button type="button" class="marker-option" data-marker-option="${style}" data-marker-zone="${zone}">${markerIconHtml(style,color)}<span>${markerLabel(style)}</span></button>`).join("")}</div></details>`;
 }
-function parseMarkerViewBox(value,width,height){
-  const fallback={minX:0,minY:0,width:Math.max(1,Number(width)||24),height:Math.max(1,Number(height)||24)};
-  if(!value) return fallback;
-  const parts=String(value).trim().split(/[\s,]+/).map(Number);
-  if(parts.length!==4||parts.some(part=>!Number.isFinite(part))) return fallback;
-  const parsed={minX:parts[0],minY:parts[1],width:Math.max(1,parts[2]),height:Math.max(1,parts[3])};
-  return parsed;
-}
-function applyMarkerColor(node,markerColor,inherited={}){
-  if(!node||node.nodeType!==1) return;
-
-  const rawFill=node.getAttribute("fill");
-  const rawStroke=node.getAttribute("stroke");
-  const rawColor=node.getAttribute("color");
-  const style=node.getAttribute("style");
-
-  let fill=rawFill;
-  let stroke=rawStroke;
-  let color=rawColor;
-
-  if(fill&&String(fill).includes("currentColor")) fill=markerColor;
-  if(stroke&&String(stroke).includes("currentColor")) stroke=markerColor;
-  if(color&&String(color).includes("currentColor")) color=markerColor;
-
-  if(style&&style.includes("currentColor")){
-    node.setAttribute("style",style.replace(/currentColor/g,markerColor));
-  }
-
-  const inheritedFill=inherited.fill ?? null;
-  const inheritedStroke=inherited.stroke ?? null;
-
-  const effectiveFill=fill ?? inheritedFill;
-  const effectiveStroke=stroke ?? inheritedStroke;
-
-  if(effectiveFill!==null){
-    node.setAttribute("fill",effectiveFill);
-  }
-  if(effectiveStroke!==null){
-    node.setAttribute("stroke",effectiveStroke);
-  }
-  if(color){
-    node.setAttribute("color",color);
-  }
-
-  Array.from(node.children||[]).forEach(child=>
-    applyMarkerColor(child,markerColor,{
-      fill: effectiveFill,
-      stroke: effectiveStroke
-    })
-  );
-}
-async function loadMarkerAsset(style){
-  const marker=MARKER_ASSETS[style];
-  if(!marker?.file||markerAssetCache.has(style)) return;
-  let source="";
-  let loadedUrl="";
-  for(const basePath of MARKER_ASSET_BASE_PATHS){
-    const candidate=`${basePath}${marker.file}`;
-    const response=await fetch(candidate);
-    if(!response.ok) continue;
-    source=await response.text();
-    loadedUrl=candidate;
-    break;
-  }
-  if(!source) throw new Error(`No se pudo cargar ${marker.file}`);
-  const doc=new DOMParser().parseFromString(source,"image/svg+xml");
-  const svgNode=doc.documentElement;
-  const viewBox=parseMarkerViewBox(svgNode.getAttribute("viewBox"),svgNode.getAttribute("width"),svgNode.getAttribute("height"));
-  const nodes=Array.from(svgNode.children).map(node=>node.cloneNode(true));
-  const rawFill=svgNode.getAttribute("fill");
-const rawStroke=svgNode.getAttribute("stroke");
-const defaults={
-  fill:rawFill||null,
-  stroke:rawStroke||null
-};
-  markerAssetCache.set(style,{viewBox,nodes,defaults});
-  if(loadedUrl) markerAssetUrlCache.set(style,loadedUrl);
-}
 function drawMarkerAsset(svg,style,x,top,size,markerColor){
-  const marker=MARKER_ASSETS[style];
-  const asset=markerAssetCache.get(style);
-  if(!marker?.file||!asset) return false;
-  const padding=Math.max(0,Math.min(0.2,marker.padding??0.08));
-  const iconSize=size*(1-(padding*2));
-  const offset=(size-iconSize)/2;
-  const scale=Math.max(0.72,Math.min(1,marker.scale??0.85));
-  const scaled=iconSize*scale;
-  const scaleOffset=(iconSize-scaled)/2;
-  const targetX=roundMm(x+offset+scaleOffset);
-  const targetY=roundMm(top+offset+scaleOffset);
-  const scaleX=scaled/asset.viewBox.width;
-  const scaleY=scaled/asset.viewBox.height;
-const group=el("g",{
-  transform:`translate(${targetX} ${targetY}) scale(${roundMm(scaleX)} ${roundMm(scaleY)}) translate(${roundMm(-asset.viewBox.minX)} ${roundMm(-asset.viewBox.minY)})`,
-  "data-role":"marker-outline"
-});
-if(asset.defaults?.stroke) group.setAttribute("stroke",asset.defaults.stroke);
-  asset.nodes.forEach(baseNode=>{
-    const node=baseNode.cloneNode(true);
-    applyMarkerColor(node,markerColor,{
-  fill: asset.defaults?.fill ?? null,
-  stroke: asset.defaults?.stroke ?? null
-});
-    group.appendChild(node);
-  });
-  svg.appendChild(group);
-  return true;
-}
-async function preloadMarkerAssets(){
-  const styles=MARKER_STYLE_ORDER.filter(style=>MARKER_ASSETS[style]?.file);
-  await Promise.all(styles.map(loadMarkerAsset));
-  markerAssetsReady=true;
+  const normalized=normalizeMarkerStyle(style);
+  const cx=roundMm(x+(size/2));
+  const cy=roundMm(top+(size/2));
+  if(normalized==="cuadrado"){
+    const side=roundMm(size*0.56);
+    addRect(svg,cx-side/2,cy-side/2,side,side,{fill:markerColor,stroke:"none"});
+    return true;
+  }
+  if(normalized==="circulo"){
+    addCircle(svg,cx,cy,roundMm(size*0.28),{fill:"none",stroke:markerColor,"stroke-width":roundMm(Math.max(0.24,size*0.06)),"data-role":"marker-outline"});
+    return true;
+  }
+  if(normalized==="punto"){
+    addCircle(svg,cx,cy,roundMm(size*0.18),{fill:markerColor,stroke:"none"});
+    return true;
+  }
+  return false;
 }
 function ensureMarkerAssetsReady(){
-  if(markerAssetsReady) return Promise.resolve();
-  if(!markerAssetsPromise){
-    markerAssetsPromise=preloadMarkerAssets().catch(error=>{
-      console.error("No se pudieron cargar algunos marcadores SVG",error);
-      throw error;
-    });
-  }
-  return markerAssetsPromise;
+  return Promise.resolve();
 }
 function sheetConfigNeedsMarkerAssets(sheetType,config){
   return sheetType==="lista" && !!config?.checkbox && config?.listMarkerStyle!=="numerado";
 }
 function stateNeedsMarkerAssets(layoutState=state){
-  if(layoutState.layoutMode==="single") return sheetConfigNeedsMarkerAssets(layoutState.sheetType,layoutState);
-  return sheetConfigNeedsMarkerAssets(layoutState.splitTopSheetType,layoutState.splitConfigs?.top)
-    || sheetConfigNeedsMarkerAssets(layoutState.splitBottomSheetType,layoutState.splitConfigs?.bottom);
+  return false;
 }
 
 function addLine(svg,x1,y1,x2,y2,stroke=state.lineColor,strokeWidth=state.strokeWidth,extra={}){
@@ -753,7 +652,7 @@ function drawList(svg,rect,config=state){
   const {gridStroke}=getStrokeSet(config);
   const spacing=Math.max(7,+config.listSpacing),fit=!!config.fitListToSpace,rowCount=fit?Math.max(1,Math.floor(rect.height/spacing)):Math.max(1,Math.floor(rect.height/spacing)-1),step=fit?rect.height/rowCount:spacing;
   function drawMarker(x,lineY,index){
-    const style=config.listMarkerStyle,size=+config.listMarkerSize,top=lineY-size,markerColor=(config.listMarkerColor&&String(config.listMarkerColor).trim()) || state.listMarkerColor || state.lineColor;
+    const style=normalizeMarkerStyle(config.listMarkerStyle),size=+config.listMarkerSize,top=lineY-size,markerColor=(config.listMarkerColor&&String(config.listMarkerColor).trim()) || state.listMarkerColor || state.lineColor;
     if(style==="numerado"){
       const fontSize=+config.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*1.15,fontSize*(maxDigits*0.62+0.62)),gap=Math.max(1.2,fontSize*0.18),textX=x+numberBoxWidth;
       addText(svg,textX,lineY-0.35,label,{fill:markerColor,"font-size":roundMm(fontSize),"text-anchor":"end"});
@@ -823,11 +722,7 @@ function buildSheetContent(svg,rectInfo){
   });
 }
 function renderPreview(){
-  if(stateNeedsMarkerAssets()&&!markerAssetsReady){
-    ensureMarkerAssetsReady().then(()=>renderPreview());
-    return;
-  }
-  const pageSize=getPageSize(),previewLayoutState=getExportLayoutState(state.previewFace),rectInfo=getRects(pageSize,previewLayoutState),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta";
+    const pageSize=getPageSize(),previewLayoutState=getExportLayoutState(state.previewFace),rectInfo=getRects(pageSize,previewLayoutState),armadoLabel=(ARMADOS.find(([id])=>id===state.armado)||[])[1]||"Hoja suelta";
   const singleSheetLabel=(SHEETS.find(([id])=>id===state.sheetType)||[])[1]||"Rayada";
   const topSheetLabel=(SHEETS.find(([id])=>id===state.splitTopSheetType)||[])[1]||"Rayada";
   const bottomSheetLabel=(SHEETS.find(([id])=>id===state.splitBottomSheetType)||[])[1]||"Punteada";
@@ -1222,7 +1117,6 @@ async function setPngDpi(blob,dpi){
 }
 
 async function exportPng(scale=4){
-  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
   const canvas=await exportSvgToCanvas({transparent:true,dpi:PNG_BASE_DPI,renderScale:Math.max(1,Number(scale)||1)});
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
   downloadBlob(blob,`${sanitizeFileName(state.projectName)}.png`);
@@ -1425,7 +1319,6 @@ function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity()){
   }
 }
 async function exportPdfVector(){
-  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
 
   const pageSize=getPageSize();
   if(!window.jspdf||!window.jspdf.jsPDF){
@@ -1515,7 +1408,6 @@ try{
 }
 }
 async function exportSvgFile(){
-  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
   const svg=buildExportSvgElement({includeBackground:false,optimizeForRaster:false,face:"front"});
   const blob=new Blob([svgElementToMarkup(svg)],{type:'image/svg+xml;charset=utf-8'});
   downloadBlob(blob,`${sanitizeFileName(state.projectName)}.svg`);
@@ -1704,9 +1596,9 @@ if(markerColor) markerColor.oninput=e=>{
   document.querySelectorAll('[data-marker-option]').forEach(btn=>btn.onclick=e=>{
     e.preventDefault();
     const zone=btn.dataset.markerZone||"single";
-    if(zone==="single") state.listMarkerStyle=btn.dataset.markerOption;
-    if(zone==="top") state.splitConfigs.top.listMarkerStyle=btn.dataset.markerOption;
-    if(zone==="bottom") state.splitConfigs.bottom.listMarkerStyle=btn.dataset.markerOption;
+    if(zone==="single") state.listMarkerStyle=normalizeMarkerStyle(btn.dataset.markerOption);
+    if(zone==="top") state.splitConfigs.top.listMarkerStyle=normalizeMarkerStyle(btn.dataset.markerOption);
+    if(zone==="bottom") state.splitConfigs.bottom.listMarkerStyle=normalizeMarkerStyle(btn.dataset.markerOption);
     const details=btn.closest('details');
     if(details) details.open=false;
     updateUI();
@@ -1716,7 +1608,6 @@ if(markerColor) markerColor.oninput=e=>{
 async function initApp(){
   bindStatic();
   applyUsagePreset('general');
-  if(stateNeedsMarkerAssets()) await ensureMarkerAssetsReady();
   updateUI();
 }
 initApp();
