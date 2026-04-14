@@ -1425,7 +1425,19 @@ function bindStatic(){
   document.getElementById('customHeight').addEventListener('input',e=>{state.customHeight=+e.target.value; updateUI();});
   document.getElementById('marginTop').addEventListener('input',e=>{state.marginTop=+e.target.value; updateUI();});
   document.getElementById('marginBottom').addEventListener('input',e=>{state.marginBottom=+e.target.value; updateUI();});
-  document.getElementById('lineColor').addEventListener('input',e=>{const previousLineColor=state.lineColor; state.lineColor=e.target.value; if(state.listMarkerColorLinked||state.listMarkerColor===previousLineColor) state.listMarkerColor=e.target.value; updateUI();});
+  const lineColorInput=document.getElementById('lineColor');
+  lineColorInput.addEventListener('input',e=>{
+    const previousLineColor=state.lineColor;
+    state.lineColor=e.target.value;
+    if(state.listMarkerColorLinked||state.listMarkerColor===previousLineColor) state.listMarkerColor=e.target.value;
+    renderPreview();
+  });
+  lineColorInput.addEventListener('change',e=>{
+    const previousLineColor=state.lineColor;
+    state.lineColor=e.target.value;
+    if(state.listMarkerColorLinked||state.listMarkerColor===previousLineColor) state.listMarkerColor=e.target.value;
+    updateUI();
+  });
   document.getElementById('strokeWidth').addEventListener('input',e=>{state.strokeWidth=+e.target.value; updateUI();});
 
   document.getElementById('downloadBtn').addEventListener('click',openExportModal);
@@ -1509,7 +1521,18 @@ function bindDynamic(){
     const markerSize=document.getElementById(`${prefix}listMarkerSizeExtra`);
     if(markerSize) markerSize.oninput=e=>{target.listMarkerSize=+e.target.value; updateUI();};
     const markerColor=document.getElementById(`${prefix}listMarkerColorExtra`);
-    if(markerColor) markerColor.oninput=e=>{target.listMarkerColor=e.target.value; if(target===state){state.listMarkerColorLinked=(state.listMarkerColor===state.lineColor);} updateUI();};
+    if(markerColor){
+      markerColor.oninput=e=>{
+        target.listMarkerColor=e.target.value;
+        if(target===state){state.listMarkerColorLinked=(state.listMarkerColor===state.lineColor);}
+        renderPreview();
+      };
+      markerColor.onchange=e=>{
+        target.listMarkerColor=e.target.value;
+        if(target===state){state.listMarkerColorLinked=(state.listMarkerColor===state.lineColor);}
+        updateUI();
+      };
+    }
   }
   bindContentConfig("",state);
   if(state.layoutMode==="split"){
