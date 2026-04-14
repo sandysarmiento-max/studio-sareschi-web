@@ -311,6 +311,7 @@ const MARKER_INTERNAL_VECTORS={
     ]
   }
 };
+const PDF_FINAL_STAMP_MARKERS=new Set(["whatsapp","correo","corazonRelleno"]);
 const markerAssetCache=new Map();
 const markerAssetUrlCache=new Map();
 const markerInlineThumbCache=new Map();
@@ -598,10 +599,14 @@ function drawMarkerAsset(svg,style,x,top,size,markerColor){
   const targetY=roundMm(top+offset+scaleOffset);
   const scaleX=scaled/asset.viewBox.width;
   const scaleY=scaled/asset.viewBox.height;
-  const group=el("g",{
+const group=el("g",{
   transform:`translate(${targetX} ${targetY}) scale(${roundMm(scaleX)} ${roundMm(scaleY)}) translate(${roundMm(-asset.viewBox.minX)} ${roundMm(-asset.viewBox.minY)})`,
   "data-role":"marker-outline"
 });
+if(PDF_FINAL_STAMP_MARKERS.has(style)){
+  group.setAttribute("data-pdf-final-stamp",style);
+  group.setAttribute("data-marker-color",markerColor);
+}
 if(asset.defaults?.stroke) group.setAttribute("stroke",asset.defaults.stroke);
   asset.nodes.forEach(baseNode=>{
     const node=baseNode.cloneNode(true);
@@ -1457,6 +1462,63 @@ function svgPathToPdfOps(d){
   }
   return ops;
 }
+function drawPdfFinalMarkerStamp(groupNode,parentMatrix){
+  const style=groupNode?.getAttribute?.('data-pdf-final-stamp');
+  const template=MARKER_INTERNAL_VECTORS[style];
+  if(!template||!pdfCurrent) return false;
+  const markerColor=groupNode.getAttribute('data-marker-color')||'#000000';
+  const nodeMatrix=matrixMultiply(parentMatrix,parseTransform(groupNode.getAttribute('transform')));
+  const {sx,sy}=getScaleFromMatrix(nodeMatrix);
+  const baseScale=Math.max(0.01,Math.min(sx,sy));
+  const color=parseColorValue(markerColor)||{r:0,g:0,b:0};
+  const drawPath=(d,mode)=>{
+    const ops=svgPathToPdfOps(d).map(op=>{
+      if(!Array.isArray(op.c)||!op.c.length) return op;
+      const coords=[...op.c];
+      for(let i=0;i+1<coords.length;i+=2){
+        const p=applyMatrixToPoint(nodeMatrix,coords[i],coords[i+1]);
+        coords[i]=p.x;
+        coords[i+1]=p.y;
+      }
+      return {op:op.op,c:coords};
+    });
+    if(ops.length&&typeof pdfCurrent.path==='function') pdfCurrent.path(ops,mode);
+  };
+  template.nodes.forEach(nodeDef=>{
+    const attrs=nodeDef.attrs||{};
+    const fillRaw=String(attrs.fill||'none').replaceAll('{markerColor}',markerColor);
+    const strokeRaw=String(attrs.stroke||'none').replaceAll('{markerColor}',markerColor);
+    const fill=fillRaw!=='none'?parseColorValue(fillRaw)||color:null;
+    const stroke=strokeRaw!=='none'?parseColorValue(strokeRaw)||color:null;
+    const strokeWidth=(Number(attrs['stroke-width'])||0)*baseScale;
+    if(stroke){
+      try{ pdfCurrent.setDrawColor(stroke.r,stroke.g,stroke.b); }catch(_){}
+      try{ pdfCurrent.setLineWidth(Math.max(0.05,strokeWidth)); }catch(_){}
+      try{ pdfCurrent.setLineCap('round'); }catch(_){}
+      try{ pdfCurrent.setLineJoin('round'); }catch(_){}
+    }
+    if(fill){
+      try{ pdfCurrent.setFillColor(fill.r,fill.g,fill.b); }catch(_){}
+    }
+    const mode=(fill&&stroke)?'FD':fill?'F':stroke?'S':null;
+    if(!mode) return;
+    if(nodeDef.tag==='path'){
+      drawPath(attrs.d||'',mode);
+      return;
+    }
+    if(nodeDef.tag==='rect'){
+      const x=Number(attrs.x)||0, y=Number(attrs.y)||0, w=Number(attrs.width)||0, h=Number(attrs.height)||0;
+      const rx=Number(attrs.rx)||0;
+      const p1=applyMatrixToPoint(nodeMatrix,x,y);
+      const p2=applyMatrixToPoint(nodeMatrix,x+w,y+h);
+      const nextRx=rx*sx;
+      const nextRy=(Number(attrs.ry)||rx)*sy;
+      if(nextRx||nextRy) pdfCurrent.roundedRect(p1.x,p1.y,p2.x-p1.x,p2.y-p1.y,nextRx,nextRy,mode);
+      else pdfCurrent.rect(p1.x,p1.y,p2.x-p1.x,p2.y-p1.y,mode);
+    }
+  });
+  return true;
+}
 function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity(),inheritedPaint={}){
   if(!node||node.nodeType!==1) return;
   const tag=node.tagName.toLowerCase();
@@ -1469,6 +1531,10 @@ function drawSvgNodeToPdf(node,parentMatrix=matrixIdentity(),inheritedPaint={}){
     strokeWidth:nodePaintValues.strokeWidthRaw
   };
   if(tag==='svg'||tag==='g'){
+    if(tag==='g'&&PDF_FINAL_STAMP_MARKERS.has(node.getAttribute('data-pdf-final-stamp')||'')){
+      drawPdfFinalMarkerStamp(node,parentMatrix);
+      return;
+    }
     Array.from(node.childNodes).forEach(child=>drawSvgNodeToPdf(child,nodeMatrix,nextInheritedPaint));
     return;
   }
