@@ -1425,7 +1425,14 @@ function bindStatic(){
   document.getElementById('customHeight').addEventListener('input',e=>{state.customHeight=+e.target.value; updateUI();});
   document.getElementById('marginTop').addEventListener('input',e=>{state.marginTop=+e.target.value; updateUI();});
   document.getElementById('marginBottom').addEventListener('input',e=>{state.marginBottom=+e.target.value; updateUI();});
-  document.getElementById('lineColor').addEventListener('input',e=>{const previousLineColor=state.lineColor; state.lineColor=e.target.value; if(state.listMarkerColorLinked||state.listMarkerColor===previousLineColor) state.listMarkerColor=e.target.value; updateUI();});
+  document.getElementById('lineColor').addEventListener('input',e=>{
+  const previousLineColor=state.lineColor;
+  state.lineColor=e.target.value;
+  if(state.listMarkerColorLinked||state.listMarkerColor===previousLineColor) state.listMarkerColor=e.target.value;
+  renderPreview();
+  updateExportSummary();
+});
+document.getElementById('lineColor').addEventListener('change',()=>updateUI());
   document.getElementById('strokeWidth').addEventListener('input',e=>{state.strokeWidth=+e.target.value; updateUI();});
 
   document.getElementById('downloadBtn').addEventListener('click',openExportModal);
@@ -1508,9 +1515,16 @@ function bindDynamic(){
     if(markerFont) markerFont.oninput=e=>{target.listMarkerFontSize=+e.target.value; updateUI();};
     const markerSize=document.getElementById(`${prefix}listMarkerSizeExtra`);
     if(markerSize) markerSize.oninput=e=>{target.listMarkerSize=+e.target.value; updateUI();};
-    const markerColor=document.getElementById(`${prefix}listMarkerColorExtra`);
-    if(markerColor) markerColor.oninput=e=>{target.listMarkerColor=e.target.value; if(target===state){state.listMarkerColorLinked=(state.listMarkerColor===state.lineColor);} updateUI();};
-  }
+   const markerColor=document.getElementById(`${prefix}listMarkerColorExtra`);
+if(markerColor){
+  markerColor.oninput=e=>{
+    target.listMarkerColor=e.target.value;
+    if(target===state){state.listMarkerColorLinked=(state.listMarkerColor===state.lineColor);}
+    renderPreview();
+    updateExportSummary();
+  };
+  markerColor.onchange=()=>updateUI();
+}
   bindContentConfig("",state);
   if(state.layoutMode==="split"){
     bindContentConfig("top",state.splitConfigs.top);
