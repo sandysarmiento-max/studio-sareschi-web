@@ -101,6 +101,19 @@
           return;
         }
 
+        const { data: accessData, error: accessError } = await supabaseClient
+          .from('app_access')
+          .select('id')
+          .eq('app_key', 'aral_calc')
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle();
+
+        if (accessError || !accessData) {
+          window.location.href = '/app/aral-calc/';
+          return;
+        }
+
         document.body.classList.remove('auth-pending');
       } catch (error) {
         window.location.href = '/acceso/?next=' + encodeURIComponent('/aral-calc/');

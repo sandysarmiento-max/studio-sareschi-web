@@ -50,6 +50,23 @@
             return;
           }
 
+          const { data: accessData, error: accessError } = await supabaseClient
+            .from('app_access')
+            .select('id')
+            .eq('app_key', 'aral_calc')
+            .eq('status', 'active')
+            .limit(1)
+            .maybeSingle();
+
+          if (accessError || !accessData) {
+            status.textContent = 'Tu cuenta no tiene acceso habilitado a Aral Calc.';
+            document.querySelector('h1').textContent = 'Acceso no habilitado';
+            const link = document.querySelector('a.btn');
+            link.href = '/acceso/';
+            link.textContent = 'Volver a acceso';
+            return;
+          }
+
           window.location.href = '/aral-calc/';
         } catch (error) {
           status.textContent = 'No se pudo validar tu sesión. Intenta iniciar sesión nuevamente.';

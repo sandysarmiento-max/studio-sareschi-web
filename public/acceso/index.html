@@ -82,6 +82,17 @@
               </div>
             </div>
 
+            <div id="no-access-box" hidden>
+              <p><strong>Sesión activa.</strong> Tu cuenta no tiene acceso habilitado a Aral Calc.</p>
+              <p class="tiny-note" style="margin-top: 8px">
+                Si crees que esto es un error, escríbenos para revisar tu invitación.
+              </p>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <a class="btn btn-secondary" href="/">Volver al inicio</a>
+                <button class="btn btn-secondary" id="logout-no-access-btn" type="button">Cerrar sesión</button>
+              </div>
+            </div>
+
             <p class="tiny-note" style="margin-top: 12px">
               Si compraste Aral Calc, tu acceso se envía al correo registrado al momento de la compra.
             </p>
@@ -98,6 +109,8 @@
       const continueLink = document.getElementById('continue-link');
       const loginBtn = document.getElementById('login-btn');
       const logoutBtn = document.getElementById('logout-btn');
+      const noAccessBox = document.getElementById('no-access-box');
+      const logoutNoAccessBtn = document.getElementById('logout-no-access-btn');
       const togglePasswordBtn = document.getElementById('toggle-password');
       const passwordInput = document.getElementById('password');
       const nextParam = new URLSearchParams(window.location.search).get('next') || '/aral-calc/';
@@ -111,8 +124,23 @@
       }
 
       async function hasAralAccess() {
-        // Base preparada para futuras reglas (compra/permiso por usuario).
-        return true;
+        if (!supabaseClient) {
+          return false;
+        }
+
+        const { data, error } = await supabaseClient
+          .from('app_access')
+          .select('id')
+          .eq('app_key', 'aral_calc')
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          return false;
+        }
+
+        return Boolean(data);
       }
 
       async function bootAuth() {
@@ -134,13 +162,14 @@
         } = await supabaseClient.auth.getSession();
 
         if (session) {
-          const allowed = await hasAralAccess(session.user);
+          const allowed = await hasAralAccess();
           form.hidden = true;
+          noAccessBox.hidden = allowed;
           sessionBox.hidden = !allowed;
           if (allowed) {
             setStatus('Sesión detectada. Continúa a Aral Calc.');
           } else {
-            setStatus('Tu cuenta inició sesión, pero todavía no tiene acceso a Aral Calc.', true);
+            setStatus('Tu cuenta inició sesión, pero no tiene acceso habilitado a Aral Calc.', true);
           }
         }
       }
@@ -166,9 +195,12 @@
           return;
         }
 
-        const allowed = await hasAralAccess(data.user);
+        const allowed = await hasAralAccess();
         if (!allowed) {
-          setStatus('Tu sesión está activa, pero todavía no tienes permiso para Aral Calc.', true);
+          form.hidden = true;
+          sessionBox.hidden = true;
+          noAccessBox.hidden = false;
+          setStatus('Tu sesión está activa, pero no tienes acceso habilitado a Aral Calc.', true);
           return;
         }
 
@@ -176,6 +208,14 @@
       });
 
       logoutBtn.addEventListener('click', async () => {
+        if (!supabaseClient) {
+          return;
+        }
+        await supabaseClient.auth.signOut();
+        window.location.reload();
+      });
+
+      logoutNoAccessBtn.addEventListener('click', async () => {
         if (!supabaseClient) {
           return;
         }
