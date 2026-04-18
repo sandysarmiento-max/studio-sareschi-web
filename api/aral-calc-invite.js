@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const INVITE_REDIRECT_TO = 'https://studio-sareschi.com/acceso/nueva-contrasena/';
+const INVITE_REDIRECT_TO = 'https://www.studio-sareschi.com/acceso/aceptar-invitacion/';
 
 function json(res, status, body) {
   res.statusCode = status;
