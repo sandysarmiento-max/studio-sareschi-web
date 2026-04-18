@@ -34,7 +34,9 @@ execute function public.set_updated_at();
 
 alter table public.app_access enable row level security;
 
-create policy if not exists app_access_read_own
+drop policy if exists app_access_read_own on public.app_access;
+
+create policy app_access_read_own
 on public.app_access
 for select
 to authenticated
