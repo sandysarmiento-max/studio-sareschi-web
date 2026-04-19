@@ -26,6 +26,12 @@
         margin: 0;
         font-size: 14px;
       }
+      .status-ok {
+        color: #2f6f44;
+      }
+      .status-error {
+        color: #8f1d4f;
+      }
     </style>
   </head>
   <body>
@@ -41,9 +47,7 @@
           <div class="section-heading" style="margin: 0">
             <p class="eyebrow">Panel interno</p>
             <h1 style="margin-bottom: 8px">Invitaciones Aral Calc</h1>
-            <p class="hero-copy" style="margin: 0">
-              Pega el token de admin, ingresa un email y envía la invitación sin terminal.
-            </p>
+            <p class="hero-copy" style="margin: 0">Ingresa email y envía invitación para acceso a Aral Calc.</p>
           </div>
 
           <form id="invite-form" class="invite-form">
@@ -60,7 +64,7 @@
             <button class="btn btn-primary" type="submit" id="send-btn">Enviar invitación</button>
           </form>
 
-          <p id="status" class="status tiny-note">Listo para enviar.</p>
+          <p id="status" class="status tiny-note" aria-live="polite">Listo para enviar.</p>
         </article>
       </div>
     </main>
@@ -75,9 +79,18 @@
 
       tokenInput.value = sessionStorage.getItem(STORAGE_KEY) || '';
 
-      function setStatus(message, isError = false) {
+      function setStatus(message, state = 'idle') {
         statusEl.textContent = message;
-        statusEl.style.color = isError ? '#8f1d4f' : '#6f6471';
+        statusEl.classList.remove('status-ok', 'status-error');
+
+        if (state === 'ok') {
+          statusEl.classList.add('status-ok');
+          return;
+        }
+
+        if (state === 'error') {
+          statusEl.classList.add('status-error');
+        }
       }
 
       form.addEventListener('submit', async (event) => {
@@ -87,19 +100,19 @@
         const token = String(tokenInput.value || '').trim();
 
         if (!email) {
-          setStatus('Ingresa un email.', true);
+          setStatus('Ingresa un email válido.', 'error');
           return;
         }
 
         if (!token) {
-          setStatus('Pega el token INVITE_ADMIN_TOKEN.', true);
+          setStatus('Pega el token INVITE_ADMIN_TOKEN.', 'error');
           return;
         }
 
         sessionStorage.setItem(STORAGE_KEY, token);
 
         sendBtn.disabled = true;
-        setStatus('Enviando invitación...');
+        setStatus('Enviando invitación...', 'idle');
 
         try {
           const response = await fetch('/api/aral-calc-invite', {
@@ -115,14 +128,14 @@
 
           if (!response.ok) {
             const reason = payload?.details || payload?.error || `Error ${response.status}`;
-            setStatus(`No se pudo enviar: ${reason}`, true);
+            setStatus(`No se pudo enviar: ${reason}`, 'error');
             return;
           }
 
-          setStatus(`Invitación enviada a ${email}.`);
+          setStatus(`Invitación enviada a ${email}.`, 'ok');
           emailInput.value = '';
         } catch (error) {
-          setStatus(`Error de red: ${String(error?.message || error)}`, true);
+          setStatus(`Error de red: ${String(error?.message || error)}`, 'error');
         } finally {
           sendBtn.disabled = false;
         }
