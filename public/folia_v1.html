@@ -656,7 +656,7 @@ function drawList(svg,rect,config=state){
   function drawMarker(x,lineY,index){
     const style=normalizeMarkerStyle(config.listMarkerStyle),size=+config.listMarkerSize,top=lineY-size,markerColor=config.listMarkerColor||state.lineColor;
     if(style==="numerado"){
-      const fontSize=+config.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*1.15,fontSize*(maxDigits*0.62+0.62)),gap=Math.max(1.2,fontSize*0.18),textX=x+numberBoxWidth;
+      const fontSize=+config.listMarkerFontSize,label=`${index+1}.`,maxDigits=String(rowCount).length,numberBoxWidth=Math.max(fontSize*0.98,fontSize*(maxDigits*0.54+0.36)),gap=Math.max(0.8,fontSize*0.12),textInset=fontSize*0.05,textX=x+numberBoxWidth-textInset;
       addText(svg,textX,lineY-0.35,label,{fill:markerColor,"font-size":roundMm(fontSize),"text-anchor":"end"});
       return numberBoxWidth+gap;
     }
