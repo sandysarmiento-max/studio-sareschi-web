@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Acceso a Aral Calc | Studio Sareschi</title>
+    <title>Acceso a Folia | Studio Sareschi</title>
     <meta
       name="description"
-      content="Ruta de transición protegida hacia Aral Calc."
+      content="Ruta de transición protegida hacia Folia."
     />
     <link rel="stylesheet" href="/styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -19,7 +19,7 @@
             <p class="eyebrow">Acceso protegido</p>
             <h1 style="margin-top:0">Validando tu sesión…</h1>
             <p id="status">Te estamos redirigiendo.</p>
-            <a class="btn btn-secondary" href="/acceso/?app=aral_calc&next=/aral-calc/">Ir a login</a>
+            <a class="btn btn-secondary" href="/acceso/?app=folia&next=/admin/folia-preview/">Ir a login</a>
           </article>
         </div>
       </section>
@@ -35,7 +35,7 @@
 
           if (!config.enabled) {
             status.textContent = 'Falta configuración de auth. Redirigiendo a login…';
-            window.location.href = '/acceso/?app=aral_calc&next=/aral-calc/';
+            window.location.href = '/acceso/?app=folia&next=/admin/folia-preview/';
             return;
           }
 
@@ -45,32 +45,32 @@
           } = await supabaseClient.auth.getSession();
 
           if (!session) {
-            status.textContent = 'Necesitas iniciar sesión para entrar a Aral Calc.';
-            window.location.href = '/acceso/?app=aral_calc&next=/aral-calc/';
+            status.textContent = 'Necesitas iniciar sesión para entrar a Folia.';
+            window.location.href = '/acceso/?app=folia&next=/admin/folia-preview/';
             return;
           }
 
           const { data: accessData, error: accessError } = await supabaseClient
             .from('app_access')
             .select('id')
-            .eq('app_key', 'aral_calc')
+            .eq('app_key', 'folia')
             .eq('status', 'active')
             .limit(1)
             .maybeSingle();
 
           if (accessError || !accessData) {
-            status.textContent = 'Tu cuenta no tiene acceso habilitado a Aral Calc.';
+            status.textContent = 'Tu cuenta no tiene acceso habilitado a Folia.';
             document.querySelector('h1').textContent = 'Acceso no habilitado';
             const link = document.querySelector('a.btn');
-            link.href = '/acceso/';
+            link.href = '/acceso/?app=folia&next=/admin/folia-preview/';
             link.textContent = 'Volver a acceso';
             return;
           }
 
-          window.location.href = '/aral-calc/';
+          window.location.href = '/admin/folia-preview/';
         } catch (error) {
           status.textContent = 'No se pudo validar tu sesión. Intenta iniciar sesión nuevamente.';
-          window.location.href = '/acceso/?app=aral_calc&next=/aral-calc/';
+          window.location.href = '/acceso/?app=folia&next=/admin/folia-preview/';
         }
       })();
     </script>

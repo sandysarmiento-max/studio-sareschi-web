@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Acceso Aral Calc | Studio Sareschi</title>
+    <title>Acceso protegido | Studio Sareschi</title>
     <meta
       name="description"
-      content="Inicia sesión para acceder a Aral Calc en Studio Sareschi."
+      content="Inicia sesión para acceder a tus apps protegidas en Studio Sareschi."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,10 +23,9 @@
         <a class="brand" href="/">Studio Sareschi</a>
         <nav aria-label="Principal">
           <ul class="nav-links">
-            <li><a href="/#home">Home</a></li>
-            <li><a href="/#apps">Apps</a></li>
-            <li><a href="/aral-calc-guia/">Aral Calc</a></li>
-          </ul>
+  <li><a href="/">Home</a></li>
+  <li><a id="alternate-app-link" href="/acceso/?app=folia&next=%2Fadmin%2Ffolia-preview%2F">Folia</a></li>
+</ul>
         </nav>
       </div>
     </header>
@@ -36,9 +35,9 @@
         <div class="container">
           <div class="section-heading">
             <p class="eyebrow">Acceso protegido</p>
-            <h1>Inicia sesión para acceder a Aral Calc</h1>
+            <h1 id="access-title">Inicia sesión para acceder</h1>
             <p class="hero-copy" style="margin: 0">
-              Aral Calc está disponible solo para usuarios con acceso autorizado.
+              <span id="access-description">Esta app está disponible solo para usuarios con acceso autorizado.</span>
             </p>
           </div>
 
@@ -71,19 +70,19 @@
                 </div>
               </label>
               <a href="/acceso/recuperar/" class="tiny-note" style="display:inline-block">¿Olvidaste tu contraseña?</a>
-              <button id="login-btn" class="btn btn-primary" type="submit">Entrar a Aral Calc</button>
+              <button id="login-btn" class="btn btn-primary" type="submit">Entrar</button>
             </form>
 
             <div id="session-box" hidden>
-              <p><strong>Sesión activa.</strong> Ya puedes ingresar a Aral Calc.</p>
+              <p><strong>Sesión activa.</strong> Ya puedes ingresar a <span id="session-app-name">la app</span>.</p>
               <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <a class="btn btn-primary" id="continue-link" href="/aral-calc/">Abrir Aral Calc</a>
+                <a class="btn btn-primary" id="continue-link" href="/aral-calc/">Abrir app</a>
                 <button class="btn btn-secondary" id="logout-btn" type="button">Cerrar sesión</button>
               </div>
             </div>
 
             <div id="no-access-box" hidden>
-              <p><strong>Sesión activa.</strong> Tu cuenta no tiene acceso habilitado a Aral Calc.</p>
+              <p><strong>Sesión activa.</strong> Tu cuenta no tiene acceso habilitado a <span id="no-access-app-name">esta app</span>.</p>
               <p class="tiny-note" style="margin-top: 8px">
                 Si crees que esto es un error, escríbenos para revisar tu invitación.
               </p>
@@ -94,7 +93,7 @@
             </div>
 
             <p class="tiny-note" style="margin-top: 12px">
-              Si compraste Aral Calc, tu acceso se envía al correo registrado al momento de la compra.
+              Si compraste una app de Studio Sareschi, tu acceso se envía al correo registrado al momento de la compra.
             </p>
             <p id="status" class="tiny-note" aria-live="polite" style="margin-top: 12px"></p>
           </article>
@@ -113,7 +112,45 @@
       const logoutNoAccessBtn = document.getElementById('logout-no-access-btn');
       const togglePasswordBtn = document.getElementById('toggle-password');
       const passwordInput = document.getElementById('password');
-      const nextParam = new URLSearchParams(window.location.search).get('next') || '/aral-calc/';
+     const APP_CONFIG = {
+  aral_calc: {
+    name: 'Aral Calc',
+    next: '/aral-calc/',
+    alternateLabel: 'Folia',
+    alternateHref: '/acceso/?app=folia&next=%2Fadmin%2Ffolia-preview%2F',
+  },
+  folia: {
+    name: 'Folia',
+    next: '/admin/folia-preview/',
+    alternateLabel: 'Aral Calc',
+    alternateHref: '/acceso/?app=aral_calc&next=%2Faral-calc%2F',
+  },
+};
+
+      const params = new URLSearchParams(window.location.search);
+      const requestedAppKey = params.get('app');
+      const fallbackFromNext = (params.get('next') || '').includes('/folia') ? 'folia' : 'aral_calc';
+      const currentAppKey = APP_CONFIG[requestedAppKey] ? requestedAppKey : fallbackFromNext;
+      const currentApp = APP_CONFIG[currentAppKey];
+      const nextParam = params.get('next') || currentApp.next;
+const alternateAppLink = document.getElementById('alternate-app-link');
+if (alternateAppLink && currentApp) {
+  alternateAppLink.textContent = currentApp.alternateLabel;
+  alternateAppLink.href = currentApp.alternateHref;
+}
+      const titleEl = document.getElementById('access-title');
+      const descriptionEl = document.getElementById('access-description');
+      const sessionAppNameEl = document.getElementById('session-app-name');
+      const noAccessAppNameEl = document.getElementById('no-access-app-name');
+
+      document.title = `Acceso ${currentApp.name} | Studio Sareschi`;
+      titleEl.textContent = `Inicia sesión para acceder a ${currentApp.name}`;
+      descriptionEl.textContent = `${currentApp.name} está disponible solo para usuarios con acceso autorizado.`;
+      loginBtn.textContent = `Entrar a ${currentApp.name}`;
+      continueLink.textContent = `Abrir ${currentApp.name}`;
+      sessionAppNameEl.textContent = currentApp.name;
+      noAccessAppNameEl.textContent = currentApp.name;
+
       continueLink.href = nextParam;
 
       let supabaseClient = null;
@@ -123,7 +160,7 @@
         statusEl.style.color = isError ? '#8f1d4f' : '';
       }
 
-      async function hasAralAccess() {
+      async function hasAppAccess(appKey) {
         if (!supabaseClient) {
           return false;
         }
@@ -131,7 +168,7 @@
         const { data, error } = await supabaseClient
           .from('app_access')
           .select('id')
-          .eq('app_key', 'aral_calc')
+          .eq('app_key', appKey)
           .eq('status', 'active')
           .limit(1)
           .maybeSingle();
@@ -162,14 +199,14 @@
         } = await supabaseClient.auth.getSession();
 
         if (session) {
-          const allowed = await hasAralAccess();
+          const allowed = await hasAppAccess(currentAppKey);
           form.hidden = true;
           noAccessBox.hidden = allowed;
           sessionBox.hidden = !allowed;
           if (allowed) {
-            setStatus('Sesión detectada. Continúa a Aral Calc.');
+            setStatus(`Sesión detectada. Continúa a ${currentApp.name}.`);
           } else {
-            setStatus('Tu cuenta inició sesión, pero no tiene acceso habilitado a Aral Calc.', true);
+            setStatus(`Tu cuenta inició sesión, pero no tiene acceso habilitado a ${currentApp.name}.`, true);
           }
         }
       }
@@ -195,12 +232,12 @@
           return;
         }
 
-        const allowed = await hasAralAccess();
+        const allowed = await hasAppAccess(currentAppKey);
         if (!allowed) {
           form.hidden = true;
           sessionBox.hidden = true;
           noAccessBox.hidden = false;
-          setStatus('Tu sesión está activa, pero no tienes acceso habilitado a Aral Calc.', true);
+          setStatus(`Tu sesión está activa, pero no tienes acceso habilitado a ${currentApp.name}.`, true);
           return;
         }
 
