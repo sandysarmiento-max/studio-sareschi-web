@@ -25,7 +25,7 @@
           <ul class="nav-links">
             <li><a href="/#home">Home</a></li>
             <li><a href="/#apps">Apps</a></li>
-            <li><a href="/aral-calc-guia/">Aral Calc</a></li>
+            <li><a id="app-nav-link" href="/aral-calc-guia/">Aral Calc</a></li>
           </ul>
         </nav>
       </div>
@@ -117,10 +117,12 @@
         aral_calc: {
           name: 'Aral Calc',
           next: '/aral-calc/',
+          guide: '/aral-calc-guia/',
         },
         folia: {
           name: 'Folia',
           next: '/admin/folia-preview/',
+          guide: '/folia-guia/',
         },
       };
 
@@ -136,6 +138,8 @@
       const sessionAppNameEl = document.getElementById('session-app-name');
       const noAccessAppNameEl = document.getElementById('no-access-app-name');
 
+      const appNavLink = document.getElementById('app-nav-link');
+
       document.title = `Acceso ${currentApp.name} | Studio Sareschi`;
       titleEl.textContent = `Inicia sesión para acceder a ${currentApp.name}`;
       descriptionEl.textContent = `${currentApp.name} está disponible solo para usuarios con acceso autorizado.`;
@@ -143,6 +147,8 @@
       continueLink.textContent = `Abrir ${currentApp.name}`;
       sessionAppNameEl.textContent = currentApp.name;
       noAccessAppNameEl.textContent = currentApp.name;
+      appNavLink.textContent = currentApp.name;
+      appNavLink.href = currentApp.guide;
 
       continueLink.href = nextParam;
 
