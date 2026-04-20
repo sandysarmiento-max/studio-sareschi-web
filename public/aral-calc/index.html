@@ -86,7 +86,7 @@
         const config = await response.json();
 
         if (!config.enabled) {
-          window.location.href = '/acceso/?next=' + encodeURIComponent('/aral-calc/');
+          window.location.href = '/acceso/?app=aral_calc&next=' + encodeURIComponent('/aral-calc/');
           return;
         }
 
@@ -97,7 +97,7 @@
         } = await supabaseClient.auth.getSession();
 
         if (!session) {
-          window.location.href = '/acceso/?next=' + encodeURIComponent('/aral-calc/');
+          window.location.href = '/acceso/?app=aral_calc&next=' + encodeURIComponent('/aral-calc/');
           return;
         }
 
@@ -116,7 +116,7 @@
 
         document.body.classList.remove('auth-pending');
       } catch (error) {
-        window.location.href = '/acceso/?next=' + encodeURIComponent('/aral-calc/');
+        window.location.href = '/acceso/?app=aral_calc&next=' + encodeURIComponent('/aral-calc/');
       }
     })();
   </script>
@@ -130,7 +130,7 @@
         <ul class="nav-links">
           <li><a href="/#home">Home</a></li>
           <li><a href="/#apps">Productos</a></li>
-          <li><a href="/acceso/">Acceso</a></li>
+          <li><a href="/acceso/?app=aral_calc&next=/aral-calc/">Acceso</a></li>
         </ul>
       </nav>
       <button id="logout-btn" class="logout-btn" type="button">Cerrar sesión</button>
@@ -642,7 +642,7 @@ function openPdfSheet(){
         const config = await response.json();
 
         if (!config.enabled) {
-          window.location.href = '/acceso/?next=' + encodeURIComponent('/aral-calc/');
+          window.location.href = '/acceso/?app=aral_calc&next=' + encodeURIComponent('/aral-calc/');
           return;
         }
 
@@ -652,13 +652,13 @@ function openPdfSheet(){
         } = await supabaseClient.auth.getSession();
 
         if (!session) {
-          window.location.href = '/acceso/?next=' + encodeURIComponent('/aral-calc/');
+          window.location.href = '/acceso/?app=aral_calc&next=' + encodeURIComponent('/aral-calc/');
           return;
         }
 
         document.body.classList.remove('auth-pending');
       } catch (error) {
-        window.location.href = '/acceso/?next=' + encodeURIComponent('/aral-calc/');
+        window.location.href = '/acceso/?app=aral_calc&next=' + encodeURIComponent('/aral-calc/');
       }
     })();
   <\/script>
@@ -724,7 +724,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
       await supabaseClient.auth.signOut();
     }
   } finally {
-    window.location.href = "/acceso/";
+    window.location.href = "/acceso/?app=aral_calc&next=/aral-calc/";
   }
 });
 render();
