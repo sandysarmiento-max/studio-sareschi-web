@@ -131,7 +131,7 @@
             </select>
           </div>
         </div>
-        <div class="section"><h3>Márgenes</h3><div class="row2"><div class="field"><label>Superior (mm)</label><input id="marginTop" type="number" min="0" max="50" value="10"></div><div class="field"><label>Inferior (mm)</label><input id="marginBottom" type="number" min="0" max="50" value="10"></div></div><div id="marginsExtra"></div></div>
+        <div class="section"><h3>Márgenes</h3><div class="row2"><div class="field"><label>Superior (mm)</label><input id="marginTop" type="number" min="0" max="500" step="1" value="10"></div><div class="field"><label>Inferior (mm)</label><input id="marginBottom" type="number" min="0" max="500" step="1" value="10"></div></div><div id="marginsExtra"></div></div>
         <div class="section">
           <h3>Tipo de hoja</h3>
           <div class="field">
@@ -806,20 +806,20 @@ function renderLayoutModeFields(){
 function renderArmadoExtra(){
   const div=document.getElementById("armadoExtra");
   if(state.armado==="anillado"){
-    div.innerHTML=`<div class="row2"><div class="field"><label>Lado del anillado</label><select id="bindingSideExtra"><option value="left" ${state.bindingSide==='left'?'selected':''}>Izquierda</option><option value="right" ${state.bindingSide==='right'?'selected':''}>Derecha</option></select></div><div class="field"><label>Zona reservada (mm)</label><input id="bindingReserveExtra" type="number" min="0" max="50" value="${state.bindingReserve}"></div></div>`;
+    div.innerHTML=`<div class="row2"><div class="field"><label>Lado del anillado</label><select id="bindingSideExtra"><option value="left" ${state.bindingSide==='left'?'selected':''}>Izquierda</option><option value="right" ${state.bindingSide==='right'?'selected':''}>Derecha</option></select></div><div class="field"><label>Zona reservada (mm)</label><input id="bindingReserveExtra" type="number" min="0" max="500" step="1" value="${state.bindingReserve}"></div></div>`;
   } else if(state.armado==="cuadernillo"){
-    div.innerHTML=`<div class="row2"><div class="field"><label>Margen exterior (mm)</label><input id="marginOuterExtra" type="number" min="0" max="40" value="${state.marginOuter}"></div><div class="field"><label>Margen central (mm)</label><input id="marginCenterExtra" type="number" min="0" max="40" value="${state.marginCenter}"></div></div>`;
+    div.innerHTML=`<div class="row2"><div class="field"><label>Margen exterior (mm)</label><input id="marginOuterExtra" type="number" min="0" max="500" step="1" value="${state.marginOuter}"></div><div class="field"><label>Margen central (mm)</label><input id="marginCenterExtra" type="number" min="0" max="500" step="1" value="${state.marginCenter}"></div></div>`;
   } else if(state.armado==="block"){
-    div.innerHTML=`<div class="field"><label>Zona superior reservada (mm)</label><input id="blockTopReserveExtra" type="number" min="0" max="40" value="${state.blockTopReserve}"></div>`;
+    div.innerHTML=`<div class="field"><label>Zona superior reservada (mm)</label><input id="blockTopReserveExtra" type="number" min="0" max="500" step="1" value="${state.blockTopReserve}"></div>`;
   } else div.innerHTML="";
 }
 function renderMarginsExtra(){
   const div=document.getElementById("marginsExtra");
   if(state.armado==="cuadernillo"){div.innerHTML=""; return;}
   if(state.armado==="block"){
-    div.innerHTML=`<div class="field"><label>Margen lateral (mm)</label><input id="marginLeftExtra" type="number" min="0" max="50" value="${state.marginLeft}"></div>`;
+    div.innerHTML=`<div class="field"><label>Margen lateral (mm)</label><input id="marginLeftExtra" type="number" min="0" max="500" step="1" value="${state.marginLeft}"></div>`;
   } else {
-    div.innerHTML=`<div class="row2"><div class="field"><label>Izquierdo (mm)</label><input id="marginLeftExtra" type="number" min="0" max="50" value="${state.marginLeft}"></div><div class="field"><label>Derecho (mm)</label><input id="marginRightExtra" type="number" min="0" max="50" value="${state.marginRight}"></div></div>`;
+    div.innerHTML=`<div class="row2"><div class="field"><label>Izquierdo (mm)</label><input id="marginLeftExtra" type="number" min="0" max="500" step="1" value="${state.marginLeft}"></div><div class="field"><label>Derecho (mm)</label><input id="marginRightExtra" type="number" min="0" max="500" step="1" value="${state.marginRight}"></div></div>`;
   }
 }
 function contentFieldsByType(sheetType,config,prefix,zoneLabel=""){
@@ -1354,6 +1354,12 @@ function applyLineColor(nextColor){
   state.lineColor=nextColor;
   if(state.listMarkerColorLinked||state.listMarkerColor===previousLineColor) state.listMarkerColor=nextColor;
 }
+function parseInputNumber(rawValue){
+  const trimmed=String(rawValue??"").trim();
+  if(trimmed===""||trimmed==="-"||trimmed==="+") return null;
+  const parsed=Number(trimmed);
+  return Number.isFinite(parsed)?parsed:null;
+}
 
 function bindStatic(){
   document.getElementById('projectName').addEventListener('input',e=>{state.projectName=e.target.value; updateUI();});
@@ -1364,8 +1370,10 @@ function bindStatic(){
   document.getElementById('orientation').addEventListener('change',e=>{state.orientation=e.target.value; updateUI();});
   document.getElementById('customWidth').addEventListener('input',e=>{state.customWidth=+e.target.value; updateUI();});
   document.getElementById('customHeight').addEventListener('input',e=>{state.customHeight=+e.target.value; updateUI();});
-  document.getElementById('marginTop').addEventListener('input',e=>{state.marginTop=+e.target.value; updateUI();});
-  document.getElementById('marginBottom').addEventListener('input',e=>{state.marginBottom=+e.target.value; updateUI();});
+  document.getElementById('marginTop').addEventListener('input',e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginTop=value; renderPreview();});
+  document.getElementById('marginBottom').addEventListener('input',e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginBottom=value; renderPreview();});
+  document.getElementById('marginTop').addEventListener('change',e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginTop=value; updateUI();});
+  document.getElementById('marginBottom').addEventListener('change',e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginBottom=value; updateUI();});
   document.getElementById('lineColor').addEventListener('input',e=>{applyLineColor(e.target.value); renderPreview();});
   document.getElementById('lineColor').addEventListener('change',e=>{applyLineColor(e.target.value); updateUI();});
   document.getElementById('strokeWidth').addEventListener('input',e=>{state.strokeWidth=+e.target.value; updateUI();});
@@ -1403,18 +1411,36 @@ function bindDynamic(){
     updateUI();
   });
   const mLeft=document.getElementById('marginLeftExtra'),mRight=document.getElementById('marginRightExtra');
-  if(mLeft) mLeft.oninput=e=>{state.marginLeft=+e.target.value; if(state.armado==='block') state.marginRight=state.marginLeft; updateUI();};
-  if(mRight) mRight.oninput=e=>{state.marginRight=+e.target.value; updateUI();};
+  if(mLeft){
+    mLeft.oninput=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginLeft=value; if(state.armado==='block') state.marginRight=state.marginLeft; renderPreview();};
+    mLeft.onchange=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginLeft=value; if(state.armado==='block') state.marginRight=state.marginLeft; updateUI();};
+  }
+  if(mRight){
+    mRight.oninput=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginRight=value; renderPreview();};
+    mRight.onchange=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginRight=value; updateUI();};
+  }
   const bindSide=document.getElementById('bindingSideExtra');
   if(bindSide) bindSide.onchange=e=>{state.bindingSide=e.target.value; state.bindingReserve=11; if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;} if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;} updateUI();};
   const bindReserve=document.getElementById('bindingReserveExtra');
-  if(bindReserve) bindReserve.oninput=e=>{state.bindingReserve=+e.target.value; updateUI();};
+  if(bindReserve){
+    bindReserve.oninput=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.bindingReserve=value; renderPreview();};
+    bindReserve.onchange=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.bindingReserve=value; updateUI();};
+  }
   const marginOuter=document.getElementById('marginOuterExtra');
-  if(marginOuter) marginOuter.oninput=e=>{state.marginOuter=+e.target.value; updateUI();};
+  if(marginOuter){
+    marginOuter.oninput=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginOuter=value; renderPreview();};
+    marginOuter.onchange=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginOuter=value; updateUI();};
+  }
   const marginCenter=document.getElementById('marginCenterExtra');
-  if(marginCenter) marginCenter.oninput=e=>{state.marginCenter=+e.target.value; updateUI();};
+  if(marginCenter){
+    marginCenter.oninput=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginCenter=value; renderPreview();};
+    marginCenter.onchange=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginCenter=value; updateUI();};
+  }
   const blockTop=document.getElementById('blockTopReserveExtra');
-  if(blockTop) blockTop.oninput=e=>{state.blockTopReserve=+e.target.value; updateUI();};
+  if(blockTop){
+    blockTop.oninput=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.blockTopReserve=value; renderPreview();};
+    blockTop.onchange=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.blockTopReserve=value; updateUI();};
+  }
   function bindContentConfig(prefix,target){
     const lineSpacing=document.getElementById(`${prefix}lineSpacingExtra`);
     if(lineSpacing) lineSpacing.oninput=e=>{target.lineSpacing=+e.target.value; updateUI();};
