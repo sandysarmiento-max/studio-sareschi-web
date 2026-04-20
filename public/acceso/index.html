@@ -23,9 +23,9 @@
         <a class="brand" href="/">Studio Sareschi</a>
         <nav aria-label="Principal">
           <ul class="nav-links">
-            <li><a href="/#home">Home</a></li>
-            <li><a href="/#apps">Apps</a></li>
-          </ul>
+  <li><a href="/">Home</a></li>
+  <li><a id="alternate-app-link" href="/acceso/?app=folia&next=%2Fadmin%2Ffolia-preview%2F">Folia</a></li>
+</ul>
         </nav>
       </div>
     </header>
@@ -112,16 +112,20 @@
       const logoutNoAccessBtn = document.getElementById('logout-no-access-btn');
       const togglePasswordBtn = document.getElementById('toggle-password');
       const passwordInput = document.getElementById('password');
-      const APP_CONFIG = {
-        aral_calc: {
-          name: 'Aral Calc',
-          next: '/aral-calc/',
-        },
-        folia: {
-          name: 'Folia',
-          next: '/admin/folia-preview/',
-        },
-      };
+     const APP_CONFIG = {
+  aral_calc: {
+    name: 'Aral Calc',
+    next: '/aral-calc/',
+    alternateLabel: 'Folia',
+    alternateHref: '/acceso/?app=folia&next=%2Fadmin%2Ffolia-preview%2F',
+  },
+  folia: {
+    name: 'Folia',
+    next: '/admin/folia-preview/',
+    alternateLabel: 'Aral Calc',
+    alternateHref: '/acceso/?app=aral_calc&next=%2Faral-calc%2F',
+  },
+};
 
       const params = new URLSearchParams(window.location.search);
       const requestedAppKey = params.get('app');
@@ -129,7 +133,11 @@
       const currentAppKey = APP_CONFIG[requestedAppKey] ? requestedAppKey : fallbackFromNext;
       const currentApp = APP_CONFIG[currentAppKey];
       const nextParam = params.get('next') || currentApp.next;
-
+const alternateAppLink = document.getElementById('alternate-app-link');
+if (alternateAppLink && currentApp) {
+  alternateAppLink.textContent = currentApp.alternateLabel;
+  alternateAppLink.href = currentApp.alternateHref;
+}
       const titleEl = document.getElementById('access-title');
       const descriptionEl = document.getElementById('access-description');
       const sessionAppNameEl = document.getElementById('session-app-name');
