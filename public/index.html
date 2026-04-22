@@ -27,6 +27,7 @@
             <li><a href="#libre-uso">Gratis</a></li>
             <li><a href="/pdfs/">Tienda PDF</a></li>
             <li><a href="/acceso/">Acceso</a></li>
+            <li><a href="/libro-de-reclamaciones/">Libro de Reclamaciones</a></li>
           </ul>
         </nav>
       </div>
@@ -38,6 +39,14 @@
           <div class="hero-content">
             <h1>Un solo lugar para tus apps y herramientas Studio Sareschi</h1>
             <p class="hero-copy">Apps y recursos creados para trabajar con más claridad.</p>
+            <aside class="legal-notice" aria-label="Acceso al Libro de Reclamaciones virtual">
+              <p class="legal-notice__eyebrow">Atención al consumidor</p>
+              <p>
+                Si deseas registrar un reclamo o queja, puedes hacerlo desde nuestro
+                <strong>Libro de Reclamaciones Virtual</strong>.
+              </p>
+              <a class="btn btn-secondary" href="/libro-de-reclamaciones/">Ir al Libro de Reclamaciones</a>
+            </aside>
           </div>
         </div>
       </section>
@@ -195,7 +204,16 @@
       </section>
     </div>
 
+    <footer class="site-footer">
+      <div class="container site-footer__content">
+        <p>© <span id="current-year"></span> Studio Sareschi</p>
+        <a href="/libro-de-reclamaciones/">Libro de Reclamaciones</a>
+      </div>
+    </footer>
+
     <script>
+      document.getElementById('current-year').textContent = new Date().getFullYear();
+
       const RINGS = [
         { label: '7/16"', diameter: 11.1, capacity: 9.1 },
         { label: '1/2"', diameter: 12.7, capacity: 9.5 },
