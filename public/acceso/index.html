@@ -23,9 +23,9 @@
         <a class="brand" href="/">Studio Sareschi</a>
         <nav aria-label="Principal">
           <ul class="nav-links">
-  <li><a href="/">Home</a></li>
-  <li><a id="alternate-app-link" href="/acceso/?app=folia&next=%2Fadmin%2Ffolia-preview%2F">Folia</a></li>
-</ul>
+            <li><a href="/">Home</a></li>
+            <li><a id="context-app-link" href="/acceso/?app=aral_calc">App</a></li>
+          </ul>
         </nav>
       </div>
     </header>
@@ -116,14 +116,14 @@
   aral_calc: {
     name: 'Aral Calc',
     next: '/aral-calc/',
-    alternateLabel: 'Folia',
-    alternateHref: '/acceso/?app=folia&next=%2Fadmin%2Ffolia-preview%2F',
+    navLabel: 'Aral Calc',
+    navHref: '/acceso/?app=aral_calc&next=%2Faral-calc%2F',
   },
   folia: {
     name: 'Folia',
     next: '/admin/folia-preview/',
-    alternateLabel: 'Aral Calc',
-    alternateHref: '/acceso/?app=aral_calc&next=%2Faral-calc%2F',
+    navLabel: 'Folia',
+    navHref: '/acceso/?app=folia&next=%2Fadmin%2Ffolia-preview%2F',
   },
 };
 
@@ -133,11 +133,11 @@
       const currentAppKey = APP_CONFIG[requestedAppKey] ? requestedAppKey : fallbackFromNext;
       const currentApp = APP_CONFIG[currentAppKey];
       const nextParam = params.get('next') || currentApp.next;
-const alternateAppLink = document.getElementById('alternate-app-link');
-if (alternateAppLink && currentApp) {
-  alternateAppLink.textContent = currentApp.alternateLabel;
-  alternateAppLink.href = currentApp.alternateHref;
-}
+      const contextAppLink = document.getElementById('context-app-link');
+      if (contextAppLink && currentApp) {
+        contextAppLink.textContent = currentApp.navLabel;
+        contextAppLink.href = currentApp.navHref;
+      }
       const titleEl = document.getElementById('access-title');
       const descriptionEl = document.getElementById('access-description');
       const sessionAppNameEl = document.getElementById('session-app-name');

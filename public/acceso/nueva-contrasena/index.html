@@ -6,7 +6,7 @@
     <title>Nueva contraseña | Studio Sareschi</title>
     <meta
       name="description"
-      content="Define una nueva contraseña para tu acceso a Aral Calc."
+      content="Define una nueva contraseña para tu acceso invitado en Studio Sareschi."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,8 +23,7 @@
         <a class="brand" href="/">Studio Sareschi</a>
         <nav aria-label="Principal">
           <ul class="nav-links">
-            <li><a href="/acceso/">Iniciar sesión</a></li>
-            <li><a href="/aral-calc-guia/">Aral Calc</a></li>
+            <li><a id="login-link" href="/acceso/">Iniciar sesión</a></li>
           </ul>
         </nav>
       </div>
@@ -35,9 +34,9 @@
         <div class="container">
           <div class="section-heading">
             <p class="eyebrow">Soporte de acceso</p>
-            <h1>Crear nueva contraseña</h1>
+            <h1 id="password-title">Crear nueva contraseña</h1>
             <p class="hero-copy" style="margin: 0">
-              Completa tu primer acceso por invitación o recupera tu contraseña con este formulario.
+              <span id="password-description">Completa tu primer acceso por invitación o recupera tu contraseña con este formulario.</span>
             </p>
           </div>
 
@@ -83,7 +82,33 @@
       const statusEl = document.getElementById('status');
       const updatePasswordBtn = document.getElementById('update-password-btn');
       const backLoginLink = document.getElementById('back-login-link');
+      const loginLink = document.getElementById('login-link');
+      const passwordTitle = document.getElementById('password-title');
+      const passwordDescription = document.getElementById('password-description');
+      const APP_CONFIG = {
+        aral_calc: {
+          name: 'Aral Calc',
+          loginHref: '/acceso/?app=aral_calc',
+        },
+        folia: {
+          name: 'Folia',
+          loginHref: '/acceso/?app=folia',
+        },
+      };
+      const params = new URLSearchParams(window.location.search);
+      const requestedAppKey = params.get('app');
+      const fallbackFromNext = (params.get('next') || '').includes('/folia') ? 'folia' : 'aral_calc';
+      const currentAppKey = APP_CONFIG[requestedAppKey] ? requestedAppKey : fallbackFromNext;
+      const currentApp = APP_CONFIG[currentAppKey];
       let supabaseClient = null;
+
+      document.title = `Nueva contraseña ${currentApp.name} | Studio Sareschi`;
+      passwordTitle.textContent = `Crear nueva contraseña para ${currentApp.name}`;
+      passwordDescription.textContent = `Completa tu acceso por invitación a ${currentApp.name} o recupera tu contraseña con este formulario.`;
+      backLoginLink.href = currentApp.loginHref;
+      if (loginLink) {
+        loginLink.href = currentApp.loginHref;
+      }
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
@@ -184,9 +209,12 @@
           return;
         }
 
-        setStatus('Contraseña actualizada. Ya puedes iniciar sesión con tu nueva contraseña.');
+        const loginUrl = new URL('/acceso/', window.location.origin);
+        loginUrl.searchParams.set('app', currentAppKey);
+
+        setStatus('Contraseña actualizada. Redirigiendo al inicio de sesión...');
         form.reset();
-        backLoginLink.focus();
+        window.location.href = loginUrl.toString();
       });
 
       bootAuth().catch(() => {
