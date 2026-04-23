@@ -69,6 +69,19 @@
         return passwordUrl.toString();
       }
 
+      function readParam(searchParams, hashParams, key) {
+        return searchParams.get(key) || hashParams.get(key) || '';
+      }
+
+      function normalizeAppKey(rawApp) {
+        const app = String(rawApp || '').trim().toLowerCase();
+        return app === 'folia' ? 'folia' : 'aral_calc';
+      }
+
+      function buildLoginRedirect(appKey) {
+        return `/acceso/?app=${encodeURIComponent(appKey)}`;
+      }
+
       async function bootInviteAccept() {
         const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
         const config = await response.json();
@@ -86,13 +99,33 @@
         const queryParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
 
-        const tokenHash = queryParams.get('token_hash') || hashParams.get('token_hash') || '';
-        const inviteType = queryParams.get('type') || hashParams.get('type') || '';
-        const redirectTo = queryParams.get('redirect_to') || hashParams.get('redirect_to') || '/aral-calc/';
+        const tokenHash = readParam(queryParams, hashParams, 'token_hash');
+        const inviteType = readParam(queryParams, hashParams, 'type');
         const code = queryParams.get('code');
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const appKey = normalizeAppKey(readParam(queryParams, hashParams, 'app'));
+        const safeLoginRedirect = buildLoginRedirect(appKey);
+        const redirectToRaw = readParam(queryParams, hashParams, 'redirect_to');
+        const redirectTo = redirectToRaw || safeLoginRedirect;
 
         if (code) {
           const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
+
+          if (error) {
+            setStatus('El enlace de invitación no es válido o ya expiró. Solicita una nueva invitación.', true);
+            return;
+          }
+
+          window.location.href = buildPasswordUrl(redirectTo);
+          return;
+        }
+
+        if (accessToken && refreshToken) {
+          const { error } = await supabaseClient.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
 
           if (error) {
             setStatus('El enlace de invitación no es válido o ya expiró. Solicita una nueva invitación.', true);

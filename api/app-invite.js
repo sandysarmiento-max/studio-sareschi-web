@@ -3,6 +3,12 @@ const { createClient } = require('@supabase/supabase-js');
 const INVITE_REDIRECT_TO = 'https://www.studio-sareschi.com/acceso/aceptar-invitacion/';
 const ALLOWED_APP_KEYS = new Set(['aral_calc', 'folia']);
 
+function buildInviteRedirectTo(appKey) {
+  const inviteUrl = new URL(INVITE_REDIRECT_TO);
+  inviteUrl.searchParams.set('app', appKey);
+  return inviteUrl.toString();
+}
+
 function json(res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -137,7 +143,7 @@ module.exports = async function handler(req, res) {
     });
 
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo: INVITE_REDIRECT_TO,
+      redirectTo: buildInviteRedirectTo(appKey),
     });
 
     if (inviteError) {
