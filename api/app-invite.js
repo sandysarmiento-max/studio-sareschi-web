@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const INVITE_REDIRECT_TO = 'https://www.studio-sareschi.com/acceso/aceptar-invitacion/';
-const APP_KEY = 'aral_calc';
+const ALLOWED_APP_KEYS = new Set(['aral_calc', 'folia']);
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -17,9 +17,7 @@ function readAuthorization(req) {
     '';
 
   const value = String(rawHeader || '').trim();
-  if (!value) {
-    return '';
-  }
+  if (!value) return '';
 
   if (/^Bearer\s+/i.test(value)) {
     return value.replace(/^Bearer\s+/i, '').trim();
@@ -96,15 +94,15 @@ module.exports = async function handler(req, res) {
   const receivedToken = readAuthorization(req).trim();
 
   if (!hasAuthHeader) {
-    return json(res, 401, { error: 'No autorizado', step: 'auth-header' });
+    return json(res, 401, { error: 'Clave admin requerida', step: 'auth-header' });
   }
 
   if (!hasExpectedToken) {
-    return json(res, 401, { error: 'No autorizado', step: 'env-missing' });
+    return json(res, 401, { error: 'Configuración admin incompleta', step: 'env-missing' });
   }
 
   if (receivedToken !== expectedToken) {
-    return json(res, 401, { error: 'No autorizado', step: 'token-mismatch' });
+    return json(res, 401, { error: 'Clave admin incorrecta', step: 'token-mismatch' });
   }
 
   const { data: body, error: bodyError } = await readJsonBody(req);
@@ -115,9 +113,16 @@ module.exports = async function handler(req, res) {
   const email = String(body?.email || '')
     .trim()
     .toLowerCase();
+  const appKey = String(body?.app_key || '')
+    .trim()
+    .toLowerCase();
 
   if (!/^\S+@\S+\.\S+$/.test(email)) {
-    return json(res, 400, { error: 'Email inválido', step: 'email' });
+    return json(res, 400, { error: 'Correo inválido', step: 'email' });
+  }
+
+  if (!ALLOWED_APP_KEYS.has(appKey)) {
+    return json(res, 400, { error: 'App inválida', step: 'app_key' });
   }
 
   const supabaseUrl = String(process.env.SUPABASE_URL || '').trim();
@@ -137,7 +142,7 @@ module.exports = async function handler(req, res) {
 
     if (inviteError) {
       return json(res, 400, {
-        error: 'Error de invitación',
+        error: 'No se pudo enviar invitación',
         step: 'invite',
         details: String(inviteError.message || 'Error desconocido'),
       });
@@ -156,7 +161,7 @@ module.exports = async function handler(req, res) {
     const { error: accessError } = await supabase.from('app_access').upsert(
       {
         user_id: invitedUserId,
-        app_key: APP_KEY,
+        app_key: appKey,
         status: 'active',
         granted_at: nowIso,
         updated_at: nowIso,
@@ -178,12 +183,12 @@ module.exports = async function handler(req, res) {
       ok: true,
       message: 'Invitación enviada y acceso activado.',
       email,
-      app_key: APP_KEY,
+      app_key: appKey,
       user_id: invitedUserId,
     });
   } catch (error) {
     return json(res, 500, {
-      error: 'Error de invitación',
+      error: 'Error interno al invitar',
       step: 'invite',
       details: String(error?.message || 'Error desconocido'),
     });
