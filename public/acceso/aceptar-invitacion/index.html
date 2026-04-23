@@ -23,8 +23,7 @@
         <a class="brand" href="/">Studio Sareschi</a>
         <nav aria-label="Principal">
           <ul class="nav-links">
-            <li><a href="/acceso/">Iniciar sesión</a></li>
-            <li><a href="/aral-calc-guia/">Aral Calc</a></li>
+            <li><a id="login-link" href="/acceso/">Iniciar sesión</a></li>
           </ul>
         </nav>
       </div>
@@ -53,17 +52,39 @@
 
     <script>
       const statusEl = document.getElementById('status');
+      const loginLink = document.getElementById('login-link');
+      const fallbackLink = document.getElementById('fallback-link');
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
         statusEl.style.color = isError ? '#8f1d4f' : '';
       }
 
-      function buildPasswordUrl(redirectToRaw) {
+      const APP_CONFIG = {
+        aral_calc: { next: '/aral-calc/' },
+        folia: { next: '/admin/folia-preview/' },
+      };
+
+      function normalizeAppKey(rawAppKey, fallback = 'aral_calc') {
+        const normalized = String(rawAppKey || '').trim().toLowerCase();
+        return APP_CONFIG[normalized] ? normalized : fallback;
+      }
+
+      function inferAppKeyFromNext(nextRaw) {
+        const value = String(nextRaw || '').toLowerCase();
+        if (value.includes('/folia')) return 'folia';
+        return 'aral_calc';
+      }
+
+      function buildPasswordUrl({ redirectToRaw, appKey }) {
         const passwordUrl = new URL('/acceso/nueva-contrasena/', window.location.origin);
 
         if (redirectToRaw) {
           passwordUrl.searchParams.set('next', redirectToRaw);
+        }
+
+        if (appKey) {
+          passwordUrl.searchParams.set('app', appKey);
         }
 
         return passwordUrl.toString();
@@ -88,8 +109,20 @@
 
         const tokenHash = queryParams.get('token_hash') || hashParams.get('token_hash') || '';
         const inviteType = queryParams.get('type') || hashParams.get('type') || '';
-        const redirectTo = queryParams.get('redirect_to') || hashParams.get('redirect_to') || '/aral-calc/';
+        const redirectTo = queryParams.get('redirect_to') || hashParams.get('redirect_to') || '';
+        const appFromRedirect = new URLSearchParams(String(redirectTo || '').split('?')[1] || '').get('app');
+        const appFromUrl = queryParams.get('app') || hashParams.get('app') || appFromRedirect || '';
+        const inferredApp = normalizeAppKey(appFromUrl, inferAppKeyFromNext(redirectTo));
+        const finalRedirectTo = redirectTo || APP_CONFIG[inferredApp].next;
         const code = queryParams.get('code');
+
+        if (loginLink) {
+          loginLink.href = `/acceso/?app=${encodeURIComponent(inferredApp)}`;
+        }
+
+        if (fallbackLink) {
+          fallbackLink.href = `/acceso/?app=${encodeURIComponent(inferredApp)}`;
+        }
 
         if (code) {
           const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
@@ -99,7 +132,7 @@
             return;
           }
 
-          window.location.href = buildPasswordUrl(redirectTo);
+          window.location.href = buildPasswordUrl({ redirectToRaw: finalRedirectTo, appKey: inferredApp });
           return;
         }
 
@@ -123,7 +156,7 @@
           return;
         }
 
-        window.location.href = buildPasswordUrl(redirectTo);
+        window.location.href = buildPasswordUrl({ redirectToRaw: finalRedirectTo, appKey: inferredApp });
       }
 
       bootInviteAccept().catch(() => {
