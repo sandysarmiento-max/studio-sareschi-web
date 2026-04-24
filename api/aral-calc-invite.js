@@ -1,7 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const INVITE_REDIRECT_TO = 'https://www.studio-sareschi.com/acceso/aceptar-invitacion/';
+const INVITE_REDIRECT_BASE = 'https://www.studio-sareschi.com/acceso/aceptar-invitacion/';
 const APP_KEY = 'aral_calc';
+const APP_NEXT = '/aral-calc/';
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -26,6 +27,13 @@ function readAuthorization(req) {
   }
 
   return value;
+}
+
+function buildInviteRedirect() {
+  const redirectUrl = new URL(INVITE_REDIRECT_BASE);
+  redirectUrl.searchParams.set('app', APP_KEY);
+  redirectUrl.searchParams.set('redirect_to', APP_NEXT);
+  return redirectUrl.toString();
 }
 
 async function readJsonBody(req) {
@@ -132,7 +140,7 @@ module.exports = async function handler(req, res) {
     });
 
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo: INVITE_REDIRECT_TO,
+      redirectTo: buildInviteRedirect(),
     });
 
     if (inviteError) {
