@@ -59,12 +59,32 @@
         statusEl.style.color = isError ? '#8f1d4f' : '';
       }
 
-      function buildPasswordUrl(redirectToRaw) {
-        const passwordUrl = new URL('/acceso/nueva-contrasena/', window.location.origin);
-
-        if (redirectToRaw) {
-          passwordUrl.searchParams.set('next', redirectToRaw);
+      function inferAppKey(queryParams, hashParams) {
+        const explicitApp = queryParams.get('app') || hashParams.get('app');
+        if (explicitApp === 'folia' || explicitApp === 'aral_calc') {
+          return explicitApp;
         }
+
+        const redirectHints = [
+          queryParams.get('redirect_to'),
+          hashParams.get('redirect_to'),
+          queryParams.get('next'),
+          hashParams.get('next'),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        if (redirectHints.includes('/folia') || redirectHints.includes('app=folia')) {
+          return 'folia';
+        }
+
+        return 'aral_calc';
+      }
+
+      function buildPasswordUrl(appKey) {
+        const passwordUrl = new URL('/acceso/nueva-contrasena/', window.location.origin);
+        passwordUrl.searchParams.set('app', appKey);
 
         return passwordUrl.toString();
       }
@@ -81,49 +101,26 @@
           return;
         }
 
-        const supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-
         const queryParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
 
-        const tokenHash = queryParams.get('token_hash') || hashParams.get('token_hash') || '';
-        const inviteType = queryParams.get('type') || hashParams.get('type') || '';
-        const redirectTo = queryParams.get('redirect_to') || hashParams.get('redirect_to') || '/aral-calc/';
-        const code = queryParams.get('code');
+        const appKey = inferAppKey(queryParams, hashParams);
+        const destinationUrl = buildPasswordUrl(appKey);
+        const destination = new URL(destinationUrl);
 
-        if (code) {
-          const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
-
-          if (error) {
-            setStatus('El enlace de invitación no es válido o ya expiró. Solicita una nueva invitación.', true);
-            return;
+        queryParams.forEach((value, key) => {
+          if (!destination.searchParams.has(key)) {
+            destination.searchParams.set(key, value);
           }
-
-          window.location.href = buildPasswordUrl(redirectTo);
-          return;
-        }
-
-        if (!tokenHash) {
-          setStatus('El enlace no contiene token de invitación. Solicita una nueva invitación.', true);
-          return;
-        }
-
-        if (inviteType && inviteType !== 'invite') {
-          setStatus('Este enlace no corresponde a una invitación válida.', true);
-          return;
-        }
-
-        const { error } = await supabaseClient.auth.verifyOtp({
-          token_hash: tokenHash,
-          type: 'invite',
         });
 
-        if (error) {
-          setStatus('No se pudo validar la invitación. Es posible que el enlace haya expirado.', true);
-          return;
-        }
+        hashParams.forEach((value, key) => {
+          if (!destination.searchParams.has(key)) {
+            destination.searchParams.set(key, value);
+          }
+        });
 
-        window.location.href = buildPasswordUrl(redirectTo);
+        window.location.replace(destination.toString());
       }
 
       bootInviteAccept().catch(() => {

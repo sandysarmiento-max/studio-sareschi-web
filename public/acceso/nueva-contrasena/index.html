@@ -83,11 +83,55 @@
       const statusEl = document.getElementById('status');
       const updatePasswordBtn = document.getElementById('update-password-btn');
       const backLoginLink = document.getElementById('back-login-link');
+      const APP_CONFIG = {
+        aral_calc: {
+          name: 'Aral Calc',
+          loginUrl: '/acceso/?app=aral_calc',
+        },
+        folia: {
+          name: 'Folia',
+          loginUrl: '/acceso/?app=folia',
+        },
+      };
       let supabaseClient = null;
+      let currentAppKey = 'aral_calc';
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
         statusEl.style.color = isError ? '#8f1d4f' : '';
+      }
+
+      function inferAppKey() {
+        const queryParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const explicitApp = queryParams.get('app') || hashParams.get('app');
+
+        if (APP_CONFIG[explicitApp]) {
+          return explicitApp;
+        }
+
+        const redirectHints = [
+          queryParams.get('redirect_to'),
+          hashParams.get('redirect_to'),
+          queryParams.get('next'),
+          hashParams.get('next'),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        if (redirectHints.includes('/folia') || redirectHints.includes('app=folia')) {
+          return 'folia';
+        }
+
+        return 'aral_calc';
+      }
+
+      function updateAppUI() {
+        const app = APP_CONFIG[currentAppKey] || APP_CONFIG.aral_calc;
+        document.title = `Nueva contraseña ${app.name} | Studio Sareschi`;
+        backLoginLink.href = app.loginUrl;
+        backLoginLink.textContent = `Ir a acceso ${app.name}`;
       }
 
       async function bootAuth() {
@@ -102,10 +146,12 @@
           return;
         }
 
-        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-
         const queryParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        currentAppKey = inferAppKey();
+        updateAppUI();
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
         const code = queryParams.get('code');
         const hashError = hashParams.get('error');
         const hashErrorDescription = hashParams.get('error_description');
@@ -184,9 +230,12 @@
           return;
         }
 
-        setStatus('Contraseña actualizada. Ya puedes iniciar sesión con tu nueva contraseña.');
+        const app = APP_CONFIG[currentAppKey] || APP_CONFIG.aral_calc;
+        setStatus(`Contraseña actualizada. Redirigiendo al acceso de ${app.name}...`);
         form.reset();
-        backLoginLink.focus();
+        setTimeout(() => {
+          window.location.href = app.loginUrl;
+        }, 600);
       });
 
       bootAuth().catch(() => {
