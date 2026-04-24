@@ -176,8 +176,14 @@ if (!currentApp) {
   titleEl.textContent = 'Elige la app que quieres abrir';
   descriptionEl.textContent = 'Selecciona Aral Calc o Folia para continuar con tu acceso protegido.';
   appSelector.hidden = false;
+  appSelector.style.display = 'grid';
   form.hidden = true;
+  form.style.display = 'none';
 } else {
+    appSelector.hidden = true;
+  appSelector.style.display = 'none';
+  form.hidden = false;
+  form.style.display = 'grid';
   document.title = `Acceso ${currentApp.name} | Studio Sareschi`;
   titleEl.textContent = `Inicia sesión para acceder a ${currentApp.name}`;
   descriptionEl.textContent = `${currentApp.name} está disponible solo para usuarios con acceso autorizado.`;
