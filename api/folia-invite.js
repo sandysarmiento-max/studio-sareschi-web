@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const INVITE_REDIRECT_TO = 'https://www.studio-sareschi.com/acceso/aceptar-invitacion/?redirect_to=%2Fadmin%2Ffolia-preview%2F';
+const INVITE_REDIRECT_TO = 'https://www.studio-sareschi.com/acceso/nueva-contrasena/?app=folia';
 const FOLIA_APP_KEY = 'folia';
 const ACTIVE_STATUS = 'active';
 
@@ -133,7 +133,7 @@ module.exports = async function handler(req, res) {
     });
 
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo: INVITE_REDIRECT_TO,
+      emailRedirectTo: INVITE_REDIRECT_TO,
     });
 
     if (inviteError) {
