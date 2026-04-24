@@ -179,7 +179,7 @@ module.exports = async function handler(req, res) {
     const redirectTo = `${siteUrl}/acceso/nueva-contrasena/?app=${encodeURIComponent(appKey)}`;
 
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo,
+      emailRedirectTo: redirectTo,
       data: {
         app: appKey,
       },
