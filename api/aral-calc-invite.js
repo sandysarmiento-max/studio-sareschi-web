@@ -1,6 +1,20 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const INVITE_REDIRECT_TO = 'https://www.studio-sareschi.com/acceso/aceptar-invitacion/';
+const INVITE_REDIRECT_PATH = '/acceso/nueva-contrasena/?app=aral_calc';
+
+function getInviteRedirectTo(req) {
+  const rawHost = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+  const allowedHost =
+    rawHost === 'www.studio-sareschi.com' ||
+    rawHost === 'studio-sareschi.com' ||
+    rawHost.endsWith('.vercel.app');
+
+  const host = allowedHost ? rawHost : 'www.studio-sareschi.com';
+
+  return `https://${host}${INVITE_REDIRECT_PATH}`;
+}
+const ARAL_CALC_APP_KEY = 'aral_calc';
+const ACTIVE_STATUS = 'active';
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -130,15 +144,43 @@ module.exports = async function handler(req, res) {
       },
     });
 
-    const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo: INVITE_REDIRECT_TO,
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+      redirectTo: getInviteRedirectTo(req),
     });
 
-    if (error) {
+    if (inviteError) {
       return json(res, 400, {
         error: 'Error de invitación',
         step: 'invite',
-        details: String(error.message || 'Error desconocido'),
+        details: String(inviteError.message || 'Error desconocido'),
+      });
+    }
+
+    const userId = String(inviteData?.user?.id || '').trim();
+    if (!userId) {
+      return json(res, 500, {
+        error: 'No se pudo activar acceso Aral Calc',
+        step: 'app-access-user',
+        details: 'La invitación no devolvió user.id para completar app_access.',
+      });
+    }
+
+    const { error: appAccessError } = await supabase.from('app_access').upsert(
+      {
+        user_id: userId,
+        app_key: ARAL_CALC_APP_KEY,
+        status: ACTIVE_STATUS,
+      },
+      {
+        onConflict: 'user_id,app_key',
+      }
+    );
+
+    if (appAccessError) {
+      return json(res, 500, {
+        error: 'No se pudo activar acceso Aral Calc',
+        step: 'app-access-upsert',
+        details: String(appAccessError.message || 'Error desconocido'),
       });
     }
 

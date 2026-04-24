@@ -42,7 +42,29 @@
           </div>
 
           <article class="card" style="max-width: 620px">
-            <form id="login-form" style="display: grid; gap: 12px">
+            <div id="app-selector" style="display:grid;gap:12px" hidden>
+  <p class="tiny-note" style="margin:0">
+    Elige la app a la que quieres entrar. Cada acceso se valida por separado.
+  </p>
+
+  <div class="card" style="padding:16px">
+    <h2 style="margin:0 0 8px;font-size:1.1rem">Aral Calc</h2>
+    <p class="tiny-note" style="margin:0 0 12px">
+      Calculadora para encuadernación, anillos y proyectos personalizados.
+    </p>
+    <a class="btn btn-primary" href="/acceso/?app=aral_calc">Entrar a Aral Calc</a>
+  </div>
+
+  <div class="card" style="padding:16px">
+    <h2 style="margin:0 0 8px;font-size:1.1rem">Folia</h2>
+    <p class="tiny-note" style="margin:0 0 12px">
+      Generador de hojas imprimibles para agendas, libretas y cuadernos.
+    </p>
+    <a class="btn btn-primary" href="/acceso/?app=folia">Entrar a Folia</a>
+  </div>
+</div>
+
+<form id="login-form" style="display: grid; gap: 12px">
               <label>
                 Email
                 <input id="email" type="email" required autocomplete="email" style="width:100%;margin-top:6px" />
@@ -102,58 +124,77 @@
     </main>
 
     <script>
-      const statusEl = document.getElementById('status');
-      const form = document.getElementById('login-form');
-      const sessionBox = document.getElementById('session-box');
-      const continueLink = document.getElementById('continue-link');
-      const loginBtn = document.getElementById('login-btn');
-      const logoutBtn = document.getElementById('logout-btn');
-      const noAccessBox = document.getElementById('no-access-box');
-      const logoutNoAccessBtn = document.getElementById('logout-no-access-btn');
-      const togglePasswordBtn = document.getElementById('toggle-password');
-      const passwordInput = document.getElementById('password');
-     const APP_CONFIG = {
+     const statusEl = document.getElementById('status');
+const form = document.getElementById('login-form');
+const appSelector = document.getElementById('app-selector');
+const sessionBox = document.getElementById('session-box');
+const continueLink = document.getElementById('continue-link');
+const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const noAccessBox = document.getElementById('no-access-box');
+const logoutNoAccessBtn = document.getElementById('logout-no-access-btn');
+const togglePasswordBtn = document.getElementById('toggle-password');
+const passwordInput = document.getElementById('password');
+
+const APP_CONFIG = {
   aral_calc: {
     name: 'Aral Calc',
-    next: '/aral-calc/',
+    next: '/app/aral-calc',
     alternateLabel: 'Folia',
-    alternateHref: '/acceso/?app=folia&next=%2Fadmin%2Ffolia-preview%2F',
+    alternateHref: '/acceso/?app=folia',
   },
   folia: {
     name: 'Folia',
-    next: '/admin/folia-preview/',
+    next: '/app/folia',
     alternateLabel: 'Aral Calc',
-    alternateHref: '/acceso/?app=aral_calc&next=%2Faral-calc%2F',
+    alternateHref: '/acceso/?app=aral_calc',
   },
 };
 
-      const params = new URLSearchParams(window.location.search);
-      const requestedAppKey = params.get('app');
-      const fallbackFromNext = (params.get('next') || '').includes('/folia') ? 'folia' : 'aral_calc';
-      const currentAppKey = APP_CONFIG[requestedAppKey] ? requestedAppKey : fallbackFromNext;
-      const currentApp = APP_CONFIG[currentAppKey];
-      const nextParam = params.get('next') || currentApp.next;
+const params = new URLSearchParams(window.location.search);
+const requestedAppKey = params.get('app');
+const currentAppKey = APP_CONFIG[requestedAppKey] ? requestedAppKey : '';
+const currentApp = APP_CONFIG[currentAppKey];
+const nextParam = params.get('next') || (currentApp ? currentApp.next : '');
+
 const alternateAppLink = document.getElementById('alternate-app-link');
 if (alternateAppLink && currentApp) {
   alternateAppLink.textContent = currentApp.alternateLabel;
   alternateAppLink.href = currentApp.alternateHref;
+} else if (alternateAppLink) {
+  alternateAppLink.textContent = 'Apps';
+  alternateAppLink.href = '/acceso/';
 }
-      const titleEl = document.getElementById('access-title');
-      const descriptionEl = document.getElementById('access-description');
-      const sessionAppNameEl = document.getElementById('session-app-name');
-      const noAccessAppNameEl = document.getElementById('no-access-app-name');
 
-      document.title = `Acceso ${currentApp.name} | Studio Sareschi`;
-      titleEl.textContent = `Inicia sesión para acceder a ${currentApp.name}`;
-      descriptionEl.textContent = `${currentApp.name} está disponible solo para usuarios con acceso autorizado.`;
-      loginBtn.textContent = `Entrar a ${currentApp.name}`;
-      continueLink.textContent = `Abrir ${currentApp.name}`;
-      sessionAppNameEl.textContent = currentApp.name;
-      noAccessAppNameEl.textContent = currentApp.name;
+const titleEl = document.getElementById('access-title');
+const descriptionEl = document.getElementById('access-description');
+const sessionAppNameEl = document.getElementById('session-app-name');
+const noAccessAppNameEl = document.getElementById('no-access-app-name');
 
-      continueLink.href = nextParam;
+if (!currentApp) {
+  document.title = 'Acceso a apps | Studio Sareschi';
+  titleEl.textContent = 'Elige la app que quieres abrir';
+  descriptionEl.textContent = 'Selecciona Aral Calc o Folia para continuar con tu acceso protegido.';
+  appSelector.hidden = false;
+  appSelector.style.display = 'grid';
+  form.hidden = true;
+  form.style.display = 'none';
+} else {
+    appSelector.hidden = true;
+  appSelector.style.display = 'none';
+  form.hidden = false;
+  form.style.display = 'grid';
+  document.title = `Acceso ${currentApp.name} | Studio Sareschi`;
+  titleEl.textContent = `Inicia sesión para acceder a ${currentApp.name}`;
+  descriptionEl.textContent = `${currentApp.name} está disponible solo para usuarios con acceso autorizado.`;
+  loginBtn.textContent = `Entrar a ${currentApp.name}`;
+  continueLink.textContent = `Abrir ${currentApp.name}`;
+  sessionAppNameEl.textContent = currentApp.name;
+  noAccessAppNameEl.textContent = currentApp.name;
+  continueLink.href = nextParam;
+}
 
-      let supabaseClient = null;
+let supabaseClient = null;
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
@@ -181,6 +222,9 @@ if (alternateAppLink && currentApp) {
       }
 
       async function bootAuth() {
+        if (!currentApp) {
+  return;
+}
         const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
         const config = await response.json();
 
@@ -213,7 +257,7 @@ if (alternateAppLink && currentApp) {
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        if (!supabaseClient) {
+        if (!supabaseClient || !currentApp) {
           return;
         }
 

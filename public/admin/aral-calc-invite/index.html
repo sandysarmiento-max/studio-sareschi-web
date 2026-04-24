@@ -132,7 +132,7 @@
             return;
           }
 
-          setStatus(`Invitación enviada a ${email}.`, 'ok');
+          setStatus('Invitación enviada y acceso a Aral Calc activado.', 'ok');
           emailInput.value = '';
         } catch (error) {
           setStatus(`Error de red: ${String(error?.message || error)}`, 'error');
