@@ -6,7 +6,7 @@
     <title>Nueva contraseña | Studio Sareschi</title>
     <meta
       name="description"
-      content="Define una nueva contraseña para tu acceso a Aral Calc."
+      content="Define una nueva contraseña para tu acceso."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -24,7 +24,7 @@
         <nav aria-label="Principal">
           <ul class="nav-links">
             <li><a href="/acceso/">Iniciar sesión</a></li>
-            <li><a href="/aral-calc-guia/">Aral Calc</a></li>
+            <li><a id="context-link" href="/">Ver sitio</a></li>
           </ul>
         </nav>
       </div>
@@ -83,7 +83,75 @@
       const statusEl = document.getElementById('status');
       const updatePasswordBtn = document.getElementById('update-password-btn');
       const backLoginLink = document.getElementById('back-login-link');
+      const contextLink = document.getElementById('context-link');
       let supabaseClient = null;
+      const ALLOWED_APPS = new Set(['folia', 'aral_calc']);
+
+      function getAppContext() {
+        const queryParams = new URLSearchParams(window.location.search);
+        const appFromQuery = queryParams.get('app');
+        return ALLOWED_APPS.has(appFromQuery) ? appFromQuery : null;
+      }
+
+      function getAppendedAppUrl(basePath) {
+        const app = getAppContext();
+        if (!app) {
+          return basePath;
+        }
+        const separator = basePath.includes('?') ? '&' : '?';
+        return `${basePath}${separator}app=${encodeURIComponent(app)}`;
+      }
+
+      function applyContextualLinks() {
+        const app = getAppContext();
+        const loginHref = getAppendedAppUrl('/acceso/');
+        backLoginLink.href = loginHref;
+
+        if (app === 'folia') {
+          contextLink.textContent = 'Folia';
+          contextLink.href = '/';
+          return;
+        }
+
+        if (app === 'aral_calc') {
+          contextLink.textContent = 'Aral Calc';
+          contextLink.href = '/aral-calc-guia/';
+          return;
+        }
+
+        contextLink.textContent = 'Ver sitio';
+        contextLink.href = '/';
+      }
+
+      function cleanCallbackParams() {
+        const currentUrl = new URL(window.location.href);
+        const searchParams = currentUrl.searchParams;
+        const hashParams = new URLSearchParams(currentUrl.hash.replace(/^#/, ''));
+        const paramsToDelete = [
+          'code',
+          'token_hash',
+          'type',
+          'access_token',
+          'refresh_token',
+          'expires_at',
+          'expires_in',
+          'token_type',
+          'provider_token',
+          'provider_refresh_token',
+          'error',
+          'error_code',
+          'error_description',
+          'state',
+        ];
+
+        paramsToDelete.forEach((param) => {
+          searchParams.delete(param);
+          hashParams.delete(param);
+        });
+
+        currentUrl.hash = hashParams.toString() ? `#${hashParams.toString()}` : '';
+        window.history.replaceState({}, document.title, currentUrl.pathname + currentUrl.search + currentUrl.hash);
+      }
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
@@ -91,6 +159,8 @@
       }
 
       async function bootAuth() {
+        applyContextualLinks();
+
         const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
         const config = await response.json();
 
@@ -107,23 +177,39 @@
         const queryParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         const code = queryParams.get('code');
+        const tokenHash = queryParams.get('token_hash');
+        const otpType = queryParams.get('type');
         const hashError = hashParams.get('error');
         const hashErrorDescription = hashParams.get('error_description');
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
+        const queryError = queryParams.get('error');
+        const queryErrorDescription = queryParams.get('error_description');
 
         if (code) {
           const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
           if (error) {
-            setStatus('El enlace no es válido o ya expiró. Solicita uno nuevo.', true);
+            setStatus('El enlace no pudo validarse. Solicita una nueva invitación.', true);
             return;
           }
-          window.history.replaceState({}, document.title, window.location.pathname);
+          cleanCallbackParams();
         }
 
-        if (!code && hashError) {
+        if (!code && tokenHash && otpType) {
+          const { error } = await supabaseClient.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: otpType,
+          });
+          if (error) {
+            setStatus('El enlace no pudo validarse. Solicita una nueva invitación.', true);
+            return;
+          }
+          cleanCallbackParams();
+        }
+
+        if (!code && !tokenHash && (hashError || queryError)) {
           setStatus(
-            decodeURIComponent(hashErrorDescription || 'No se pudo validar el enlace enviado por email.'),
+            decodeURIComponent(hashErrorDescription || queryErrorDescription || 'No se pudo validar el enlace enviado por email.'),
             true
           );
           return;
@@ -135,10 +221,10 @@
             refresh_token: refreshToken,
           });
           if (error) {
-            setStatus('El enlace no es válido o ya expiró. Solicita uno nuevo.', true);
+            setStatus('El enlace no pudo validarse. Solicita una nueva invitación.', true);
             return;
           }
-          window.history.replaceState({}, document.title, window.location.pathname);
+          cleanCallbackParams();
         }
 
         const {
@@ -146,7 +232,7 @@
         } = await supabaseClient.auth.getSession();
 
         if (!activeSession) {
-          setStatus('Abre esta página desde el enlace enviado por email para poder crear tu contraseña.', true);
+          setStatus('El enlace no pudo validarse. Solicita una nueva invitación.', true);
           return;
         }
 
@@ -175,6 +261,16 @@
         updatePasswordBtn.disabled = true;
         setStatus('Guardando nueva contraseña...');
 
+        const {
+          data: { session: activeSession },
+        } = await supabaseClient.auth.getSession();
+
+        if (!activeSession) {
+          updatePasswordBtn.disabled = false;
+          setStatus('El enlace no pudo validarse. Solicita una nueva invitación.', true);
+          return;
+        }
+
         const { error } = await supabaseClient.auth.updateUser({ password });
 
         updatePasswordBtn.disabled = false;
@@ -186,7 +282,7 @@
 
         setStatus('Contraseña actualizada. Ya puedes iniciar sesión con tu nueva contraseña.');
         form.reset();
-        backLoginLink.focus();
+        window.location.assign(getAppendedAppUrl('/acceso/'));
       });
 
       bootAuth().catch(() => {
