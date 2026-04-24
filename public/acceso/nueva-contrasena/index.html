@@ -23,7 +23,7 @@
         <a class="brand" href="/">Studio Sareschi</a>
         <nav aria-label="Principal">
           <ul class="nav-links">
-            <li><a href="/acceso/?app=folia">Iniciar sesión</a></li>
+            <li><a id="nav-login-link" href="/acceso/?app=folia">Iniciar sesión</a></li>
             <li><a href="/aral-calc-guia/">Aral Calc</a></li>
           </ul>
         </nav>
@@ -84,6 +84,14 @@
       const updatePasswordBtn = document.getElementById('update-password-btn');
       const backLoginLink = document.getElementById('back-login-link');
       let supabaseClient = null;
+      const urlParams = new URLSearchParams(window.location.search);
+const appParam = urlParams.get('app');
+const safeApp = appParam === 'aral_calc' || appParam === 'folia' ? appParam : '';
+const loginUrl = safeApp ? `/acceso/?app=${safeApp}` : '/acceso/?app=folia';
+const navLoginLink = document.getElementById('nav-login-link');
+
+if (backLoginLink) backLoginLink.href = loginUrl;
+if (navLoginLink) navLoginLink.href = loginUrl;
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
