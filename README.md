@@ -102,3 +102,52 @@ curl -X POST 'https://studio-sareschi.com/api/aral-calc-invite' \
 Notas:
 - No habilita registro libre (solo invita quien conoce el token secreto).
 - No modifica los flujos actuales de login ni recuperación.
+
+
+## Panel admin unificado de invitaciones por app
+
+Se agregó un panel único en `/admin/app-invite/` para invitar clientas y activar acceso automático en `public.app_access`.
+
+### Flujo del panel
+
+1. Ingresar **Clave admin** (`INVITE_ADMIN_TOKEN`).
+2. Ingresar **Correo** de la clienta.
+3. Elegir app:
+   - `aral_calc` (Aral Calc)
+   - `folia` (Folia)
+4. Enviar invitación.
+
+### Endpoint nuevo
+
+- `POST /api/app-invite`
+- Body JSON:
+
+```json
+{
+  "email": "clienta@correo.com",
+  "app_key": "aral_calc"
+}
+```
+
+### Qué hace automáticamente
+
+- Envía invitación por Supabase Auth (`inviteUserByEmail`).
+- Crea o actualiza `public.app_access` con:
+  - `user_id` del usuario invitado
+  - `app_key` elegido
+  - `status = active`
+  - `granted_at = now()`
+  - `updated_at = now()`
+
+### Variables de entorno
+
+Se mantiene la misma clave existente:
+
+- `INVITE_ADMIN_TOKEN`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+### Compatibilidad
+
+- El endpoint histórico `POST /api/aral-calc-invite` se mantiene funcionando para Aral Calc.
+- Ahora también activa `app_access` automáticamente para `aral_calc`.

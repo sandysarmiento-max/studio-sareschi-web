@@ -3,6 +3,16 @@
   "cleanUrls": false,
   "redirects": [
     {
+      "source": "/admin/app-invite",
+      "destination": "/admin/app-invite/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/app-invite/",
+      "destination": "/admin/app-invite/index.html",
+      "permanent": false
+    },
+    {
       "source": "/admin/folia-preview",
       "destination": "/admin/folia-preview/index.html",
       "permanent": false
