@@ -133,7 +133,7 @@ module.exports = async function handler(req, res) {
     });
 
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-      emailRedirectTo: INVITE_REDIRECT_TO,
+      redirectTo: INVITE_REDIRECT_TO,
     });
 
     if (inviteError) {
