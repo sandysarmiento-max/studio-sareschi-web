@@ -23,7 +23,7 @@
         <a class="brand" href="/">Studio Sareschi</a>
         <nav aria-label="Principal">
           <ul class="nav-links">
-            <li><a id="nav-login-link" href="/acceso/?app=folia">Iniciar sesión</a></li>
+            <li><a id="nav-login-link" href="/acceso/">Iniciar sesión</a></li>
             <li><a href="/aral-calc-guia/">Aral Calc</a></li>
           </ul>
         </nav>
@@ -70,7 +70,7 @@
 
             <p id="status" class="tiny-note" aria-live="polite" style="margin-top: 12px"></p>
 
-            <a id="back-login-link" class="btn btn-secondary" href="/acceso/?app=folia" style="display:inline-flex;margin-top:16px">
+            <a id="back-login-link" class="btn btn-secondary" href="/acceso/" style="display:inline-flex;margin-top:16px">
               Volver a iniciar sesión
             </a>
           </article>
@@ -87,7 +87,7 @@
       const urlParams = new URLSearchParams(window.location.search);
 const appParam = urlParams.get('app');
 const safeApp = appParam === 'aral_calc' || appParam === 'folia' ? appParam : '';
-const loginUrl = safeApp ? `/acceso/?app=${safeApp}` : '/acceso/?app=folia';
+const loginUrl = safeApp ? `/acceso/?app=${safeApp}` : '/acceso/';
 const navLoginLink = document.getElementById('nav-login-link');
 
 if (backLoginLink) backLoginLink.href = loginUrl;
@@ -193,8 +193,10 @@ if (navLoginLink) navLoginLink.href = loginUrl;
         }
 
         setStatus('Contraseña actualizada. Ya puedes iniciar sesión con tu nueva contraseña.');
-        form.reset();
-        backLoginLink.focus();
+form.reset();
+setTimeout(() => {
+  window.location.href = loginUrl;
+}, 900);
       });
 
       bootAuth().catch(() => {
