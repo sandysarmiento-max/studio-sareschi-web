@@ -23,7 +23,7 @@
         <a class="brand" href="/">Studio Sareschi</a>
         <nav aria-label="Principal">
           <ul class="nav-links">
-            <li><a href="/acceso/">Iniciar sesión</a></li>
+            <li><a href="/acceso/?app=folia">Iniciar sesión</a></li>
             <li><a href="/aral-calc-guia/">Aral Calc</a></li>
           </ul>
         </nav>
@@ -70,7 +70,7 @@
 
             <p id="status" class="tiny-note" aria-live="polite" style="margin-top: 12px"></p>
 
-            <a id="back-login-link" class="btn btn-secondary" href="/acceso/" style="display:inline-flex;margin-top:16px">
+            <a id="back-login-link" class="btn btn-secondary" href="/acceso/?app=folia" style="display:inline-flex;margin-top:16px">
               Volver a iniciar sesión
             </a>
           </article>
@@ -118,7 +118,7 @@
             setStatus('El enlace no es válido o ya expiró. Solicita uno nuevo.', true);
             return;
           }
-          window.history.replaceState({}, document.title, window.location.pathname);
+          window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
         }
 
         if (!code && hashError) {
