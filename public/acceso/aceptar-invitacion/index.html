@@ -59,8 +59,23 @@
         statusEl.style.color = isError ? '#8f1d4f' : '';
       }
 
-      function buildPasswordUrl(redirectToRaw) {
+      function resolveAppKey(queryParams, hashParams, redirectToRaw) {
+        const directApp = (queryParams.get('app') || hashParams.get('app') || '').trim().toLowerCase();
+        if (directApp === 'aral_calc' || directApp === 'folia') {
+          return directApp;
+        }
+
+        const redirectToValue = String(redirectToRaw || '');
+        if (redirectToValue.includes('app=folia') || redirectToValue.includes('/folia')) {
+          return 'folia';
+        }
+
+        return 'aral_calc';
+      }
+
+      function buildPasswordUrl(appKey, redirectToRaw) {
         const passwordUrl = new URL('/acceso/nueva-contrasena/', window.location.origin);
+        passwordUrl.searchParams.set('app', appKey);
 
         if (redirectToRaw) {
           passwordUrl.searchParams.set('next', redirectToRaw);
@@ -86,10 +101,14 @@
         const queryParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
 
-        const tokenHash = queryParams.get('token_hash') || hashParams.get('token_hash') || '';
+        const tokenHash = queryParams.get('token_hash') || hashParams.get('token_hash') || queryParams.get('token') || hashParams.get('token') || '';
         const inviteType = queryParams.get('type') || hashParams.get('type') || '';
-        const redirectTo = queryParams.get('redirect_to') || hashParams.get('redirect_to') || '/aral-calc/';
+        const redirectTo = queryParams.get('redirect_to') || hashParams.get('redirect_to') || '';
+        const appKey = resolveAppKey(queryParams, hashParams, redirectTo);
+
         const code = queryParams.get('code');
+        const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
 
         if (code) {
           const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
@@ -99,7 +118,22 @@
             return;
           }
 
-          window.location.href = buildPasswordUrl(redirectTo);
+          window.location.href = buildPasswordUrl(appKey, redirectTo);
+          return;
+        }
+
+        if (accessToken && refreshToken) {
+          const { error } = await supabaseClient.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (error) {
+            setStatus('El enlace de invitación no es válido o ya expiró. Solicita una nueva invitación.', true);
+            return;
+          }
+
+          window.location.href = buildPasswordUrl(appKey, redirectTo);
           return;
         }
 
@@ -123,7 +157,7 @@
           return;
         }
 
-        window.location.href = buildPasswordUrl(redirectTo);
+        window.location.href = buildPasswordUrl(appKey, redirectTo);
       }
 
       bootInviteAccept().catch(() => {

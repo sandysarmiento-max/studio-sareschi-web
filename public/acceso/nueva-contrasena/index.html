@@ -6,7 +6,7 @@
     <title>Nueva contraseña | Studio Sareschi</title>
     <meta
       name="description"
-      content="Define una nueva contraseña para tu acceso a Aral Calc."
+      content="Define una nueva contraseña para tu acceso a apps protegidas de Studio Sareschi."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,8 +23,8 @@
         <a class="brand" href="/">Studio Sareschi</a>
         <nav aria-label="Principal">
           <ul class="nav-links">
-            <li><a href="/acceso/">Iniciar sesión</a></li>
-            <li><a href="/aral-calc-guia/">Aral Calc</a></li>
+            <li><a id="login-nav-link" href="/acceso/?app=aral_calc">Iniciar sesión</a></li>
+            <li><a id="app-nav-link" href="/aral-calc-guia/">Aral Calc</a></li>
           </ul>
         </nav>
       </div>
@@ -35,8 +35,8 @@
         <div class="container">
           <div class="section-heading">
             <p class="eyebrow">Soporte de acceso</p>
-            <h1>Crear nueva contraseña</h1>
-            <p class="hero-copy" style="margin: 0">
+            <h1 id="page-title">Crear nueva contraseña</h1>
+            <p id="hero-copy" class="hero-copy" style="margin: 0">
               Completa tu primer acceso por invitación o recupera tu contraseña con este formulario.
             </p>
           </div>
@@ -45,14 +45,26 @@
             <form id="update-password-form" style="display: grid; gap: 12px" hidden>
               <label>
                 Nueva contraseña
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  minlength="8"
-                  autocomplete="new-password"
-                  style="width:100%;margin-top:6px"
-                />
+                <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
+                    style="width:100%;margin-top:0"
+                  />
+                  <button
+                    id="toggle-password"
+                    type="button"
+                    class="btn btn-secondary"
+                    aria-label="Mostrar contraseña"
+                    aria-pressed="false"
+                    style="padding:10px 12px;line-height:1"
+                  >
+                    👁️
+                  </button>
+                </div>
               </label>
               <label>
                 Repetir nueva contraseña
@@ -70,7 +82,7 @@
 
             <p id="status" class="tiny-note" aria-live="polite" style="margin-top: 12px"></p>
 
-            <a id="back-login-link" class="btn btn-secondary" href="/acceso/" style="display:inline-flex;margin-top:16px">
+            <a id="back-login-link" class="btn btn-secondary" href="/acceso/?app=aral_calc" style="display:inline-flex;margin-top:16px">
               Volver a iniciar sesión
             </a>
           </article>
@@ -79,15 +91,60 @@
     </main>
 
     <script>
+      const APP_CONFIG = {
+        aral_calc: {
+          name: 'Aral Calc',
+          loginPath: '/acceso/?app=aral_calc',
+          appNavLabel: 'Aral Calc',
+          appNavPath: '/aral-calc-guia/',
+        },
+        folia: {
+          name: 'Folia',
+          loginPath: '/acceso/?app=folia',
+          appNavLabel: 'Folia',
+          appNavPath: '/app/folia/',
+        },
+      };
+
       const form = document.getElementById('update-password-form');
       const statusEl = document.getElementById('status');
       const updatePasswordBtn = document.getElementById('update-password-btn');
       const backLoginLink = document.getElementById('back-login-link');
+      const loginNavLink = document.getElementById('login-nav-link');
+      const appNavLink = document.getElementById('app-nav-link');
+      const pageTitle = document.getElementById('page-title');
+      const heroCopy = document.getElementById('hero-copy');
+      const passwordInput = document.getElementById('password');
+      const passwordConfirmInput = document.getElementById('password-confirm');
+      const togglePasswordBtn = document.getElementById('toggle-password');
+
+      const queryParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const requestedApp = (queryParams.get('app') || hashParams.get('app') || '').trim().toLowerCase();
+      const currentApp = APP_CONFIG[requestedApp] || APP_CONFIG.aral_calc;
+
       let supabaseClient = null;
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
         statusEl.style.color = isError ? '#8f1d4f' : '';
+      }
+
+      function applyAppContext() {
+        document.title = `Nueva contraseña ${currentApp.name} | Studio Sareschi`;
+        pageTitle.textContent = `Crear nueva contraseña para ${currentApp.name}`;
+        heroCopy.textContent = `Completa tu primer acceso por invitación o recupera tu contraseña para ${currentApp.name}.`;
+
+        const contextualLogin = currentApp.loginPath;
+        backLoginLink.href = contextualLogin;
+        loginNavLink.href = contextualLogin;
+
+        appNavLink.href = currentApp.appNavPath;
+        appNavLink.textContent = currentApp.appNavLabel;
+      }
+
+      function getFinalLoginUrl() {
+        return `${currentApp.loginPath}`;
       }
 
       async function bootAuth() {
@@ -104,13 +161,13 @@
 
         supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 
-        const queryParams = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         const code = queryParams.get('code');
+        const queryError = queryParams.get('error');
+        const queryErrorDescription = queryParams.get('error_description');
         const hashError = hashParams.get('error');
         const hashErrorDescription = hashParams.get('error_description');
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
+        const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
 
         if (code) {
           const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
@@ -118,12 +175,13 @@
             setStatus('El enlace no es válido o ya expiró. Solicita uno nuevo.', true);
             return;
           }
-          window.history.replaceState({}, document.title, window.location.pathname);
+          window.history.replaceState({}, document.title, `${window.location.pathname}?app=${encodeURIComponent(requestedApp || 'aral_calc')}`);
         }
 
-        if (!code && hashError) {
+        const inboundError = queryError || hashError;
+        if (!code && inboundError) {
           setStatus(
-            decodeURIComponent(hashErrorDescription || 'No se pudo validar el enlace enviado por email.'),
+            decodeURIComponent(queryErrorDescription || hashErrorDescription || 'No se pudo validar el enlace enviado por email.'),
             true
           );
           return;
@@ -138,7 +196,7 @@
             setStatus('El enlace no es válido o ya expiró. Solicita uno nuevo.', true);
             return;
           }
-          window.history.replaceState({}, document.title, window.location.pathname);
+          window.history.replaceState({}, document.title, `${window.location.pathname}?app=${encodeURIComponent(requestedApp || 'aral_calc')}`);
         }
 
         const {
@@ -159,8 +217,8 @@
           return;
         }
 
-        const password = document.getElementById('password').value;
-        const confirm = document.getElementById('password-confirm').value;
+        const password = passwordInput.value;
+        const confirm = passwordConfirmInput.value;
 
         if (password.length < 8) {
           setStatus('La contraseña debe tener al menos 8 caracteres.', true);
@@ -184,10 +242,20 @@
           return;
         }
 
-        setStatus('Contraseña actualizada. Ya puedes iniciar sesión con tu nueva contraseña.');
         form.reset();
-        backLoginLink.focus();
+        setStatus('Contraseña actualizada. Redirigiendo al acceso...');
+        window.location.href = getFinalLoginUrl();
       });
+
+      togglePasswordBtn.addEventListener('click', () => {
+        const showingPassword = passwordInput.type === 'text';
+        passwordInput.type = showingPassword ? 'password' : 'text';
+        passwordConfirmInput.type = showingPassword ? 'password' : 'text';
+        togglePasswordBtn.setAttribute('aria-pressed', String(!showingPassword));
+        togglePasswordBtn.setAttribute('aria-label', showingPassword ? 'Mostrar contraseña' : 'Ocultar contraseña');
+      });
+
+      applyAppContext();
 
       bootAuth().catch(() => {
         setStatus('No se pudo inicializar esta pantalla en este momento. Intenta de nuevo.', true);

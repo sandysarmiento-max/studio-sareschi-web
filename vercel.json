@@ -23,6 +23,16 @@
       "permanent": false
     },
     {
+      "source": "/admin/app-invite",
+      "destination": "/admin/app-invite/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/app-invite/",
+      "destination": "/admin/app-invite/index.html",
+      "permanent": false
+    },
+    {
       "source": "/AralCalc-v1.html",
       "destination": "/acceso/?next=/aral-calc/",
       "permanent": false
