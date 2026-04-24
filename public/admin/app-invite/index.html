@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin · Invitaciones Apps | Studio Sareschi</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .invite-card {
+        max-width: 560px;
+        margin: 0 auto;
+        display: grid;
+        gap: 12px;
+      }
+      .invite-form {
+        display: grid;
+        gap: 10px;
+      }
+      .invite-form label {
+        display: grid;
+        gap: 6px;
+        font-size: 14px;
+        color: #6f6471;
+      }
+      .status {
+        margin: 0;
+        font-size: 14px;
+      }
+      .status-ok {
+        color: #2f6f44;
+      }
+      .status-error {
+        color: #8f1d4f;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="/">Studio Sareschi</a>
+      </div>
+    </header>
+
+    <main class="section section-soft">
+      <div class="container">
+        <article class="card invite-card">
+          <div class="section-heading" style="margin: 0">
+            <p class="eyebrow">Panel interno</p>
+            <h1 style="margin-bottom: 8px">Invitaciones de apps</h1>
+            <p class="hero-copy" style="margin: 0">Envía invitación y activa acceso para Aral Calc o Folia.</p>
+          </div>
+
+          <form id="invite-form" class="invite-form">
+            <label>
+              Token admin (INVITE_ADMIN_TOKEN)
+              <input id="token" type="password" autocomplete="off" required />
+            </label>
+
+            <label>
+              App
+              <select id="app" required>
+                <option value="aral_calc">Aral Calc</option>
+                <option value="folia">Folia</option>
+              </select>
+            </label>
+
+            <label>
+              Email
+              <input id="email" type="email" autocomplete="email" required placeholder="clienta@correo.com" />
+            </label>
+
+            <button class="btn btn-primary" type="submit" id="send-btn">Enviar invitación</button>
+          </form>
+
+          <p id="status" class="status tiny-note" aria-live="polite">Listo para enviar.</p>
+        </article>
+      </div>
+    </main>
+
+    <script>
+      const STORAGE_KEY = 'app_invite_admin_token';
+      const APP_LABELS = {
+        aral_calc: 'Aral Calc',
+        folia: 'Folia',
+      };
+
+      const form = document.getElementById('invite-form');
+      const emailInput = document.getElementById('email');
+      const tokenInput = document.getElementById('token');
+      const appInput = document.getElementById('app');
+      const statusEl = document.getElementById('status');
+      const sendBtn = document.getElementById('send-btn');
+
+      tokenInput.value = sessionStorage.getItem(STORAGE_KEY) || '';
+
+      function setStatus(message, state = 'idle') {
+        statusEl.textContent = message;
+        statusEl.classList.remove('status-ok', 'status-error');
+
+        if (state === 'ok') {
+          statusEl.classList.add('status-ok');
+          return;
+        }
+
+        if (state === 'error') {
+          statusEl.classList.add('status-error');
+        }
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const email = String(emailInput.value || '').trim();
+        const token = String(tokenInput.value || '').trim();
+        const app = String(appInput.value || '').trim();
+
+        if (!email) {
+          setStatus('Ingresa un email válido.', 'error');
+          return;
+        }
+
+        if (!token) {
+          setStatus('Pega el token INVITE_ADMIN_TOKEN.', 'error');
+          return;
+        }
+
+        if (!APP_LABELS[app]) {
+          setStatus('Selecciona una app válida.', 'error');
+          return;
+        }
+
+        sessionStorage.setItem(STORAGE_KEY, token);
+
+        sendBtn.disabled = true;
+        setStatus('Enviando invitación...', 'idle');
+
+        try {
+          const response = await fetch('/api/app-invite', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ email, app }),
+          });
+
+          const payload = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            const reason = payload?.details || payload?.error || `Error ${response.status}`;
+            setStatus(`No se pudo enviar: ${reason}`, 'error');
+            return;
+          }
+
+          setStatus(`Invitación enviada a ${email} para ${APP_LABELS[app]}.`, 'ok');
+          emailInput.value = '';
+        } catch (error) {
+          setStatus(`Error de red: ${String(error?.message || error)}`, 'error');
+        } finally {
+          sendBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
