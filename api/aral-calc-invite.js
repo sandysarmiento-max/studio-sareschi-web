@@ -1,6 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const INVITE_REDIRECT_TO = 'https://www.studio-sareschi.com/acceso/aceptar-invitacion/';
+const INVITE_REDIRECT_TO = 'https://www.studio-sareschi.com/acceso/nueva-contrasena/?app=aral_calc';
+const ARAL_CALC_APP_KEY = 'aral_calc';
+const ACTIVE_STATUS = 'active';
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -130,15 +132,43 @@ module.exports = async function handler(req, res) {
       },
     });
 
-    const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
       redirectTo: INVITE_REDIRECT_TO,
     });
 
-    if (error) {
+    if (inviteError) {
       return json(res, 400, {
         error: 'Error de invitación',
         step: 'invite',
-        details: String(error.message || 'Error desconocido'),
+        details: String(inviteError.message || 'Error desconocido'),
+      });
+    }
+
+    const userId = String(inviteData?.user?.id || '').trim();
+    if (!userId) {
+      return json(res, 500, {
+        error: 'No se pudo activar acceso Aral Calc',
+        step: 'app-access-user',
+        details: 'La invitación no devolvió user.id para completar app_access.',
+      });
+    }
+
+    const { error: appAccessError } = await supabase.from('app_access').upsert(
+      {
+        user_id: userId,
+        app_key: ARAL_CALC_APP_KEY,
+        status: ACTIVE_STATUS,
+      },
+      {
+        onConflict: 'user_id,app_key',
+      }
+    );
+
+    if (appAccessError) {
+      return json(res, 500, {
+        error: 'No se pudo activar acceso Aral Calc',
+        step: 'app-access-upsert',
+        details: String(appAccessError.message || 'Error desconocido'),
       });
     }
 
