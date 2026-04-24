@@ -59,12 +59,25 @@
         statusEl.style.color = isError ? '#8f1d4f' : '';
       }
 
-      function buildPasswordUrl(redirectToRaw) {
-        const passwordUrl = new URL('/acceso/nueva-contrasena/', window.location.origin);
+      const APP_NEXT_BY_KEY = {
+        aral_calc: '/aral-calc/',
+        folia: '/admin/folia-preview/',
+      };
 
-        if (redirectToRaw) {
-          passwordUrl.searchParams.set('next', redirectToRaw);
+      function inferAppKey({ requestedApp, redirectToRaw }) {
+        if (requestedApp === 'folia' || requestedApp === 'aral_calc') {
+          return requestedApp;
         }
+
+        return String(redirectToRaw || '').includes('/folia') ? 'folia' : 'aral_calc';
+      }
+
+      function buildPasswordUrl({ redirectToRaw, appKey }) {
+        const passwordUrl = new URL('/acceso/nueva-contrasena/', window.location.origin);
+        const normalizedAppKey = inferAppKey({ requestedApp: appKey, redirectToRaw });
+
+        passwordUrl.searchParams.set('app', normalizedAppKey);
+        passwordUrl.searchParams.set('next', redirectToRaw || APP_NEXT_BY_KEY[normalizedAppKey]);
 
         return passwordUrl.toString();
       }
@@ -89,6 +102,8 @@
         const tokenHash = queryParams.get('token_hash') || hashParams.get('token_hash') || '';
         const inviteType = queryParams.get('type') || hashParams.get('type') || '';
         const redirectTo = queryParams.get('redirect_to') || hashParams.get('redirect_to') || '/aral-calc/';
+        const appFromQuery = queryParams.get('app') || hashParams.get('app') || '';
+        const inviteAppKey = inferAppKey({ requestedApp: appFromQuery, redirectToRaw: redirectTo });
         const code = queryParams.get('code');
 
         if (code) {
@@ -99,7 +114,7 @@
             return;
           }
 
-          window.location.href = buildPasswordUrl(redirectTo);
+          window.location.href = buildPasswordUrl({ redirectToRaw: redirectTo, appKey: inviteAppKey });
           return;
         }
 
@@ -123,7 +138,7 @@
           return;
         }
 
-        window.location.href = buildPasswordUrl(redirectTo);
+        window.location.href = buildPasswordUrl({ redirectToRaw: redirectTo, appKey: inviteAppKey });
       }
 
       bootInviteAccept().catch(() => {

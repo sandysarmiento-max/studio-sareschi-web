@@ -90,6 +90,19 @@
         statusEl.style.color = isError ? '#8f1d4f' : '';
       }
 
+      const APP_NEXT_BY_KEY = {
+        aral_calc: '/aral-calc/',
+        folia: '/admin/folia-preview/',
+      };
+
+      function inferAppKey({ requestedApp, nextRaw }) {
+        if (requestedApp === 'folia' || requestedApp === 'aral_calc') {
+          return requestedApp;
+        }
+
+        return String(nextRaw || '').includes('/folia') ? 'folia' : 'aral_calc';
+      }
+
       async function bootAuth() {
         const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
         const config = await response.json();
@@ -107,6 +120,16 @@
         const queryParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         const code = queryParams.get('code');
+        const requestedApp = queryParams.get('app');
+        const requestedNext = queryParams.get('next');
+        const activeAppKey = inferAppKey({ requestedApp, nextRaw: requestedNext });
+        const loginUrl = new URL('/acceso/', window.location.origin);
+        loginUrl.searchParams.set('app', activeAppKey);
+        loginUrl.searchParams.set('next', requestedNext || APP_NEXT_BY_KEY[activeAppKey]);
+        const loginHref = `${loginUrl.pathname}${loginUrl.search}`;
+        form.dataset.loginHref = loginHref;
+        backLoginLink.href = loginHref;
+
         const hashError = hashParams.get('error');
         const hashErrorDescription = hashParams.get('error_description');
         const accessToken = hashParams.get('access_token');
@@ -184,9 +207,10 @@
           return;
         }
 
-        setStatus('Contraseña actualizada. Ya puedes iniciar sesión con tu nueva contraseña.');
+        const loginHref = form.dataset.loginHref || '/acceso/?app=aral_calc';
+        setStatus('Contraseña actualizada. Redirigiendo al acceso correspondiente...');
         form.reset();
-        backLoginLink.focus();
+        window.location.href = loginHref;
       });
 
       bootAuth().catch(() => {
