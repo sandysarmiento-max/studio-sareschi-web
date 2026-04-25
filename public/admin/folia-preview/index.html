@@ -98,6 +98,7 @@
       .modal-card{padding:16px;max-height:none}
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/svg2pdf.js/2.2.1/svg2pdf.umd.min.js"></script>
 </head>
@@ -106,7 +107,10 @@
     <div class="hero">
       <div class="hero-grid">
         <div>
-          <h1>Folia</h1>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <h1>Folia</h1>
+            <button class="btn" id="foliaLogoutBtn" type="button">Cerrar sesión</button>
+          </div>
           <p class="sub">Crea hojas personalizadas y listas para imprimir en segundos.</p>
         </div>
       </div>
@@ -1656,6 +1660,27 @@ async function initApp(){
   updateUI();
 }
 initApp();
+</script>
+<script>
+  (function () {
+    const logoutBtn = document.getElementById('foliaLogoutBtn');
+    if (!logoutBtn) return;
+
+    logoutBtn.addEventListener('click', async () => {
+      const fallbackHref = '/acceso/?app=folia';
+
+      try {
+        const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
+        const config = await response.json();
+        if (config?.enabled && config.supabaseUrl && config.supabaseAnonKey && window.supabase?.createClient) {
+          const supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+          await supabaseClient.auth.signOut();
+        }
+      } catch (_) {}
+
+      window.location.href = fallbackHref;
+    });
+  })();
 </script>
 
 </body>
