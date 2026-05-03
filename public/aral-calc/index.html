@@ -176,6 +176,9 @@
         <button class="chip" data-preset="A5">A5</button>
         <button class="chip" data-preset="A4">A4</button>
       </div>
+      <div class="note" style="margin-bottom:14px">
+  Elige un formato base o personaliza el ancho y alto manualmente.
+</div>
       <div id="form-grid" class="grid"></div>
     </section>
 
@@ -380,6 +383,10 @@ function renderForm(){
       key:"spineSlack", label:"Holgura del lomo", suffix:"mm", step:0.1,
       note:"Se considera 0.5 mm de holgura; podrás modificarlo de acuerdo a tu forma de trabajo."
     });
+  }
+
+  if(["conLomo", "conSolapa", "compuesto"].includes(projectKey)){
+    html += `<div><div class="note">Tip de armado: si vas a forrar con papel adhesivo de 135 g, laminado al frío o materiales más rígidos, deja una junta/canal un poco mayor entre tapa y lomo. Como referencia: forro delgado 5–6 mm; papel adhesivo + laminado 7–8 mm; materiales más gruesos 8–10 mm.</div></div>`;
   }
 
   el.innerHTML = html;
