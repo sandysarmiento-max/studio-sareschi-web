@@ -382,6 +382,10 @@ function renderForm(){
     });
   }
 
+  if(["conLomo", "conSolapa", "compuesto"].includes(projectKey)){
+    html += `<div><div class="note">Tip de armado: si vas a forrar con papel adhesivo de 135 g, laminado al frío o materiales más rígidos, deja una junta/canal un poco mayor entre tapa y lomo. Como referencia: forro delgado 5–6 mm; papel adhesivo + laminado 7–8 mm; materiales más gruesos 8–10 mm.</div></div>`;
+  }
+
   el.innerHTML = html;
   el.querySelectorAll("input, select").forEach(node => {
     if (node.tagName === "SELECT") {
