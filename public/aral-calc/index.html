@@ -141,7 +141,7 @@
 <section class="hero-intro">
   <div class="hero-panel">
     <h1>Aral Calc · Studio Sareschi</h1>
-    <p>Versión integrada de la calculadora original para mantener el mismo flujo de trabajo dentro del sitio.</p>
+    <p>Calculadora para encuadernación: medidas, grosores y anillos en un solo lugar.</p>
   </div>
 </section>
 
@@ -573,7 +573,7 @@ function renderRings(data){
     <div class="table-row ${data.ring.label === r.label ? 'active' : ''}">
       <div>${r.label}</div>
       <div>${r.diameter.toFixed(1)} mm</div>
-      <div>${r.label === '1 1/2"' ? `${r.capacity.toFixed(1)} mm estimados` : `${r.capacity.toFixed(1)} mm`}</div>
+      <div>${r.label === '1 1/2"' ? `${r.capacity.toFixed(1)} mm ` : `${r.capacity.toFixed(1)} mm`}</div>
     </div>
   `).join("");
 }
