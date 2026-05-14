@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Folia</title>
   <style>
-    :root{--bg:#F7F8FA;--panel:#FFFFFF;--preview:#E2E8F0;--line:#94a3b8;--text:#1F2937;--muted:#667085;--border:#D9E0E7;--soft:#F7F8FA;--accent:#E89AAE;--accent-soft:#F8E8EC;--accent-text:#B65E77;--green:#BFE3CC;--green-line:#A7D6BA;--pink:#F6D6DC;--pink-line:#E8B9C4}
+    :root{--bg:#ece9e4;--panel:#FFFFFF;--preview:#cdd6df;--line:#708097;--text:#1f2933;--muted:#566273;--border:#c8d0d9;--soft:#f3f0eb;--accent:#b66984;--accent-soft:#f2dde4;--accent-text:#8f3f5e;--green:#BFE3CC;--green-line:#A7D6BA;--pink:#F6D6DC;--pink-line:#E8B9C4}
     *{box-sizing:border-box}
     body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
     [hidden]{display:none !important}
@@ -22,11 +22,11 @@
     .left::-webkit-scrollbar{width:8px}
     .left::-webkit-scrollbar-thumb{background:#D9E0E7;border-radius:999px}
     .right{display:grid;gap:10px;position:sticky;top:8px;align-self:start}
-    .section{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:10px;box-shadow:0 1px 2px rgba(15,23,42,.02)}
+    .section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:8px;box-shadow:0 8px 18px rgba(15,23,42,.06)}
     .section h3{margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)}
     .field{display:grid;gap:4px;margin-bottom:8px}.field:last-child{margin-bottom:0}
     label{font-size:12px;font-weight:600;color:#344054}
-    input[type=text],input[type=number],select{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:12.5px;color:var(--text)}
+    input[type=text],input[type=number],select{width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:9px;background:#fff;font-size:12px;color:var(--text)}
     input[type=color]{width:100%;height:34px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:2px}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .toggle{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);border-radius:10px;background:#fff;padding:7px 10px;font-size:12.5px;color:#344054;margin-bottom:8px}.toggle:last-child{margin-bottom:0}
@@ -41,7 +41,7 @@
     .marker-number{font-size:14px;font-weight:600;line-height:1;width:auto;height:auto}
     .dropdown-caret{margin-left:auto;color:var(--muted)}
     .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;grid-auto-rows:1fr}
-    .choice{border:1px solid var(--border);background:#fff;color:#475569;border-radius:12px;padding:8px 9px;font-size:12.5px;font-weight:600;cursor:pointer;min-height:42px;display:flex;align-items:center;justify-content:center;text-align:center}
+    .choice{border:1px solid var(--border);background:#fff;color:#3a4452;border-radius:10px;padding:6px 8px;font-size:12px;font-weight:600;cursor:pointer;min-height:34px;display:flex;align-items:center;justify-content:center;text-align:center}
     .choice.active-rose{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-text)}
     .choice.active-green{border-color:#A9D4B9;background:#EDF7F0;color:#39634A}
     .preview{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:10px;box-shadow:0 2px 8px rgba(15,23,42,.04)}
@@ -52,7 +52,7 @@
     .actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
     .zoom-controls{display:flex;align-items:center;gap:4px;margin-right:4px}
     .zoom-label{min-width:44px;text-align:center;font-size:11px;color:var(--muted)}
-    button.btn{border:1px solid var(--border);background:#fff;color:#344054;padding:7px 10px;border-radius:10px;font-size:12.5px;cursor:pointer}
+    button.btn{border:1px solid var(--border);background:#fff;color:#1f2933;padding:6px 9px;border-radius:9px;font-size:12px;cursor:pointer}
     button.btn.primary{border-color:#E8B8C4;background:#FAEEF1;color:#B65E77}
     button.btn.icon{padding:6px 9px;min-width:32px}
     .canvas-wrap{background:var(--preview);border-radius:18px;padding:16px;display:flex;justify-content:center;align-items:flex-start;height:calc(100vh - 210px);min-height:calc(100vh - 210px);max-height:calc(100vh - 210px);overflow:auto}
@@ -257,7 +257,7 @@
 <script>
 const SIZE_PRESETS={A4:{width:210,height:297},A5:{width:148,height:210},A6:{width:105,height:148},Carta:{width:216,height:279},"Media carta":{width:140,height:216},B5:{width:176,height:250},Personalizado:{width:148,height:210}};
 const ARMADOS=[["suelta","Hoja suelta"],["anillado","Anillado lateral"],["cuadernillo","Cuadernillo al centro"],["block","Anillado superior"]];
-const SHEETS=[["rayada","Rayada"],["punteada","Punteada"],["cuadriculada","Cuadriculada"],["lista","Lista"]];
+const SHEETS=[["rayada","Rayada"],["punteada","Punteada"],["cuadriculada","Cuadriculada"],["lista","Lista"],["agenda","Modo agenda"]];
 const PNG_BASE_DPI=300;
 const QUALITY_PRESETS={
   standard:{label:"Estándar",pngScale:2,description:"Archivo más liviano con definición correcta para pantalla."},
@@ -326,8 +326,8 @@ const state={
   previewZoom:1.15,
   armado:"suelta",
   bindingSide:"left",
-  bindingReserve:11,
-  blockTopReserve:11,
+  bindingReserve:10,
+  blockTopReserve:10,
   marginTop:10,
   marginBottom:10,
   marginLeft:7,
@@ -676,6 +676,22 @@ function drawSheetByType(svg,rect,sheetType,config=state){
   if(sheetType==="punteada") drawDots(svg,rect,config);
   if(sheetType==="cuadriculada") drawGridSheet(svg,rect,config);
   if(sheetType==="lista") drawList(svg,rect,config);
+  if(sheetType==="agenda") drawAgenda(svg,rect,config);
+}
+function drawAgenda(svg,rect,config=state){
+  const lineColor=config.lineColor||state.lineColor, stroke=gridStroke;
+  const gap=Math.max(5,+config.agendaBlockGap||8), capSize=Math.max(2,+config.agendaCapsuleSize||4), capGap=Math.max(0.5,+config.agendaCapsuleGap||1.5), lineSpace=Math.max(4,+config.agendaLineSpacing||7);
+  const midGap=gap*1.3, half=(rect.width-midGap)/2, blockW=(half-gap)/2, blockH=rect.height-2, y=rect.y+1;
+  [rect.x,rect.x+blockW+gap,rect.x+half+midGap,rect.x+half+midGap+blockW+gap].forEach(x=>{
+    addRect(svg,x,y,blockW,blockH,{fill:"none",stroke:lineColor,"stroke-width":stroke,rx:1.5,ry:1.5});
+    const startX=x+blockW-(capSize*3+capGap*2)-1.2, top=y+1.2;
+    for(let i=0;i<3;i++){
+      const cx=startX+i*(capSize+capGap);
+      if((config.agendaCapsuleShape||"round")==="circle") addCircle(svg,cx+capSize/2,top+capSize/2,capSize/2,{fill:"none",stroke:lineColor,"stroke-width":stroke});
+      else addRect(svg,cx,top,capSize,capSize,{fill:"none",stroke:lineColor,"stroke-width":stroke,rx:1.1,ry:1.1});
+    }
+    for(let yy=top+capSize+2;yy<y+blockH-1;yy+=lineSpace) addRule(svg,x+1.2,yy,x+blockW-1.2,yy,lineColor,stroke);
+  });
 }
 function getSplitRects(rect){
   const safeGap=Math.min(SPLIT_ZONE_GAP_MM,Math.max(0,rect.height-2));
@@ -833,6 +849,7 @@ function contentFieldsByType(sheetType,config,prefix,zoneLabel=""){
   if(sheetType==="cuadriculada"){
     return `${title}<div class="field"><label>Tamaño del cuadro (mm)</label><input id="${prefix}gridSizeExtra" type="number" min="4" max="20" value="${config.gridSize}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitGridToSpaceExtra" type="checkbox" ${config.fitGridToSpace?'checked':''}></label><label class="toggle"><span>Espacio superior para fecha o datos</span><input id="${prefix}gridHeaderEnabledExtra" type="checkbox" ${config.gridHeaderEnabled?'checked':''}></label>${config.gridHeaderEnabled?`<div class="field"><label>Altura del espacio superior (mm)</label><input id="${prefix}gridHeaderHeightExtra" type="number" min="6" max="40" value="${config.gridHeaderHeight}"></div>`:''}<label class="toggle"><span>Usar esquinas boleadas</span><input id="${prefix}gridRoundedCornersExtra" type="checkbox" ${config.gridRoundedCorners?'checked':''}></label>`;
   }
+  if(sheetType==="agenda") return `${title}<div class="field"><label>Separación entre renglones (mm)</label><input id="${prefix}agendaLineSpacingExtra" type="number" min="4" max="16" value="${config.agendaLineSpacing||7}"></div><div class="field"><label>Forma de cápsulas</label><select id="${prefix}agendaCapsuleShapeExtra"><option value="round" ${(config.agendaCapsuleShape||"round")==="round"?"selected":""}>Rectángulo redondeado</option><option value="circle" ${(config.agendaCapsuleShape||"round")==="circle"?"selected":""}>Círculo</option></select></div><div class="row2"><div class="field"><label>Tamaño de cápsulas</label><input id="${prefix}agendaCapsuleSizeExtra" type="number" min="2" max="10" step="0.2" value="${config.agendaCapsuleSize||4}"></div><div class="field"><label>Separación entre cápsulas</label><input id="${prefix}agendaCapsuleGapExtra" type="number" min="0.5" max="8" step="0.1" value="${config.agendaCapsuleGap||1.5}"></div></div><div class="field"><label>Separación entre bloques</label><input id="${prefix}agendaBlockGapExtra" type="number" min="4" max="20" value="${config.agendaBlockGap||8}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitLinesToSpaceExtra" type="checkbox" ${config.fitLinesToSpace?"checked":""}></label>`;
   return `${title}<div class="field"><label>Separación entre renglones (mm)</label><input id="${prefix}listSpacingExtra" type="number" min="6" max="20" value="${config.listSpacing}"></div><label class="toggle"><span>Ajustar al espacio útil</span><input id="${prefix}fitListToSpaceExtra" type="checkbox" ${config.fitListToSpace?'checked':''}></label><label class="toggle"><span>Incluir marcador</span><input id="${prefix}checkboxExtra" type="checkbox" ${config.checkbox?'checked':''}></label>${config.checkbox?`<div class="field"><label>Tipo de marcador</label>${markerPickerHtml(config.listMarkerStyle,config.listMarkerColor,prefix||"single")}</div>${config.listMarkerStyle==='numerado'?`<div class="field"><label>Tamaño del número</label><input id="${prefix}listMarkerFontSizeExtra" type="number" min="3" max="18" step="0.5" value="${config.listMarkerFontSize}"></div><div class="field"><label>Color del número</label><input id="${prefix}listMarkerColorExtra" type="color" value="${config.listMarkerColor}"></div>`:`<div class="field"><label>Tamaño del ícono (mm)</label><input id="${prefix}listMarkerSizeExtra" type="number" min="2" max="10" step="0.5" value="${config.listMarkerSize}"></div><div class="field"><label>Color del ícono</label><input id="${prefix}listMarkerColorExtra" type="color" value="${config.listMarkerColor}"></div>`}`:''}`;
 }
 function renderContentFields(){
@@ -883,12 +900,12 @@ function setArmado(id){
     state.marginRight=7;
   }
   if(id==='anillado'){
-    state.bindingReserve=11;
+    state.bindingReserve=10;
     if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;}
     if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;}
   }
   if(id==='block'){
-    state.blockTopReserve=11;
+    state.blockTopReserve=10;
     state.marginLeft=7;
     state.marginRight=7;
   }
@@ -1408,6 +1425,7 @@ function bindDynamic(){
     if(state.sheetType==='punteada'){state.dotGapX=5; state.dotGapY=5; state.dotSize=0.2; state.fitDotsToSpace=true; state.lineColor='#000000';}
     if(state.sheetType==='cuadriculada'){state.gridSize=5; state.fitGridToSpace=true; state.gridHeaderEnabled=false; state.gridHeaderHeight=12; state.gridRoundedCorners=true; state.lineColor='#94a3b8';}
     if(state.sheetType==='lista'){state.listSpacing=9; state.fitListToSpace=true; state.checkbox=true; state.listMarkerStyle='cuadrado'; state.listMarkerFontSize=4.5; state.listMarkerSize=4; state.lineColor='#94a3b8'; state.listMarkerColor=state.lineColor; state.listMarkerColorLinked=true;}
+    if(state.sheetType==='agenda'){state.orientation='Horizontal';state.layoutMode='single';state.agendaLineSpacing=7;state.agendaCapsuleShape='round';state.agendaCapsuleSize=4;state.agendaCapsuleGap=1.5;state.agendaBlockGap=8;state.checkbox=false;state.fitLinesToSpace=true;}
     updateUI();
   });
   const mLeft=document.getElementById('marginLeftExtra'),mRight=document.getElementById('marginRightExtra');
@@ -1420,7 +1438,7 @@ function bindDynamic(){
     mRight.onchange=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginRight=value; updateUI();};
   }
   const bindSide=document.getElementById('bindingSideExtra');
-  if(bindSide) bindSide.onchange=e=>{state.bindingSide=e.target.value; state.bindingReserve=11; if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;} if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;} updateUI();};
+  if(bindSide) bindSide.onchange=e=>{state.bindingSide=e.target.value; state.bindingReserve=10; if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;} if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;} updateUI();};
   const bindReserve=document.getElementById('bindingReserveExtra');
   if(bindReserve){
     bindReserve.oninput=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.bindingReserve=value; renderPreview();};
@@ -1476,6 +1494,11 @@ function bindDynamic(){
     if(markerFont) markerFont.oninput=e=>{target.listMarkerFontSize=+e.target.value; updateUI();};
     const markerSize=document.getElementById(`${prefix}listMarkerSizeExtra`);
     if(markerSize) markerSize.oninput=e=>{target.listMarkerSize=+e.target.value; updateUI();};
+    const agendaLine=document.getElementById(`${prefix}agendaLineSpacingExtra`); if(agendaLine) agendaLine.oninput=e=>{target.agendaLineSpacing=+e.target.value; updateUI();};
+    const agendaSize=document.getElementById(`${prefix}agendaCapsuleSizeExtra`); if(agendaSize) agendaSize.oninput=e=>{target.agendaCapsuleSize=+e.target.value; updateUI();};
+    const agendaGap=document.getElementById(`${prefix}agendaCapsuleGapExtra`); if(agendaGap) agendaGap.oninput=e=>{target.agendaCapsuleGap=+e.target.value; updateUI();};
+    const agendaBlock=document.getElementById(`${prefix}agendaBlockGapExtra`); if(agendaBlock) agendaBlock.oninput=e=>{target.agendaBlockGap=+e.target.value; updateUI();};
+    const agendaShape=document.getElementById(`${prefix}agendaCapsuleShapeExtra`); if(agendaShape) agendaShape.onchange=e=>{target.agendaCapsuleShape=e.target.value; updateUI();};
     const markerColor=document.getElementById(`${prefix}listMarkerColorExtra`);
     if(markerColor){
       markerColor.oninput=e=>{
