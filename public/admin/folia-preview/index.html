@@ -328,7 +328,7 @@ const state={
   previewZoom:1.15,
   armado:"suelta",
   bindingSide:"left",
-  bindingReserve:11,
+  bindingReserve:10,
   blockTopReserve:11,
   marginTop:10,
   marginBottom:10,
@@ -884,7 +884,7 @@ function setArmado(id){
     state.marginRight=7;
   }
   if(id==='anillado'){
-    state.bindingReserve=11;
+    state.bindingReserve=10;
     if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;}
     if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;}
   }
@@ -1563,7 +1563,7 @@ function bindDynamic(){
     mRight.onchange=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginRight=value; updateUI();};
   }
   const bindSide=document.getElementById('bindingSideExtra');
-  if(bindSide) bindSide.onchange=e=>{state.bindingSide=e.target.value; state.bindingReserve=11; if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;} if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;} updateUI();};
+  if(bindSide) bindSide.onchange=e=>{state.bindingSide=e.target.value; state.bindingReserve=10; if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;} if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;} updateUI();};
   const bindReserve=document.getElementById('bindingReserveExtra');
   if(bindReserve){
     bindReserve.oninput=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.bindingReserve=value; renderPreview();};
