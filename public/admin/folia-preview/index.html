@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Folia</title>
   <style>
-    :root{--bg:#F7F8FA;--panel:#FFFFFF;--preview:#E2E8F0;--line:#94a3b8;--text:#1F2937;--muted:#667085;--border:#D9E0E7;--soft:#F7F8FA;--accent:#E89AAE;--accent-soft:#F8E8EC;--accent-text:#B65E77;--green:#BFE3CC;--green-line:#A7D6BA;--pink:#F6D6DC;--pink-line:#E8B9C4}
+    :root{--bg:#f3f0ef;--panel:#fffdfc;--preview:#ddd5d2;--line:#8b7280;--text:#241c20;--muted:#73656d;--border:#d8ced0;--soft:#f7f2f1;--accent:#c18798;--accent-soft:#f4e6ea;--accent-text:#8b4f62;--green:#d8e7dd;--green-line:#b9cfbe;--pink:#f3dade;--pink-line:#ddb8c2}
     *{box-sizing:border-box}
     body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
     [hidden]{display:none !important}
@@ -259,7 +259,7 @@
 <script>
 const SIZE_PRESETS={A4:{width:210,height:297},A5:{width:148,height:210},A6:{width:105,height:148},Carta:{width:216,height:279},"Media carta":{width:140,height:216},B5:{width:176,height:250},Personalizado:{width:148,height:210}};
 const ARMADOS=[["suelta","Hoja suelta"],["anillado","Anillado lateral"],["cuadernillo","Cuadernillo al centro"],["block","Anillado superior"]];
-const SHEETS=[["rayada","Rayada"],["punteada","Punteada"],["cuadriculada","Cuadriculada"],["lista","Lista"]];
+const SHEETS=[["rayada","Rayada"],["punteada","Punteada"],["cuadriculada","Cuadriculada"],["lista","Lista"],["agenda","Modo agenda · Agenda perpetua horizontal"]];
 const PNG_BASE_DPI=300;
 const QUALITY_PRESETS={
   standard:{label:"Estándar",pngScale:2,description:"Archivo más liviano con definición correcta para pantalla."},
@@ -316,7 +316,12 @@ const CONTENT_CONFIG_DEFAULTS={
   listMarkerStyle:"cuadrado",
   listMarkerFontSize:4.5,
   listMarkerSize:8,
-  listMarkerColor:"#94a3b8"
+  listMarkerColor:"#94a3b8",
+  agendaCapsuleShape:"rounded",
+  agendaCapsuleSize:4.2,
+  agendaCapsuleGap:1,
+  agendaBlockGap:6,
+  agendaLineSpacing:7
 };
 function createContentConfig(){return {...CONTENT_CONFIG_DEFAULTS};}
 const state={
@@ -328,7 +333,7 @@ const state={
   previewZoom:1.15,
   armado:"suelta",
   bindingSide:"left",
-  bindingReserve:11,
+  bindingReserve:10,
   blockTopReserve:11,
   marginTop:10,
   marginBottom:10,
@@ -362,6 +367,11 @@ const state={
   listMarkerSize:8,
   listMarkerColor:"#94a3b8",
   listMarkerColorLinked:true,
+  agendaCapsuleShape:"rounded",
+  agendaCapsuleSize:4.2,
+  agendaCapsuleGap:1,
+  agendaBlockGap:6,
+  agendaLineSpacing:7,
   lineColor:"#94a3b8",
   strokeWidth:0.2,
   exportFormat:"pdf-vector",
@@ -678,6 +688,30 @@ function drawSheetByType(svg,rect,sheetType,config=state){
   if(sheetType==="cuadriculada") drawGridSheet(svg,rect,config);
   if(sheetType==="lista") drawList(svg,rect,config);
 }
+function drawAgenda(svg,rect,config=state){
+  const lineColor=state.lineColor,stroke=Math.max(0.12,+state.strokeWidth||0.2);
+  const blockGap=clamp(+config.agendaBlockGap||6,2,20),capsuleSize=clamp(+config.agendaCapsuleSize||4.2,2,14),capsuleGap=clamp(+config.agendaCapsuleGap||1,0.4,8),lineSpacing=clamp(+config.agendaLineSpacing||7,4,20);
+  const innerGap=4,colGap=4,blockWidth=Math.max(20,(rect.width-colGap)/2),blockHeight=Math.max(20,(rect.height-blockGap)/2);
+  const blocks=[{x:rect.x,y:rect.y,width:blockWidth,height:blockHeight},{x:rect.x,y:rect.y+blockHeight+blockGap,width:blockWidth,height:blockHeight},{x:rect.x+blockWidth+colGap,y:rect.y,width:blockWidth,height:blockHeight},{x:rect.x+blockWidth+colGap,y:rect.y+blockHeight+blockGap,width:blockWidth,height:blockHeight}];
+  blocks.forEach(b=>{
+    addRect(svg,b.x,b.y,b.width,b.height,{fill:"none",stroke:lineColor,"stroke-width":roundMm(stroke),rx:2.2,ry:2.2,"data-role":"frame-outline"});
+    const totalCaps=(capsuleSize*3)+(capsuleGap*2),startX=b.x+b.width-innerGap-totalCaps,y=b.y+innerGap;
+    for(let i=0;i<3;i++){
+      const x=startX+i*(capsuleSize+capsuleGap);
+      if(config.agendaCapsuleShape==="circle") addCircle(svg,x+(capsuleSize/2),y+(capsuleSize/2),capsuleSize/2,{fill:"none",stroke:lineColor,"stroke-width":roundMm(stroke),"data-role":"marker-outline"});
+      else addRect(svg,x,y,capsuleSize,capsuleSize*0.76,{fill:"none",stroke:lineColor,"stroke-width":roundMm(stroke),rx:1.8,ry:1.8,"data-role":"marker-outline"});
+    }
+    const yStart=b.y+innerGap+capsuleSize+2,maxLines=Math.max(1,Math.floor((b.height-(innerGap*2)-capsuleSize-2)/lineSpacing));
+    for(let i=0;i<maxLines;i++){ const ly=yStart+lineSpacing*(i+1); if(ly>=b.y+b.height-innerGap) break; addRule(svg,b.x+innerGap,ly,b.x+b.width-innerGap,ly,lineColor,stroke); }
+  });
+}
+function drawSheetByType(svg,rect,sheetType,config=state){
+  if(sheetType==="rayada") drawLined(svg,rect,config);
+  if(sheetType==="punteada") drawDots(svg,rect,config);
+  if(sheetType==="cuadriculada") drawGridSheet(svg,rect,config);
+  if(sheetType==="lista") drawList(svg,rect,config);
+  if(sheetType==="agenda") drawAgenda(svg,rect,config);
+}
 function getSplitRects(rect){
   const safeGap=Math.min(SPLIT_ZONE_GAP_MM,Math.max(0,rect.height-2));
   const totalHeight=Math.max(0,rect.height-safeGap);
@@ -884,7 +918,7 @@ function setArmado(id){
     state.marginRight=7;
   }
   if(id==='anillado'){
-    state.bindingReserve=11;
+    state.bindingReserve=10;
     if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;}
     if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;}
   }
@@ -1563,7 +1597,7 @@ function bindDynamic(){
     mRight.onchange=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.marginRight=value; updateUI();};
   }
   const bindSide=document.getElementById('bindingSideExtra');
-  if(bindSide) bindSide.onchange=e=>{state.bindingSide=e.target.value; state.bindingReserve=11; if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;} if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;} updateUI();};
+  if(bindSide) bindSide.onchange=e=>{state.bindingSide=e.target.value; state.bindingReserve=10; if(state.bindingSide==='left'){state.marginLeft=4; state.marginRight=7;} if(state.bindingSide==='right'){state.marginRight=4; state.marginLeft=7;} updateUI();};
   const bindReserve=document.getElementById('bindingReserveExtra');
   if(bindReserve){
     bindReserve.oninput=e=>{const value=parseInputNumber(e.target.value); if(value===null) return; state.bindingReserve=value; renderPreview();};
@@ -1609,6 +1643,16 @@ function bindDynamic(){
     if(headerHeight) headerHeight.oninput=e=>{target.gridHeaderHeight=+e.target.value; updateUI();};
     const rounded=document.getElementById(`${prefix}gridRoundedCornersExtra`);
     if(rounded) rounded.onchange=e=>{target.gridRoundedCorners=e.target.checked; updateUI();};
+    const agendaShape=document.getElementById(`${prefix}agendaCapsuleShapeExtra`);
+    if(agendaShape) agendaShape.onchange=e=>{target.agendaCapsuleShape=e.target.value; updateUI();};
+    const agendaSize=document.getElementById(`${prefix}agendaCapsuleSizeExtra`);
+    if(agendaSize) agendaSize.oninput=e=>{target.agendaCapsuleSize=+e.target.value; updateUI();};
+    const agendaGap=document.getElementById(`${prefix}agendaCapsuleGapExtra`);
+    if(agendaGap) agendaGap.oninput=e=>{target.agendaCapsuleGap=+e.target.value; updateUI();};
+    const agendaBlockGap=document.getElementById(`${prefix}agendaBlockGapExtra`);
+    if(agendaBlockGap) agendaBlockGap.oninput=e=>{target.agendaBlockGap=+e.target.value; updateUI();};
+    const agendaLineSpacing=document.getElementById(`${prefix}agendaLineSpacingExtra`);
+    if(agendaLineSpacing) agendaLineSpacing.oninput=e=>{target.agendaLineSpacing=+e.target.value; updateUI();};
     const listSpacing=document.getElementById(`${prefix}listSpacingExtra`);
     if(listSpacing) listSpacing.oninput=e=>{target.listSpacing=+e.target.value; updateUI();};
     const fitList=document.getElementById(`${prefix}fitListToSpaceExtra`);
