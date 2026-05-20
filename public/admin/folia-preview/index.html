@@ -4395,7 +4395,7 @@ async function exportPdfVector(){
   const frontSvg=buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"front"});
   const backSvg=state.printMode==="duplex"?buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"back"}):null;
   const forceCustomPdfRenderer=state.sheetType==='agenda';
-  // V107: en Modo agenda evitamos svg2pdf.js porque cambia Arial / Helvetica cursiva italic a una fuente serif en la descarga.
+  // V107: en Modo agenda evitamos svg2pdf.js porque cambia Arial / Helvetica cursiva a una fuente serif en la descarga.
   // El conversor propio usa Helvetica/Helvetica-BoldOblique y se ve más parecido al previo.
   if(typeof pdf.svg==='function' && !forceCustomPdfRenderer){
     await pdf.svg(frontSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
