@@ -2633,12 +2633,12 @@ function drawAgendaWeeklySpread(svg,rect,config=state){
     const isSundayNotes=label==="Domingo"&&(config.agendaWeeklySundayMode||"day")==="notes";
     if(isSundayNotes){
       const noteLabel=config.agendaSundayNotesTitle||config.agendaNotesTitle||"Notas";
-      addText(svg,labelX,headerCenterY,noteLabel,{fill:textColor,"font-size":roundMm(dayLabelSize),"font-family":fontFamily,"font-style":"italic","font-weight":"600","dominant-baseline":"middle","data-role":"agenda-weekday-text","opacity":"0.9"});
+      addText(svg,labelX,headerCenterY,noteLabel,{fill:textColor,"font-size":roundMm(dayLabelSize),"font-family":fontFamily,"font-style":"normal","font-weight":"600","dominant-baseline":"middle","data-role":"agenda-weekday-text","opacity":"0.9"});
       drawAgendaNotesBox(svg,lineRect,config,noteLabel,{showTitle:false});
       return;
     }
     drawAgendaBody(svg,lineRect,{...config,lineSpacing,showTopGuide:false,fitLinesToSpace:config.fitLinesToSpace},{compact,label});
-    addText(svg,labelX,headerCenterY,label,{fill:textColor,"font-size":roundMm(dayLabelSize),"font-family":fontFamily,"font-style":"italic","font-weight":"600","dominant-baseline":"middle","data-role":"agenda-weekday-text","opacity":"0.9"});
+    addText(svg,labelX,headerCenterY,label,{fill:textColor,"font-size":roundMm(dayLabelSize),"font-family":fontFamily,"font-style":"normal","font-weight":"600","dominant-baseline":"middle","data-role":"agenda-weekday-text","opacity":"0.9"});
     if(config.agendaShowDateMarker!==false) drawAgendaWeeklyMarkerIcon(svg,circleCX,circleCY,circleR,config,borderColor,lightStroke);
   }
 
@@ -2710,12 +2710,12 @@ function drawAgendaWeeklyPage(svg,rect,pageSide="left",config=state){
     const isSundayNotes=label==="Domingo"&&(config.agendaWeeklySundayMode||"day")==="notes";
     if(isSundayNotes){
       const noteLabel=config.agendaSundayNotesTitle||config.agendaNotesTitle||"Notas";
-      addText(svg,labelX,headerCenterY,noteLabel,{fill:textColor,"font-size":roundMm(dayLabelSize),"font-family":fontFamily,"font-style":"italic","font-weight":"600","dominant-baseline":"middle","data-role":"agenda-weekday-text","opacity":"0.9"});
+      addText(svg,labelX,headerCenterY,noteLabel,{fill:textColor,"font-size":roundMm(dayLabelSize),"font-family":fontFamily,"font-style":"normal","font-weight":"600","dominant-baseline":"middle","data-role":"agenda-weekday-text","opacity":"0.9"});
       drawAgendaNotesBox(svg,lineRect,config,noteLabel,{showTitle:false});
       return;
     }
     drawAgendaBody(svg,lineRect,{...config,lineSpacing,showTopGuide:false,fitLinesToSpace:config.fitLinesToSpace},{compact,label});
-    addText(svg,labelX,headerCenterY,label,{fill:textColor,"font-size":roundMm(dayLabelSize),"font-family":fontFamily,"font-style":"italic","font-weight":"600","dominant-baseline":"middle","data-role":"agenda-weekday-text","opacity":"0.9"});
+    addText(svg,labelX,headerCenterY,label,{fill:textColor,"font-size":roundMm(dayLabelSize),"font-family":fontFamily,"font-style":"normal","font-weight":"600","dominant-baseline":"middle","data-role":"agenda-weekday-text","opacity":"0.9"});
     if(config.agendaShowDateMarker!==false) drawAgendaWeeklyMarkerIcon(svg,circleCX,circleCY,circleR,config,borderColor,lightStroke);
   }
 
@@ -2833,7 +2833,7 @@ function drawAgendaHeaderPreset(svg,block,config=state,options={}){
     const trackerW=(3.8*trackerScale)*6;
     const rightTrackerX=right-23.5;
     addRect(svg,left,topY+0.1,tagW,tagH,{rx:3.4,ry:3.4,fill:accent,stroke:"none","data-role":"agenda-header-tag","opacity":"0.98"});
-    addText(svg,left+tagW*0.48,topY+tagH*0.54,label,{fill:textColor,"font-size":roundMm(3.45),"font-family":fontFamily,"font-style":"italic","text-anchor":"middle","dominant-baseline":"middle","data-role":"agenda-header-text"});
+    addText(svg,left+tagW*0.48,topY+tagH*0.54,label,{fill:textColor,"font-size":roundMm(3.45),"font-family":fontFamily,"font-style":"normal","text-anchor":"middle","dominant-baseline":"middle","data-role":"agenda-header-text"});
     const firstCx=left+tagW-0.6;
     const cy=topY+tagH/2+0.05;
     if(showCircles){
@@ -2865,7 +2865,7 @@ function drawAgendaHeaderPreset(svg,block,config=state,options={}){
     bottom=topY+capH+7.2;
   } else if(preset==="phraseTracker"){
     const title=config.agendaHeaderText||"Notas de hoy:";
-    addText(svg,left,topY+1.5,title,{fill:textColor,"font-size":roundMm(3),"font-family":fontFamily,"font-style":"italic","font-weight":"600","data-role":"agenda-header-title","opacity":"0.96"});
+    addText(svg,left,topY+1.5,title,{fill:textColor,"font-size":roundMm(3),"font-family":fontFamily,"font-style":"normal","font-weight":"600","data-role":"agenda-header-title","opacity":"0.96"});
     const phraseLineGap=Math.max(6.1,Math.min(7.6,Number(config.lineSpacing)||6.2));
     const firstLineY=topY+6.4;
     for(let i=0;i<2;i++){
