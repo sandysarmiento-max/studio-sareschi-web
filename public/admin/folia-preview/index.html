@@ -2614,8 +2614,9 @@ function drawAgendaWeeklySpread(svg,rect,config=state){
   };
 
   const centerX=bookletSpread?(rect.x+rect.width/2):(leftSheet.x+leftSheet.width+spreadGap/2);
-  addLine(svg,centerX,rect.y+1,centerX,rect.y+rect.height-1,borderColor,lightStroke,{"opacity":bookletSpread?"0.34":"0.10","stroke-dasharray":"2 2","data-role":"agenda-weekly-center"});
+  // V119: en cuadernillo la línea central es solo una guía de preview; no debe entrar en SVG/PDF de descarga.
   if(!bookletSpread){
+    addLine(svg,centerX,rect.y+1,centerX,rect.y+rect.height-1,borderColor,lightStroke,{"opacity":"0.10","stroke-dasharray":"2 2","data-role":"agenda-weekly-center"});
     for(let i=0;i<9;i++){
       const cy=rect.y+rect.height*(i+0.65)/(9+0.3);
       addCircle(svg,centerX,cy,0.62,{fill:"none",stroke:borderColor,"stroke-width":lightStroke,"stroke-opacity":"0.18","data-role":"agenda-weekly-ring"});
