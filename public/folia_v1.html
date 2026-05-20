@@ -4847,11 +4847,17 @@ function bindDynamic(){
       if(!canUseWeeklyAgendaVariant(state)){
         state.agendaVariant='daily';
       } else {
-        if(!isBookletWeeklyAgenda(state)){
-          state.orientation='Vertical';
-          state.armado='anillado';
-          state.bindingSide='left';
-          state.bindingReserve=BINDING_RESERVE_SUGGESTED;
+               if(!isBookletWeeklyAgenda(state)){
+          if(canSwitchWeeklyAgendaToBooklet(state)){
+            state.armado=state.armado==='cuadernillo'?'cuadernillo':'anillado';
+            state.bindingSide='left';
+            state.bindingReserve=BINDING_RESERVE_SUGGESTED;
+          } else {
+            state.orientation='Vertical';
+            state.armado='anillado';
+            state.bindingSide='left';
+            state.bindingReserve=BINDING_RESERVE_SUGGESTED;
+          }
         }
         state.weeklyBindingExtra=8;
         state.printMode='single';
