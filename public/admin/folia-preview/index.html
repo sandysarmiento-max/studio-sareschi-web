@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Folia · V116 anillado separado de cuadernillo</title>
+  <title>Folia · V118 fuentes PDF-safe corregidas</title>
   <style>
     :root{--bg:#F7F8FA;--panel:#FFFFFF;--preview:#E2E8F0;--line:#94a3b8;--text:#1F2937;--muted:#667085;--border:#D9E0E7;--soft:#F7F8FA;--accent:#E89AAE;--accent-soft:#F8E8EC;--accent-text:#B65E77;--green:#BFE3CC;--green-line:#A7D6BA;--pink:#F6D6DC;--pink-line:#E8B9C4}
     *{box-sizing:border-box}
@@ -3209,7 +3209,7 @@ function contentFieldsByType(sheetType,config,prefix,zoneLabel=""){
       const sundayBlock=variant==="weeklySpread"?`<div class="cfg-group-title">Domingo</div>${sundayControls}`:'';
       const bodyLayoutControl=isPatternBody?`<div class="field"><label>Distribución del cuerpo</label><select id="${prefix}agendaBodyLayoutExtra"><option value="full" ${(config.agendaBodyLayout||'full')==='full'?'selected':''}>Completo</option><option value="notes70" ${(config.agendaBodyLayout||'full')==='notes70'?'selected':''}>70% escritura + 30% notas</option></select></div>`:'';
       const bodyWidthControl=`<div class="field"><label>Reducir cuerpo a un lado</label><input id="${prefix}agendaBodyWidthPctExtra" type="range" min="55" max="100" step="5" value="${config.agendaBodyWidthPct||100}"><div class="meta" id="${prefix}agendaBodyWidthPctLabel">${config.agendaBodyWidthPct||100}% del ancho</div></div>`;
-      return `<div class="cfg-group-title">Cuerpo de la agenda</div>${common}${agendaBodySelect}<div class="cfg-subdivider"></div>${patternControls}<div class="agenda-control-divider"></div>${bodyLayoutControl}<div class="agenda-control-divider"></div>${bodyWidthControl}${sundayBlock}<div class="cfg-group-title">Separación y texto</div><div class="field"><label>Separación bloques</label><input id="${prefix}agendaWeeklyGapExtra" type="number" min="0" max="10" step="0.5" value="${config.agendaWeeklyGap}"></div><div class="row2"><div class="field"><label>Tamaño nombre día</label><input id="${prefix}agendaDayLabelSizeExtra" type="number" min="2.4" max="6.5" step="0.1" value="${config.agendaDayLabelSize}"></div><div class="field"><label>Tamaño marcador</label><input id="${prefix}agendaDayNumberSizeExtra" type="number" min="3.5" max="14" step="0.5" value="${config.agendaDayNumberSize}"></div></div><div class="row2"><div class="field"><label>Color texto</label><input id="${prefix}agendaTextColorExtra" type="color" value="${config.agendaTextColor||state.agendaTextColor||state.lineColor}"></div><div class="field"><label>Fuente texto</label><select id="${prefix}agendaDateFontFamilyExtra"><option value="Arial, Helvetica, sans-serif" ${config.agendaDateFontFamily==='Arial, Helvetica, sans-serif'?'selected':''}>Arial / Helvetica</option><option value="Georgia, 'Times New Roman', serif" ${config.agendaDateFontFamily==="Georgia, 'Times New Roman', serif"?'selected':''}>Georgia</option><option value="'Trebuchet MS', Arial, sans-serif" ${config.agendaDateFontFamily==="'Trebuchet MS', Arial, sans-serif"?'selected':''}>Trebuchet</option><option value="'Courier New', Courier, monospace" ${config.agendaDateFontFamily==="'Courier New', Courier, monospace"?'selected':''}>Courier</option><option value="Verdana, Geneva, sans-serif" ${config.agendaDateFontFamily==="Verdana, Geneva, sans-serif"?'selected':''}>Verdana</option></select></div></div><label class="toggle"><span>Mostrar espacio para fecha</span><input id="${prefix}agendaShowDateMarkerExtra" type="checkbox" ${config.agendaShowDateMarker!==false?'checked':''}></label><div class="field"><label>Grosor borde marcador</label><input id="${prefix}agendaWeeklyCircleStrokeWidthExtra" type="number" min="0.08" max="0.8" step="0.02" value="${config.agendaWeeklyCircleStrokeWidth||config.agendaCircleStrokeWidth||state.agendaWeeklyCircleStrokeWidth||0.24}"></div>`;
+      return `<div class="cfg-group-title">Cuerpo de la agenda</div>${common}${agendaBodySelect}<div class="cfg-subdivider"></div>${patternControls}<div class="agenda-control-divider"></div>${bodyLayoutControl}<div class="agenda-control-divider"></div>${bodyWidthControl}${sundayBlock}<div class="cfg-group-title">Separación y texto</div><div class="field"><label>Separación bloques</label><input id="${prefix}agendaWeeklyGapExtra" type="number" min="0" max="10" step="0.5" value="${config.agendaWeeklyGap}"></div><div class="row2"><div class="field"><label>Tamaño nombre día</label><input id="${prefix}agendaDayLabelSizeExtra" type="number" min="2.4" max="6.5" step="0.1" value="${config.agendaDayLabelSize}"></div><div class="field"><label>Tamaño marcador</label><input id="${prefix}agendaDayNumberSizeExtra" type="number" min="3.5" max="14" step="0.5" value="${config.agendaDayNumberSize}"></div></div><div class="row2"><div class="field"><label>Color texto</label><input id="${prefix}agendaTextColorExtra" type="color" value="${config.agendaTextColor||state.agendaTextColor||state.lineColor}"></div><div class="field"><label>Fuente texto</label><select id="${prefix}agendaDateFontFamilyExtra"><option value="Arial, Helvetica, sans-serif" ${config.agendaDateFontFamily==='Arial, Helvetica, sans-serif'?'selected':''}>Sans · Arial / Helvetica</option><option value="Georgia, 'Times New Roman', serif" ${config.agendaDateFontFamily==="Georgia, 'Times New Roman', serif"?'selected':''}>Serif · Georgia / Times</option><option value="'Courier New', Courier, monospace" ${config.agendaDateFontFamily==="'Courier New', Courier, monospace"?'selected':''}>Mono · Courier</option></select></div></div><label class="toggle"><span>Mostrar espacio para fecha</span><input id="${prefix}agendaShowDateMarkerExtra" type="checkbox" ${config.agendaShowDateMarker!==false?'checked':''}></label><div class="field"><label>Grosor borde marcador</label><input id="${prefix}agendaWeeklyCircleStrokeWidthExtra" type="number" min="0.08" max="0.8" step="0.02" value="${config.agendaWeeklyCircleStrokeWidth||config.agendaCircleStrokeWidth||state.agendaWeeklyCircleStrokeWidth||0.24}"></div>`;
     }
     const headerPresets=[
       ["pillDouble","Pastilla + doble línea"],
@@ -3894,9 +3894,7 @@ function drawSvgNodeToPdf(node){
     if(fontFamilyRaw.includes('georgia')||fontFamilyRaw.includes('times')) pdfFont='times';
     else if(fontFamilyRaw.includes('courier')) pdfFont='courier';
     let pdfFontStyle='normal';
-    if(isBold&&isItalic) pdfFontStyle='bolditalic';
-    else if(isBold) pdfFontStyle='bold';
-    else if(isItalic) pdfFontStyle='italic';
+    if(isBold) pdfFontStyle='bold';
     pdfCurrent.setTextColor(fill.r,fill.g,fill.b);
     pdfCurrent.setFont(pdfFont,pdfFontStyle);
     pdfCurrent.setFontSize(fontSizeMm*72/25.4);
@@ -3975,8 +3973,8 @@ function pdfNativeMeasureText(value,sizeMm,font='sans',weight='normal'){
 }
 function pdfNativeFontKind(fontFamily=''){
   const f=String(fontFamily||'').toLowerCase();
-  if(f.includes('courier')||f.includes('mono')) return 'mono';
-  if(f.includes('georgia')||f.includes('times')||f.includes('palatino')||f.includes('serif')) return 'serif';
+  if(f.includes('courier')||f.includes('mono')||f.includes('monospace')) return 'mono';
+  if(f.includes('georgia')||f.includes('times')||f.includes('palatino')) return 'serif';
   return 'sans';
 }
 function pdfNativeFontRef(font='sans',weight='normal'){
@@ -4006,7 +4004,8 @@ function pdfNativeAgendaMarkerIcon(ops,cx,cy,r,stroke='#111111',lineWidthMm=0.2,
   ops.push({type:'line',x1:s2x,y1:slashBottom,x2:s2x+slashSpan,y2:slashTop,stroke,lineWidthMm});
 }
 function pdfNativeText(ops,x,y,value,sizeMm,font='sans',weight='normal',fill='#111111',align='left',style='normal'){
-  ops.push({type:'text',x,y,value:String(value??''),sizeMm,font,weight,fill,align,style});
+  const safeStyle=style==='italic'?'normal':style;
+  ops.push({type:'text',x,y,value:String(value??''),sizeMm,font,weight,fill,align,style:safeStyle});
 }
 function pdfNativeRoundedRect(ops,x,y,width,height,radius=0,stroke='#111111',lineWidthMm=0.2,fill=null){
   if(width<=0||height<=0) return;
@@ -4237,12 +4236,12 @@ function buildWeeklyNativePageOps(pageSide='left',config=state){
     const isSundayNotes=label==='Domingo'&&(config.agendaWeeklySundayMode||'day')==='notes';
     if(isSundayNotes){
       const noteLabel=config.agendaSundayNotesTitle||config.agendaNotesTitle||'Notas';
-      pdfNativeText(ops,labelX,headerCenterY,noteLabel,dayLabelSize,fontKind,'bold',textColor,'left','italic');
+      pdfNativeText(ops,labelX,headerCenterY,noteLabel,dayLabelSize,fontKind,'bold',textColor,'left','normal');
       pdfNativeAgendaNotesBox(ops,lineRect,config,noteLabel,fontKind,false);
       return;
     }
     pdfNativeAgendaBody(ops,lineRect,{...config,lineSpacing,showTopGuide:false,fitLinesToSpace:config.fitLinesToSpace},compact,fontKind,label);
-    pdfNativeText(ops,labelX,headerCenterY,label,dayLabelSize,fontKind,'bold',textColor,'left','italic');
+    pdfNativeText(ops,labelX,headerCenterY,label,dayLabelSize,fontKind,'bold',textColor,'left','normal');
     if(config.agendaShowDateMarker!==false) pdfNativeAgendaMarkerIcon(ops,circleCX,circleCY,circleR,textColor,lightStroke,null);
   }
   if(pageSide==='left'){
@@ -4395,8 +4394,8 @@ async function exportPdfVector(){
   const frontSvg=buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"front"});
   const backSvg=state.printMode==="duplex"?buildExportSvgElement({includeBackground:true,optimizeForRaster:false,face:"back"}):null;
   const forceCustomPdfRenderer=state.sheetType==='agenda';
-  // V107: en Modo agenda evitamos svg2pdf.js porque cambia Arial / Helvetica cursiva a una fuente serif en la descarga.
-  // El conversor propio usa Helvetica/Helvetica-BoldOblique y se ve más parecido al previo.
+  // V107: en Modo agenda evitamos svg2pdf.js porque cambia la cursiva a una fuente serif en la descarga.
+  // El conversor propio usa Helvetica/Helvetica-Bold y se ve más parecido al previo.
   if(typeof pdf.svg==='function' && !forceCustomPdfRenderer){
     await pdf.svg(frontSvg,{x:0,y:0,width:pageSize.width,height:pageSize.height});
     if(backSvg){
@@ -4847,7 +4846,7 @@ function bindDynamic(){
       if(!canUseWeeklyAgendaVariant(state)){
         state.agendaVariant='daily';
       } else {
-                if(!isBookletWeeklyAgenda(state)){
+        if(!isBookletWeeklyAgenda(state)){
           if(canSwitchWeeklyAgendaToBooklet(state)){
             state.armado=state.armado==='cuadernillo'?'cuadernillo':'anillado';
             state.bindingSide='left';
