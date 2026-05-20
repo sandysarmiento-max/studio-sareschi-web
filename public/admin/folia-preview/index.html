@@ -3050,13 +3050,15 @@ function renderPreview(){
     const group=el('g',offsetX?{transform:`translate(${roundMm(offsetX)} 0)`}:{});
     addRect(group,0,0,pageSize.width,pageSize.height,{fill:"#ffffff",rx:0,ry:0,stroke:"#D8DEE6","stroke-width":0.45});
     rectInfo.reserved.forEach(r=>addPreviewReserveTint(group,r,getExportLayoutState(face)));
-    if(state.armado==="cuadernillo" && rectInfo.foldX){
-      addLine(group,rectInfo.foldX,0,rectInfo.foldX,pageSize.height,"#fb7185",0.6,{"stroke-dasharray":"7 6"});
-    }
     const temp=el('svg');
     configureSvgCanvas(temp,pageSize);
     buildSheetContent(temp,rectInfo);
     Array.from(temp.childNodes).forEach(node=>group.appendChild(cloneNodeForPreview(node,previewScale)));
+    // La guía central de cuadernillo debe verse solo en el preview y encima del contenido.
+    // En la exportación PDF/SVG no se dibuja.
+    if(state.armado==="cuadernillo" && rectInfo.foldX){
+      addLine(group,rectInfo.foldX,0,rectInfo.foldX,pageSize.height,"#fb7185",0.6,{"stroke-dasharray":"7 6","data-role":"preview-fold-guide"});
+    }
     previewSvg.appendChild(group);
   }
 
@@ -3080,6 +3082,12 @@ function renderPreview(){
     appendStandardPreviewFace('back',pageSize.width+previewGapMm);
   } else {
     appendStandardPreviewFace(state.previewFace,0);
+  }
+  // V121: en agenda doble hoja/cuadernillo, la guía central debe verse en preview encima de todo,
+  // pero no debe formar parte del SVG/PDF de descarga.
+  if(state.sheetType==="agenda" && state.layoutMode==="single" && isWeeklyAgendaVariant(state.agendaVariant) && state.armado==="cuadernillo"){
+    const previewFoldX=previewCanvasWidthMm/2;
+    addLine(previewSvg,previewFoldX,0,previewFoldX,previewBaseHeightMm,"#fb7185",0.6,{"stroke-dasharray":"7 6","data-role":"preview-fold-guide","pointer-events":"none"});
   }
   updateExportSummary();
 }
