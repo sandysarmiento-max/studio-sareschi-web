@@ -1,78 +1,1420 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Acceso a Aral Calc | Studio Sareschi</title>
-    <meta
-      name="description"
-      content="Ruta de transición protegida hacia Aral Calc."
-    />
-    <link rel="stylesheet" href="/styles.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  </head>
-  <body>
-    <main>
-      <section class="section section-soft">
-        <div class="container">
-          <article class="card" style="max-width:700px">
-            <p class="eyebrow">Acceso protegido</p>
-            <h1 style="margin-top:0">Validando tu sesión…</h1>
-            <p id="status">Te estamos redirigiendo.</p>
-            <a class="btn btn-secondary" href="/acceso/?app=aral_calc&next=/aral-calc/">Ir a login</a>
-          </article>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />  <title>Aral Calc | Studio Sareschi</title>
+  <style>
+
+    :root{
+      --bg:#fbf9f7; --panel:#ffffff; --panel2:#fcf9f7; --border:#e4d9d2;
+      --text:#2f2830; --muted:#6f666d; --accent:#7f5970; --accent-soft:#f1e5ec; --soft2:#f7f0f4;
+      --accent-2:#7e8a74;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Inter',ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#f9f5f2 0%,#fcfaf8 180px,#fbf9f7 100%);color:var(--text);font-size:13px}
+    .site-header{position:sticky;top:0;z-index:30;backdrop-filter:blur(10px);background:rgba(255,252,250,.92);border-bottom:1px solid rgba(228,217,210,.9);box-shadow:0 8px 24px rgba(63,41,54,.04)}
+    .nav-wrap{max-width:1320px;margin:0 auto;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand{font-weight:750;color:var(--text);text-decoration:none;letter-spacing:.2px;font-size:15px}
+    .nav-links{display:flex;list-style:none;margin:0;padding:0;gap:14px}
+    .nav-links a{color:var(--muted);text-decoration:none;font-weight:550;font-size:13px}
+    .nav-links a:hover,.nav-links a:focus-visible{color:var(--accent)}
+    .header-actions{display:flex;align-items:center;gap:10px}
+    .logout-btn{border:1px solid var(--border);background:var(--panel);color:#625861;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:650;cursor:pointer;transition:all .2s ease}
+    .logout-btn:hover,.logout-btn:focus-visible{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+    .wrap{max-width:1360px;margin:0 auto;padding:8px 14px 12px;display:block}
+    .panel{background:rgba(255,255,255,.94);border:1px solid rgba(228,217,210,.95);border-radius:16px;padding:10px 12px;box-shadow:0 8px 24px rgba(56,37,48,.05)}
+    .main{display:flex;flex-direction:column;gap:10px}
+    .top-strip{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px;padding:16px 18px;background:linear-gradient(135deg,#fffdfa 0%,#f8eef4 70%,#f5f0ec 100%);border:1px solid rgba(127,89,112,.14)}
+    .top-strip-left{display:flex;flex-direction:column;gap:6px}
+    .project-tabs{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+    .title{font-size:22px;font-weight:800;color:#4f4048;letter-spacing:-.02em}
+    .subtitle{margin-top:2px;font-size:12.5px;color:#6e6067;line-height:1.35}
+    .section-title{font-size:15px;font-weight:800;color:#574e48;margin-bottom:6px;display:flex;align-items:center;gap:8px}.section-title::before{content:'';width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#b58fa4);box-shadow:0 0 0 4px rgba(127,89,112,.09)}
+
+    .project-btn{width:auto;border-radius:12px;border:1px solid rgba(228,217,210,.95);background:rgba(255,255,255,.9);color:#5f554e;padding:10px 14px;text-align:center;font-size:13px;cursor:pointer;margin-bottom:0;line-height:1.15;white-space:nowrap;box-shadow:0 4px 14px rgba(58,35,45,.04)}
+    .project-btn.active{border-color:var(--accent);background:var(--accent);color:#fff;box-shadow:inset 0 -1px 0 rgba(0,0,0,.08)}
+    .chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
+    .chip{border:1px solid rgba(228,217,210,.95);background:rgba(255,255,255,.92);color:#625850;border-radius:999px;padding:5px 10px;font-size:11px;line-height:1.1;cursor:pointer;box-shadow:0 2px 8px rgba(58,35,45,.03)}
+    .chip:hover{border-color:var(--accent);color:var(--accent)}
+    .chip.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+
+    .grid{display:grid;gap:7px 9px;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+    .form-stack{display:flex;flex-direction:column;gap:10px}
+    .form-group{padding-bottom:10px;border-bottom:1px solid var(--border)}
+    .form-group:last-child{padding-bottom:0;border-bottom:none}
+    .group-title{font-size:11px;font-weight:750;color:#7a7068;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+    .compact-grid{display:grid;gap:9px 14px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+    .grid-span-2{grid-column:1 / -1}
+    .group-note{font-size:11px;color:var(--muted);line-height:1.35;background:#fffdfb;border:1px solid rgba(228,217,210,.72);border-radius:9px;padding:7px 9px}
+    .inline-tip{font-size:11px;color:var(--muted);line-height:1.2;background:#fffdfb;border:1px dashed rgba(127,89,112,.35);border-radius:999px;padding:5px 9px;display:inline-flex;align-items:center;gap:5px;max-width:max-content}
+    .mini-help-row{font-size:10.5px;color:var(--muted);line-height:1.15;background:#fffdfb;border:1px dashed rgba(127,89,112,.3);border-radius:999px;padding:5px 8px;display:inline-flex;align-items:center;gap:5px;max-width:max-content}
+    .field-hint{font-size:10.5px;color:var(--muted);line-height:1.25;margin-top:4px}
+    .label{font-size:12px;color:#625850;margin-bottom:3px;line-height:1.2;display:flex;align-items:center;gap:5px}
+    .help-tip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid rgba(127,89,112,.35);background:#fffdfb;color:var(--accent);font-size:10px;font-weight:800;cursor:help;line-height:1}
+    .field-row{display:flex;align-items:center;gap:5px}
+    input,select{width:100%;min-width:0;border:1px solid rgba(223,211,204,.95);background:#fffdfc;border-radius:11px;padding:8px 10px;min-height:36px;font-size:13px;color:var(--text);outline:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+    select{padding-right:34px}
+    input:focus,select:focus{border-color:var(--accent-2);box-shadow:0 0 0 2px rgba(126,138,116,.16)}
+        .suffix{flex:0 0 34px;text-align:center;border:1px solid var(--border);background:var(--soft2);color:var(--muted);border-radius:8px;padding:6px 5px;font-size:11px;line-height:1}
+    .note{margin-top:3px;font-size:11px;color:var(--muted);line-height:1.25}
+    .button{border:1px solid var(--accent);background:linear-gradient(135deg,var(--accent),#986f85);color:#fff;border-radius:11px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 10px 20px rgba(127,89,112,.16)}
+    .button:hover{filter:brightness(.98)}
+
+    .cards{display:grid;gap:7px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+    .card{border:1px solid rgba(228,217,210,.95);background:linear-gradient(180deg,#fffefe 0%,#fcf8f6 100%);border-radius:14px;padding:9px 11px;min-height:62px;box-shadow:0 6px 18px rgba(58,35,45,.04)}
+    .card.accent{border-color:var(--accent);background:linear-gradient(135deg,var(--accent),#8c6579);color:#fff}
+    .card .k{font-size:11px;color:var(--muted);line-height:1.1}
+    .card.accent .k{color:#f4edf2}
+    .card .v{margin-top:2px;font-size:14px;font-weight:780;line-height:1.12;letter-spacing:-.01em}
+    .card .h{margin-top:3px;font-size:10px;color:var(--muted);line-height:1.2}
+    .card.accent .h{color:#f5edf2}
+
+    .table-head,.table-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;border-radius:9px;padding:6px 8px;align-items:center}
+    .table-head{border:1px solid var(--border);background:var(--soft2);font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.04em;color:#746a63}
+    .table-row{border:1px solid var(--border);background:var(--panel2);color:#5d544d;font-size:12px;margin-top:4px}
+    .table-row.active{border-color:var(--accent);background:var(--accent);color:#fff}
+    #schematic-svg{display:block;max-height:250px}
+    .workbench{display:grid;grid-template-columns:500px minmax(0,1fr);gap:10px;align-items:start}
+    .input-block,.output-block{min-width:0}
+    .input-block{border:1px solid rgba(228,217,210,.95);background:linear-gradient(180deg,#fffefd 0%,#fcf8f5 100%);border-radius:16px;padding:14px 16px;box-shadow:0 8px 22px rgba(58,35,45,.03)}
+    .output-block{display:flex;flex-direction:column;gap:8px;min-width:0}
+    .workbench .section-title{margin-bottom:5px}
+    .workbench .grid{grid-template-columns:1fr;gap:0}
+    .workbench .cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+    .guide-box{border:1px solid rgba(228,217,210,.95);background:linear-gradient(180deg,#fffefe 0%,#fdf8f6 100%);border-radius:16px;padding:12px;min-width:0;box-shadow:0 8px 22px rgba(58,35,45,.035)}
+    .rings-box{margin-top:0}
+    .rings-box .table-head,.rings-box .table-row{grid-template-columns:.8fr .8fr 1fr;padding:6px 8px}
+    .project-sheet-bar{padding:8px 12px}
+    .project-sheet-row{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+    .project-sheet-copy{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .project-sheet-copy .section-title{margin:0;font-size:14px}
+    .project-sheet-copy .subtitle{margin:0;font-size:11.5px;line-height:1.2}
+    .project-sheet-btn{padding:8px 12px;min-height:auto}
+    .rings-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .rings-subtable{border:1px solid rgba(228,217,210,.95);border-radius:14px;padding:8px;background:linear-gradient(180deg,#fffefe 0%,#fcf8f6 100%);box-shadow:0 4px 14px rgba(58,35,45,.03)}
+    .rings-subtable .table-head{margin-bottom:4px}
+    .rings-subtable .table-row{margin-top:4px}
+    .rings-subtable .table-row.active{box-shadow:0 6px 14px rgba(127,89,112,.14)}
+    .rings-subtable .table-head,.rings-subtable .table-row{grid-template-columns:.78fr .95fr .95fr;padding:6px 8px}
+    .guide-box #schematic-svg{background:#fffdfb}
+
+    .submode-tabs{display:none;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+    .submode-btn{border:1px solid rgba(228,217,210,.95);background:#fffdfb;color:#625850;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:650;cursor:pointer;box-shadow:0 2px 8px rgba(58,35,45,.03)}
+    .submode-btn.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+    .preset-block{margin-bottom:8px}
+    .profile-note{font-size:11px;color:var(--muted);line-height:1.3;margin-top:6px}
+    .guide-box.ring-profile-box #schematic-svg{max-height:250px}
+    .wrap-warning{color:#7f5970;font-weight:700}
+    .hidden{display:none}
+    .auth-pending{opacity:0;pointer-events:none}
+    .title-row{display:flex;align-items:center;gap:12px}.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a7a84}.eyebrow::before{content:'';width:22px;height:1px;background:#c8b4c0}.app-mark{width:44px;height:44px;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(135deg,#7f5970,#b5879f);color:#fff;box-shadow:0 12px 22px rgba(127,89,112,.18)}.brand{font-weight:800;color:#40373f;text-decoration:none;letter-spacing:.1px;font-size:15px}.output-block>.section-title,.input-block>.section-title{margin-bottom:10px}.note{color:#7a6c74}.workbench{align-items:stretch}.project-tabs{gap:10px}
+
+    @media (max-width:1120px){
+      .workbench{grid-template-columns:460px minmax(0,1fr)}
+      .workbench .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media (max-width:940px){
+      .workbench{grid-template-columns:1fr}
+    }
+    @media (max-width:720px){
+      .nav-wrap{flex-direction:column;align-items:flex-start}
+      .header-actions{flex-direction:column;align-items:flex-start}
+      .nav-links{flex-wrap:wrap}
+      .project-tabs{justify-content:flex-start}
+      .compact-grid,.cards,.workbench .cards{grid-template-columns:1fr}
+      .input-block{padding:12px}
+      .rings-split{grid-template-columns:1fr}
+      .project-sheet-copy{align-items:flex-start;flex-direction:column;gap:3px}
+    }
+
+  </style>
+  <script>document.addEventListener("DOMContentLoaded",()=>document.body.classList.remove("auth-pending"));</script>
+</head>
+<body class="auth-pending">
+<header class="site-header">
+  <div class="nav-wrap">
+    <a class="brand" href="/">Studio Sareschi</a>
+    <div class="header-actions">
+      <nav aria-label="Principal">
+        <ul class="nav-links">
+          <li><a href="/#home">Home</a></li>
+          <li><a href="/#apps">Productos</a></li>
+          <li><a href="/acceso/?app=aral_calc&next=/aral-calc/">Acceso</a></li>
+        </ul>
+      </nav>
+      <button id="logout-btn" class="logout-btn" type="button">Cerrar sesión</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="panel top-strip">
+    <div class="top-strip-left">
+      <div class="eyebrow">Herramienta de Studio Sareschi</div>
+      <div class="title-row"><span class="app-mark">🧮</span><div><div class="title">Aral Calc</div><div class="subtitle">Calculadora de encuadernación con acabado visual más profesional.</div></div></div>
+    </div>
+    <div class="project-tabs">
+      <button class="project-btn active" data-project="anillado">Cuaderno anillado</button>
+      <button class="project-btn" data-project="conLomo">Cuaderno con lomo</button>
+      <button class="project-btn" data-project="conSolapa">Cuaderno con lomo y solapa</button>
+      <button class="project-btn" data-project="compuesto">Porta notas doble lomo</button>
+    </div>
+  </section>
+
+  <main class="main">
+    <section class="panel project-sheet-bar">
+      <div class="project-sheet-row">
+        <div class="project-sheet-copy">
+          <div class="section-title">Ficha del proyecto</div>
+          <div class="subtitle">Abrir para imprimir o guardar como PDF.</div>
         </div>
-      </section>
-    </main>
+        <button class="button project-sheet-btn" id="pdf-btn">Abrir ficha PDF</button>
+      </div>
+    </section>
 
-    <script>
-      const status = document.getElementById('status');
+    <section class="panel workbench">
+      <div class="input-block">
+        <div class="section-title" id="input-title">Medidas y materiales</div>
+        <div class="submode-tabs" id="ring-submode-tabs">
+          <button class="submode-btn active" type="button" data-ring-mode="covers">Tamaño de tapas</button>
+          <button class="submode-btn" type="button" data-ring-mode="ring">¿Qué anillo usar?</button>
+          <button class="submode-btn" type="button" data-ring-mode="wrap">Medida de forro</button>
+        </div>
+        <div class="preset-block" id="preset-block">
+          <div class="chips">
+            <button class="chip" data-preset="A8">A8</button>
+            <button class="chip" data-preset="A7">A7</button>
+            <button class="chip" data-preset="A6">A6</button>
+            <button class="chip" data-preset="B6">B6</button>
+            <button class="chip" data-preset="A5">A5</button>
+            <button class="chip" data-preset="MEDIA_CARTA">Media carta</button>
+            <button class="chip" data-preset="B5">B5</button>
+            <button class="chip" data-preset="CARTA">Carta</button>
+            <button class="chip" data-preset="A4">A4</button>
+          </div>
+          <div class="note" style="margin-bottom:8px">Elige un formato base o personaliza el ancho y alto manualmente.</div>
+        </div>
+        <div id="form-grid" class="grid"></div>
+      </div>
 
-      (async () => {
-        try {
-          const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
-          const config = await response.json();
+      <div class="output-block">
+        <div class="section-title">Resultados</div>
+        <section class="cards" id="cards"></section>
+        <div class="guide-box">
+          <div class="section-title">Guía visual 2D</div>
+          <div id="schematic"></div>
+          <p class="note hidden" id="flap-note">La solapa ya tiene un ancho editable independiente del ancho de la tapa.</p>
+        </div>
+        <div class="guide-box rings-box" id="rings-section">
+          <div class="section-title">Medidas de anillos 2:1</div>
+          <div class="rings-split" id="rings-table"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
 
-          if (!config.enabled) {
-            status.textContent = 'Falta configuración de auth. Redirigiendo a login…';
-            window.location.href = '/acceso/?app=aral_calc&next=/aral-calc/';
-            return;
-          }
+<script>
+const PROJECTS = {
+  anillado: {
+    label: "Cuaderno anillado",
+    type: "ring",
+    defaults: {
+      paperWidth:148,paperHeight:210,sheetCount:80,gsm:90,
+      oppositeMargin:7,topMargin:5,bottomMargin:5,
+      coverThickness:1.5,liningExtra:1.5,dividerCount:0,dividerGsm:180,extraThickness:0,guardaGsm:0,spineSlack:1,
+      wrapFold:18,wrapJoint:7,wrapPaperWidth:210,wrapPaperHeight:297,wrapOverlap:0,wrapSource:'auto',manualCoverWidth:150,manualCoverHeight:220,manualCoverCount:2,manualSpineWidth:15,manualSpine1Width:15,manualSpine2Width:15,manualFlapWidth:60,manualCover1Width:108,manualCover2Width:106,manualCover3Width:107
+    }
+  },
+  conLomo: {
+    label: "Cuaderno con lomo",
+    type: "spine",
+    defaults: {
+      paperWidth:148,paperHeight:210,sheetCount:80,gsm:90,
+      overhangWidth:3,overhangHeight:5,
+      coverThickness:1.5,liningExtra:1,dividerCount:0,dividerGsm:180,guardaGsm:0,spineSlack:0.5,
+      wrapFold:18,wrapJoint:7,wrapPaperWidth:210,wrapPaperHeight:297,wrapOverlap:0,wrapSource:'auto',manualCoverWidth:150,manualCoverHeight:220,manualCoverCount:2,manualSpineWidth:15,manualSpine1Width:15,manualSpine2Width:15,manualFlapWidth:60,manualCover1Width:108,manualCover2Width:106,manualCover3Width:107
+    }
+  },
+  conSolapa: {
+    label: "Cuaderno con lomo y solapa",
+    type: "flap",
+    defaults: {
+      paperWidth:148,paperHeight:210,sheetCount:80,gsm:90,
+      overhangWidth:3,overhangHeight:5,
+      coverThickness:1.5,liningExtra:1,dividerCount:0,dividerGsm:180,guardaGsm:0,
+      flapWidth:60,spineSlack:0.5,
+      wrapFold:18,wrapJoint:7,wrapPaperWidth:210,wrapPaperHeight:297,wrapOverlap:0,wrapSource:'auto',manualCoverWidth:150,manualCoverHeight:220,manualCoverCount:2,manualSpineWidth:15,manualSpine1Width:15,manualSpine2Width:15,manualFlapWidth:60,manualCover1Width:108,manualCover2Width:106,manualCover3Width:107
+    }
+  },
+  compuesto: {
+    label: "Porta notas doble lomo",
+    type: "compound",
+    defaults: {
+      paperWidth:105,paperHeight:148,
+      taco1Sheets:100,taco1Gsm:80,taco2Sheets:50,taco2Gsm:90,taco3Sheets:25,taco3Gsm:75,
+      overhangWidth:2,overhangHeight:4,
+      coverThickness:1.5,spineSlack:1,
+      wrapFold:18,wrapJoint:7,wrapPaperWidth:210,wrapPaperHeight:297,wrapOverlap:0,wrapSource:'auto',manualCoverWidth:150,manualCoverHeight:220,manualCoverCount:2,manualSpineWidth:15,manualSpine1Width:15,manualSpine2Width:15,manualFlapWidth:60,manualCover1Width:108,manualCover2Width:106,manualCover3Width:107
+    }
+  }
+};
 
-          const supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-          const {
-            data: { session },
-          } = await supabaseClient.auth.getSession();
+const CALIPERS = [
+  { gsm: 75, microns: 95 },
+  { gsm: 80, microns: 105 },
+  { gsm: 90, microns: 115 },
+  { gsm: 120, microns: 145 },
+  { gsm: 150, microns: 180 },
+  { gsm: 180, microns: 215 },
+  { gsm: 200, microns: 240 }
+];
 
-          if (!session) {
-            status.textContent = 'Necesitas iniciar sesión para entrar a Aral Calc.';
-            window.location.href = '/acceso/?app=aral_calc&next=/aral-calc/';
-            return;
-          }
+const RINGS = [
+  { label:'3/8"', diameter:9.5, capacity:7.5 },
+  { label:'7/16"', diameter:11.1, capacity:9.0 },
+  { label:'1/2"', diameter:12.7, capacity:10.5 },
+  { label:'9/16"', diameter:14.3, capacity:12.0 },
+  { label:'5/8"', diameter:15.9, capacity:13.5 },
+  { label:'3/4"', diameter:19.0, capacity:16.0 },
+  { label:'7/8"', diameter:22.2, capacity:19.0 },
+  { label:'1"', diameter:25.4, capacity:22.0 },
+  { label:'1 1/8"', diameter:28.6, capacity:25.0 },
+  { label:'1 1/4"', diameter:31.8, capacity:28.0 },
+  { label:'1 1/2"', diameter:38.1, capacity:34.0 }
+];
 
-          const { data: accessData, error: accessError } = await supabaseClient
-            .from('app_access')
-            .select('id')
-            .eq('app_key', 'aral_calc')
-            .eq('status', 'active')
-            .limit(1)
-            .maybeSingle();
+const PRESETS = {
+  A8:{paperWidth:52,paperHeight:74,label:"A8"},
+  A7:{paperWidth:74,paperHeight:105,label:"A7"},
+  A6:{paperWidth:105,paperHeight:148,label:"A6"},
+  B6:{paperWidth:125,paperHeight:176,label:"B6"},
+  A5:{paperWidth:148,paperHeight:210,label:"A5"},
+  MEDIA_CARTA:{paperWidth:140,paperHeight:216,label:"Media carta"},
+  B5:{paperWidth:176,paperHeight:250,label:"B5"},
+  CARTA:{paperWidth:216,paperHeight:279,label:"Carta"},
+  A4:{paperWidth:210,paperHeight:297,label:"A4"}
+};
 
-          if (accessError || !accessData) {
-            status.textContent = 'Tu cuenta no tiene acceso habilitado a Aral Calc.';
-            document.querySelector('h1').textContent = 'Acceso no habilitado';
-            const link = document.querySelector('a.btn');
-            link.href = '/acceso/';
-            link.textContent = 'Volver a acceso';
-            return;
-          }
+const PUNCH_COUNTS_2_1 = {
+  A8:5,
+  A7:7,
+  A6:11,
+  B6:13,
+  A5:15,
+  MEDIA_CARTA:16,
+  B5:19,
+  CARTA:21,
+  A4:23
+};
 
-          window.location.href = '/aral-calc/';
-        } catch (error) {
-          status.textContent = 'No se pudo validar tu sesión. Intenta iniciar sesión nuevamente.';
-          window.location.href = '/acceso/?app=aral_calc&next=/aral-calc/';
-        }
-      })();
-    </script>
-  </body>
+const GSM_OPTIONS = [50,75,80,90,100,105,115,120,135,140,150,180,200,230,250];
+const GUARDA_OPTIONS = [{ value: 0, label: 'Sin guarda' }, ...GSM_OPTIONS.map(v => ({ value: v, label: `${v} gr` }))];
+
+let projectKey = "anillado";
+let ringSubmode = "covers";
+let selectedPreset = "A5";
+let form = { ...PROJECTS[projectKey].defaults };
+
+function estimateCaliper(gsm){
+  const value = Number(gsm || 0);
+  const exact = CALIPERS.find(x => x.gsm === value);
+  if (exact) return exact.microns;
+  const sorted = [...CALIPERS].sort((a,b)=>a.gsm-b.gsm);
+  const lower = [...sorted].reverse().find(x=>x.gsm<value);
+  const upper = sorted.find(x=>x.gsm>value);
+  if(lower && upper){
+    const ratio = (value - lower.gsm) / (upper.gsm - lower.gsm);
+    return Math.round(lower.microns + ratio * (upper.microns - lower.microns));
+  }
+  return Math.round(value * 1.2 + 5);
+}
+function getRecommendedRing(t){
+  const thickness = Number(t || 0);
+  const EPS = 0.0001;
+  return RINGS.find(r => thickness <= r.capacity + EPS) || RINGS[RINGS.length-1];
+}
+function getRingRangeText(ring){
+  const index = RINGS.findIndex(r => r.label === ring.label);
+  const prev = index > 0 ? RINGS[index - 1].capacity : 0;
+  return index <= 0 ? `hasta ${ring.capacity.toFixed(1)} mm` : `más de ${prev.toFixed(1)} a ${ring.capacity.toFixed(1)} mm`;
+}
+function mm(v){ return `${Number(v || 0).toFixed(1)} mm`; }
+
+function getRingMarginDefaults(presetKey){
+  if(["A7","A8"].includes(presetKey)) return { topMargin:2, bottomMargin:2, oppositeMargin:4 };
+  if(["A6","B6"].includes(presetKey)) return { topMargin:3, bottomMargin:3, oppositeMargin:5 };
+  return { topMargin:5, bottomMargin:5, oppositeMargin:7 };
+}
+
+function getWrapPieces(data){
+  const mode = data.mode;
+  const source = form.wrapSource || "auto";
+  const manualCoverHeight = Number(form.manualCoverHeight || data.coverHeight || 0);
+  const manualCoverWidth = Number(form.manualCoverWidth || data.coverWidth || 0);
+
+  if(source === "manual"){
+    if(mode === "ring"){
+      return {
+        title:"Forro por tapa",
+        note:"Medidas ingresadas manualmente. Hacer la cantidad de unidades que corresponda.",
+        quantity:Number(form.manualCoverCount || 2),
+        pieces:[{label:"Tapa", width:manualCoverWidth}],
+        joints:0,
+        coverHeight:manualCoverHeight,
+        source:"manual"
+      };
+    }
+    if(mode === "spine"){
+      return {
+        title:"Forro completo",
+        note:"Medidas manuales: tapa + lomo + tapa.",
+        quantity:1,
+        pieces:[
+          {label:"Tapa 1", width:manualCoverWidth},
+          {label:"Lomo", width:Number(form.manualSpineWidth || 0)},
+          {label:"Tapa 2", width:manualCoverWidth}
+        ],
+        joints:2,
+        coverHeight:manualCoverHeight,
+        source:"manual"
+      };
+    }
+    if(mode === "flap"){
+      return {
+        title:"Forro con solapa",
+        note:"Medidas manuales: tapa + lomo 1 + tapa + lomo 2 + solapa.",
+        quantity:1,
+        pieces:[
+          {label:"Tapa 1", width:manualCoverWidth},
+          {label:"Lomo 1", width:Number(form.manualSpine1Width || 0)},
+          {label:"Tapa 2", width:manualCoverWidth},
+          {label:"Lomo 2", width:Number(form.manualSpine2Width || 0)},
+          {label:"Solapa", width:Number(form.manualFlapWidth || 0)}
+        ],
+        joints:4,
+        coverHeight:manualCoverHeight,
+        source:"manual"
+      };
+    }
+    return {
+      title:"Forro porta notas",
+      note:"Medidas manuales: tapa 1 + lomo 1 + tapa 2 + lomo 2 + tapa 3.",
+      quantity:1,
+      pieces:[
+        {label:"Tapa 1", width:Number(form.manualCover1Width || 0)},
+        {label:"Lomo 1", width:Number(form.manualSpine1Width || 0)},
+        {label:"Tapa 2", width:Number(form.manualCover2Width || 0)},
+        {label:"Lomo 2", width:Number(form.manualSpine2Width || 0)},
+        {label:"Tapa 3", width:Number(form.manualCover3Width || 0)}
+      ],
+      joints:4,
+      coverHeight:manualCoverHeight,
+      source:"manual"
+    };
+  }
+
+  if(mode === "ring"){
+    return {
+      title:"Forro por tapa",
+      note:"Usa la medida calculada de la tapa. Hacer 2 unidades: tapa y contratapa.",
+      quantity:2,
+      pieces:[{label:"Tapa", width:data.coverWidth}],
+      joints:0,
+      coverHeight:data.coverHeight,
+      source:"auto"
+    };
+  }
+  if(mode === "spine"){
+    return {
+      title:"Forro completo",
+      note:"Jala las medidas calculadas: tapa + lomo + tapa.",
+      quantity:1,
+      pieces:[
+        {label:"Tapa 1", width:data.coverWidth},
+        {label:"Lomo", width:data.spineWidth},
+        {label:"Tapa 2", width:data.coverWidth}
+      ],
+      joints:2,
+      coverHeight:data.coverHeight,
+      source:"auto"
+    };
+  }
+  if(mode === "flap"){
+    return {
+      title:"Forro con solapa",
+      note:"Jala las medidas calculadas: tapa + lomo 1 + tapa + lomo 2 + solapa.",
+      quantity:1,
+      pieces:[
+        {label:"Tapa 1", width:data.coverWidth},
+        {label:"Lomo 1", width:data.flapSpine1Width},
+        {label:"Tapa 2", width:data.coverWidth},
+        {label:"Lomo 2", width:data.flapSpine2Width},
+        {label:"Solapa", width:data.flapWidth}
+      ],
+      joints:4,
+      coverHeight:data.coverHeight,
+      source:"auto"
+    };
+  }
+  return {
+    title:"Forro porta notas",
+    note:"Jala las medidas calculadas: tapa 1 + lomo 1 + tapa 2 + lomo 2 + tapa 3.",
+    quantity:1,
+    pieces:[
+      {label:"Tapa 1", width:data.compoundCover1Width},
+      {label:"Lomo 1", width:data.spine1Width},
+      {label:"Tapa 2", width:data.compoundCover2Width},
+      {label:"Lomo 2", width:data.spine2Width},
+      {label:"Tapa 3", width:data.compoundCover3Width}
+    ],
+    joints:4,
+    coverHeight:data.coverHeight,
+    source:"auto"
+  };
+}
+
+function evaluateWrapPaper(designW, designH, paperW, paperH, overlap){
+  const safeOverlap = Math.max(0, Math.min(Number(overlap || 0), Math.max(paperW, paperH) - 1));
+  const options = [
+    {orientation:"normal", paperW, paperH, label:`${paperW.toFixed(0)} × ${paperH.toFixed(0)} mm`},
+    {orientation:"rotado", paperW:paperH, paperH:paperW, label:`${paperH.toFixed(0)} × ${paperW.toFixed(0)} mm rotado`}
+  ];
+  const evaluated = options.map(opt => {
+    if(designH > opt.paperH){
+      return {...opt, fitsHeight:false, single:false, pieces:null, coveredWidth:0};
+    }
+    if(designW <= opt.paperW){
+      return {...opt, fitsHeight:true, single:true, pieces:1, coveredWidth:opt.paperW};
+    }
+    const usableStep = Math.max(1, opt.paperW - safeOverlap);
+    const pieces = Math.max(2, Math.ceil((designW - safeOverlap) / usableStep));
+    return {...opt, fitsHeight:true, single:false, pieces, coveredWidth:pieces * opt.paperW - (pieces - 1) * safeOverlap};
+  });
+  const valid = evaluated.filter(x => x.fitsHeight && x.pieces);
+  if(!valid.length){
+    return {status:"height", message:"El alto del diseño no entra en ese papel.", pieces:null, orientation:null, paperUse:null, evaluated};
+  }
+  valid.sort((a,b) => (a.pieces - b.pieces) || (a.orientation === "normal" ? -1 : 1));
+  const best = valid[0];
+  return {
+    status:best.single ? "single" : "multi",
+    message:best.single ? "Entra en 1 hoja." : `Usa ${best.pieces} hojas con traslape.`,
+    pieces:best.pieces,
+    orientation:best.orientation,
+    paperUse:best,
+    evaluated
+  };
+}
+
+function computeWrap(data){
+  const wrapFold = Number(form.wrapFold || 0);
+  const wrapPaperWidth = Number(form.wrapPaperWidth || 0);
+  const wrapPaperHeight = Number(form.wrapPaperHeight || 0);
+  const wrapOverlap = Number(form.wrapOverlap || 0);
+  const structure = getWrapPieces(data);
+  const wrapJoint = data.mode === "ring" ? 0 : Number(form.wrapJoint || 0);
+  const jointsCount = structure.joints;
+  const innerWidth = structure.pieces.reduce((sum,p) => sum + Number(p.width || 0), 0) + jointsCount * wrapJoint;
+  const designWidth = innerWidth + wrapFold * 2;
+  const designHeight = structure.coverHeight + wrapFold * 2;
+  const paper = evaluateWrapPaper(designWidth, designHeight, wrapPaperWidth, wrapPaperHeight, wrapOverlap);
+  return {
+    ...structure,
+    fold:wrapFold,
+    joint:wrapJoint,
+    overlap:wrapOverlap,
+    paperWidth:wrapPaperWidth,
+    paperHeight:wrapPaperHeight,
+    innerWidth,
+    designWidth,
+    designHeight,
+    paper
+  };
+}
+
+function estimatePunchCount2to1(heightMm, presetKey){
+  if(presetKey && PUNCH_COUNTS_2_1[presetKey]) return PUNCH_COUNTS_2_1[presetKey];
+  const height = Number(heightMm || 0);
+  if(!height) return 0;
+  if(height <= 85) return 5;
+  if(height <= 115) return 7;
+  if(height <= 158) return 11;
+  if(height <= 186) return 13;
+  if(height <= 213) return 15;
+  if(height <= 223) return 16;
+  if(height <= 260) return 19;
+  if(height <= 286) return 21;
+  return 23;
+}
+
+function applyPresetToForm(presetKey){
+  const preset = PRESETS[presetKey];
+  if(!preset) return;
+  selectedPreset = presetKey;
+  form.paperWidth = preset.paperWidth;
+  form.paperHeight = preset.paperHeight;
+  if(projectKey === "anillado"){
+    Object.assign(form, getRingMarginDefaults(presetKey));
+  }
+}
+
+function setRingSubmode(nextMode){
+  ringSubmode = nextMode;
+  render();
+}
+
+function escapeAttr(value){
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function fieldHTML({key,label,type="number",suffix="",step=1,options=null,note=""}){
+  const help = note ? `<span class="help-tip" title="${escapeAttr(note)}">?</span>` : "";
+  if(options){
+    return `<div>
+      <div class="label">${label}${help}</div>
+      <select data-key="${key}">
+        ${options.map(o => {
+          const option = typeof o === "object" ? o : { value: o, label: `${o} gr` };
+          return `<option value="${option.value}" ${String(form[key])===String(option.value)?'selected':''}>${option.label}</option>`;
+        }).join("")}
+      </select>
+    </div>`;
+  }
+  return `<div>
+    <div class="label">${label}${help}</div>
+    <div class="field-row">
+      <input data-key="${key}" type="${type}" value="${form[key] ?? ""}" step="${step}">
+      ${suffix ? `<span class="suffix">${suffix}</span>` : ""}
+    </div>
+  </div>`;
+}
+
+function groupHTML(title, content){
+  return `<div class="form-group">${title ? `<div class="group-title">${title}</div>` : ""}<div class="compact-grid">${content}</div></div>`;
+}
+
+function renderForm(){
+  const mode = PROJECTS[projectKey].type;
+  const el = document.getElementById("form-grid");
+  const groups = [];
+
+  const inputTitle = document.getElementById("input-title");
+  const submodeTabs = document.getElementById("ring-submode-tabs");
+  const presetBlock = document.getElementById("preset-block");
+
+  if(ringSubmode === "ring" && mode !== "ring") ringSubmode = "covers";
+  if(inputTitle){
+    inputTitle.textContent = ringSubmode === "wrap"
+      ? "Medida de forro"
+      : mode === "ring"
+      ? (ringSubmode === "covers" ? "Tamaño de tapas" : "¿Qué anillo usar?")
+      : "Medidas y materiales";
+  }
+  if(submodeTabs){
+    submodeTabs.style.display = "flex";
+    const baseBtn = submodeTabs.querySelector('[data-ring-mode="covers"]');
+    const ringBtn = submodeTabs.querySelector('[data-ring-mode="ring"]');
+    const wrapBtn = submodeTabs.querySelector('[data-ring-mode="wrap"]');
+    if(baseBtn) baseBtn.textContent = mode === "ring" ? "Tamaño de tapas" : "Medidas base";
+    if(ringBtn) ringBtn.style.display = mode === "ring" ? "inline-flex" : "none";
+    if(wrapBtn) wrapBtn.style.display = "inline-flex";
+    submodeTabs.querySelectorAll(".submode-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.ringMode === ringSubmode);
+    });
+  }
+  if(presetBlock){
+    presetBlock.style.display = mode === "ring" && ringSubmode === "ring" ? "none" : "block";
+  }
+
+  if(ringSubmode === "wrap"){
+    groups.push(groupHTML("Medidas de cartones", `
+      <div class="grid-span-2">
+        <div class="label">Origen de medidas</div>
+        <select data-key="wrapSource">
+          <option value="auto" ${(form.wrapSource || "auto") === "auto" ? "selected" : ""}>Jalar medidas calculadas en la app</option>
+          <option value="manual" ${(form.wrapSource || "auto") === "manual" ? "selected" : ""}>Ingresar medidas manualmente</option>
+        </select>
+      </div>
+    `));
+
+    if((form.wrapSource || "auto") === "manual"){
+      if(mode === "ring"){
+        groups.push(groupHTML("Cartón manual", [
+          fieldHTML({key:"manualCoverWidth", label:"Ancho de tapa", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualCoverHeight", label:"Alto de tapa", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualCoverCount", label:"Cantidad de tapas", suffix:"u", step:1})
+        ].join("")));
+      } else if(mode === "spine"){
+        groups.push(groupHTML("Cartones manuales", [
+          fieldHTML({key:"manualCoverWidth", label:"Ancho de tapa", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualCoverHeight", label:"Alto de cartones", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualSpineWidth", label:"Ancho de lomo", suffix:"mm", step:0.5})
+        ].join("")));
+      } else if(mode === "flap"){
+        groups.push(groupHTML("Cartones manuales", [
+          fieldHTML({key:"manualCoverWidth", label:"Ancho de tapa", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualCoverHeight", label:"Alto de cartones", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualSpine1Width", label:"Ancho lomo 1", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualSpine2Width", label:"Ancho lomo 2", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualFlapWidth", label:"Ancho de solapa", suffix:"mm", step:0.5})
+        ].join("")));
+      } else {
+        groups.push(groupHTML("Cartones manuales", [
+          fieldHTML({key:"manualCover1Width", label:"Ancho tapa 1", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualCover2Width", label:"Ancho tapa 2", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualCover3Width", label:"Ancho tapa 3", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualCoverHeight", label:"Alto de cartones", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualSpine1Width", label:"Ancho lomo 1", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualSpine2Width", label:"Ancho lomo 2", suffix:"mm", step:0.5})
+        ].join("")));
+      }
+    } else {
+      groups.push(groupHTML("Cartones calculados", `<div class="grid-span-2 group-note">Se usarán las medidas de cartón/lomos calculadas en la pestaña principal de este tipo de encuadernado.</div>`));
+    }
+
+    const wrapSettings = [
+      fieldHTML({key:"wrapPaperHeight", label:"Largo del papel para forro", suffix:"mm", step:1}),
+      fieldHTML({key:"wrapPaperWidth", label:"Ancho del papel para forro", suffix:"mm", step:1}),
+      fieldHTML({key:"wrapFold", label:"Borde / doblez perimetral", suffix:"mm", step:0.5})
+    ];
+    if(mode !== "ring"){
+      wrapSettings.push(fieldHTML({key:"wrapJoint", label:"Junta entre cartones", suffix:"mm", step:0.5}));
+    }
+    wrapSettings.push(
+      fieldHTML({key:"wrapOverlap", label:"Traslape si usa más de 1 hoja", suffix:"mm", step:0.5, note:"Por defecto queda en 0. Súbelo solo si necesitas unir dos o más papeles."})
+    );
+    groups.push(groupHTML("Forro y papel disponible", wrapSettings.join("")));
+  } else if(mode === "ring" && ringSubmode === "covers"){
+
+    groups.push(groupHTML("Tamaño de hoja", [
+      fieldHTML({key:"paperWidth", label:"Ancho de hoja", suffix:"mm"}),
+      fieldHTML({key:"paperHeight", label:"Alto de hoja", suffix:"mm"})
+    ].join("")));
+
+    groups.push(groupHTML("Márgenes para tapa", [
+      fieldHTML({key:"oppositeMargin", label:"Margen opuesto al anillo", suffix:"mm", step:0.5}),
+      fieldHTML({key:"topMargin", label:"Margen superior", suffix:"mm", step:0.5}),
+      fieldHTML({key:"bottomMargin", label:"Margen inferior", suffix:"mm", step:0.5}),
+    ].join("")));
+  } else if(mode === "ring" && ringSubmode === "ring"){
+    groups.push(groupHTML("Papel interior", [
+      fieldHTML({key:"sheetCount", label:"Cantidad de hojas", suffix:"u"}),
+      fieldHTML({key:"gsm", label:"Gramaje del papel", options:GSM_OPTIONS})
+    ].join("")));
+
+    groups.push(groupHTML("Separadores", [
+      fieldHTML({key:"dividerCount", label:"Separadores", suffix:"u"}),
+      fieldHTML({key:"dividerGsm", label:"Gramaje separadores", options:GSM_OPTIONS})
+    ].join("")));
+
+    groups.push(groupHTML("Tapas y extras", [
+      fieldHTML({key:"coverThickness", label:"Espesor del cartón", suffix:"mm", step:0.1}),
+      fieldHTML({
+        key:"liningExtra", label:"Extra por forro", suffix:"mm", step:0.1,
+        note:"En anillado no se agrega guarda aparte; ese papel va dentro del forro."
+      }),
+      fieldHTML({
+        key:"extraThickness", label:"Grosor extra opcional", suffix:"mm", step:0.1,
+        note:"Úsalo solo si agregas acetato, bolsillos, varias láminas o materiales especiales."
+      })
+    ].join("")));
+  } else {
+    groups.push(groupHTML("Tamaño de hoja", [
+      fieldHTML({key:"paperWidth", label:"Ancho de hoja", suffix:"mm"}),
+      fieldHTML({key:"paperHeight", label:"Alto de hoja", suffix:"mm"})
+    ].join("")));
+
+    if(mode !== "compound"){
+      groups.push(groupHTML("Papel interior", [
+        fieldHTML({key:"sheetCount", label:"Cantidad de hojas", suffix:"u"}),
+        fieldHTML({key:"gsm", label:"Gramaje del papel", options:GSM_OPTIONS}),
+        `<div class="grid-span-2 inline-tip" title="Referencias basadas en gramajes de papeles disponibles en Perú.">ⓘ Referencia de gramajes</div>`
+      ].join("")));
+    } else {
+      groups.push(groupHTML("Tacos interiores", [
+        fieldHTML({key:"taco1Sheets", label:"Taco 1: hojas", suffix:"u"}),
+        fieldHTML({key:"taco1Gsm", label:"Taco 1: gramaje", options:GSM_OPTIONS}),
+        fieldHTML({key:"taco2Sheets", label:"Taco 2: hojas", suffix:"u"}),
+        fieldHTML({key:"taco2Gsm", label:"Taco 2: gramaje", options:GSM_OPTIONS}),
+        fieldHTML({key:"taco3Sheets", label:"Taco 3: hojas", suffix:"u"}),
+        fieldHTML({key:"taco3Gsm", label:"Taco 3: gramaje", options:GSM_OPTIONS}),
+        `<div class="grid-span-2 inline-tip" title="Lomo 1 = taco 1 + taco 2 + taco 3 + 2 tapas + 2 mm de forro + holgura. Lomo 2 = taco 2 + taco 3 + 1 tapa + 1 mm de forro + holgura.">ⓘ Fórmula de lomos</div>`
+      ].join("")));
+    }
+
+    if(mode !== "compound"){
+      const materialPieces = [
+        fieldHTML({key:"dividerCount", label:"Separadores", suffix:"u"}),
+        fieldHTML({key:"dividerGsm", label:"Gramaje separadores", options:GSM_OPTIONS})
+      ];
+      if(mode !== "ring"){
+        materialPieces.push(fieldHTML({
+          key:"guardaGsm", label:"Gramaje guardas", options:GUARDA_OPTIONS,
+          note:"Elige “Sin guarda” cuando solo uses la tapa para colocar taco encolado para desglosar."
+        }));
+      }
+      groups.push(groupHTML("Separadores y guardas", materialPieces.join("")));
+    }
+
+    if (mode === "compound") {
+      groups.push(groupHTML("Excedentes", [
+        fieldHTML({key:"overhangHeight", label:"Excedente sup./inf.", suffix:"mm", step:0.5})
+      ].join("")));
+    } else {
+      const sizePieces = [
+        fieldHTML({key:"overhangWidth", label:"Excedente lateral", suffix:"mm", step:0.5}),
+        fieldHTML({key:"overhangHeight", label:"Excedente sup./inf.", suffix:"mm", step:0.5})
+      ];
+      if(mode === "flap") sizePieces.push(fieldHTML({key:"flapWidth", label:"Ancho de solapa", suffix:"mm", step:0.5}));
+      groups.push(groupHTML(mode === "flap" ? "Excedentes y solapa" : "Excedentes", sizePieces.join("")));
+    }
+
+    const structurePieces = [
+      fieldHTML({key:"coverThickness", label:"Espesor del cartón", suffix:"mm", step:0.1})
+    ];
+
+    if(mode !== "compound"){
+      structurePieces.push(fieldHTML({
+        key:"liningExtra", label:"Extra por forro", suffix:"mm", step:0.1,
+        note:"Basado en papel de 135 gr laminado + contratapa de 90 gr."
+      }));
+    } else {
+      structurePieces.push(`<div class="grid-span-2 inline-tip" title="En porta notas doble lomo, el extra por forro ya está fijo dentro de la fórmula: 2 mm en lomo 1 y 1 mm en lomo 2.">ⓘ Forro incluido en la fórmula</div>`);
+    }
+
+    if(mode !== "ring"){
+      structurePieces.push(fieldHTML({
+        key:"spineSlack", label:"Holgura del lomo", suffix:"mm", step:0.1,
+        note:"Se considera 0.5 mm de holgura; podrás modificarlo de acuerdo a tu forma de trabajo."
+      }));
+    }
+    groups.push(groupHTML("Estructura", structurePieces.join("")));
+
+    if(["conLomo", "conSolapa", "compuesto"].includes(projectKey)){
+      groups.push(groupHTML("Tip de armado", `<div class="grid-span-2 inline-tip" title="Si vas a forrar con papel adhesivo de 135 g, laminado al frío o materiales más rígidos, deja una junta/canal un poco mayor entre tapa y lomo. Referencia: forro delgado 5–6 mm; papel adhesivo + laminado 7–8 mm; materiales más gruesos 8–10 mm.">ⓘ Recomendación de junta/canal</div>`));
+    }
+  }
+
+  el.innerHTML = `<div class="form-stack">${groups.join("")}</div>`;
+  el.querySelectorAll("input, select").forEach(node => {
+    if (node.tagName === "SELECT") {
+      node.addEventListener("change", e => {
+        form[e.target.dataset.key] = e.target.value;
+        if(e.target.dataset.key === "wrapSource") render();
+        else renderOutputs();
+      });
+    } else {
+      node.addEventListener("input", e => {
+        if(["paperWidth","paperHeight"].includes(e.target.dataset.key)) selectedPreset = null;
+        form[e.target.dataset.key] = e.target.value;
+        renderOutputs();
+      });
+      node.addEventListener("change", e => {
+        form[e.target.dataset.key] = e.target.value;
+        renderOutputs();
+      });
+    }
+  });
+}
+
+function compute(){
+  const mode = PROJECTS[projectKey].type;
+  const paperWidth = Number(form.paperWidth || 0);
+  const paperHeight = Number(form.paperHeight || 0);
+  const sheetCount = Number(form.sheetCount || 0);
+  const gsm = Number(form.gsm || 0);
+  const coverThickness = Number(form.coverThickness || 0);
+  const liningExtra = Number(form.liningExtra || 0);
+  const dividerCount = Number(form.dividerCount || 0);
+  const dividerGsm = Number(form.dividerGsm || 0);
+  const guardaGsm = Number(form.guardaGsm || 0);
+  const spineSlack = Number(form.spineSlack || 0);
+  const extraThickness = Number(form.extraThickness || 0);
+
+  const pageThickness = sheetCount * (estimateCaliper(gsm) / 1000);
+  const dividerThickness = dividerCount > 0 ? dividerCount * (estimateCaliper(dividerGsm) / 1000) : 0;
+  const guardaThickness = mode !== "ring" && guardaGsm > 0 ? 4 * (estimateCaliper(guardaGsm) / 1000) : 0;
+  const bodyThickness = pageThickness + dividerThickness + guardaThickness;
+  const ringThickness = bodyThickness + coverThickness * 2 + liningExtra + extraThickness;
+  const spineBase = bodyThickness + coverThickness + liningExtra;
+
+  const taco1Thickness = Number(form.taco1Sheets || 0) * (estimateCaliper(form.taco1Gsm || 0) / 1000);
+  const taco2Thickness = Number(form.taco2Sheets || 0) * (estimateCaliper(form.taco2Gsm || 0) / 1000);
+  const taco3Thickness = Number(form.taco3Sheets || 0) * (estimateCaliper(form.taco3Gsm || 0) / 1000);
+
+  const coverWidth = mode === "ring"
+    ? paperWidth + Number(form.oppositeMargin || 0)
+    : mode === "compound"
+    ? paperWidth
+    : paperWidth + Number(form.overhangWidth || 0);
+
+  const coverHeight = mode === "ring"
+    ? paperHeight + Number(form.topMargin || 0) + Number(form.bottomMargin || 0)
+    : paperHeight + Number(form.overhangHeight || 0) * 2;
+
+  const compoundCover1Width = mode === "compound" ? paperWidth + 3 : coverWidth;
+  const compoundCover2Width = mode === "compound" ? paperWidth + 1 : coverWidth;
+  const compoundCover3Width = mode === "compound" ? paperWidth + 2 : coverWidth;
+
+  const spineWidth = mode === "spine" ? spineBase + spineSlack : 0;
+  const flapSpine1Width = mode === "flap" ? bodyThickness + coverThickness + liningExtra + spineSlack : 0;
+  const flapSpine2Width = mode === "flap" ? bodyThickness + coverThickness * 2 + liningExtra + spineSlack : 0;
+  const flapWidth = mode === "flap" ? Number(form.flapWidth || coverWidth) : 0;
+  const spine1Width = mode === "compound" ? taco1Thickness + taco2Thickness + taco3Thickness + coverThickness * 2 + 2 + spineSlack : 0;
+  const spine2Width = mode === "compound" ? taco2Thickness + taco3Thickness + coverThickness + 1 + spineSlack : 0;
+  const punchCount = mode === "ring" ? estimatePunchCount2to1(paperHeight, selectedPreset) : 0;
+  const ring = getRecommendedRing(ringThickness);
+
+  const data = {
+    mode, ringSubmode, coverWidth, coverHeight,
+    compoundCover1Width, compoundCover2Width, compoundCover3Width,
+    spineWidth, spineBase, ringThickness, bodyThickness, pageThickness, dividerThickness, extraThickness, ring,
+    flapSpine1Width, flapSpine2Width, flapWidth, spine1Width, spine2Width, spineSlack,
+    punchCount, selectedPreset
+  };
+  data.wrap = computeWrap(data);
+  return data;
+}
+
+function card(title, value, hint="", accent=false){
+  return `<div class="card ${accent ? 'accent' : ''}">
+    <div class="k">${title}</div>
+    <div class="v">${value}</div>
+    ${hint ? `<div class="h">${hint}</div>` : ""}
+  </div>`;
+}
+
+function renderCards(data){
+  const el = document.getElementById("cards");
+  if(ringSubmode === "wrap"){
+    const w = data.wrap;
+    const paperText = w.paper.status === "single" ? "1 hoja" : w.paper.status === "multi" ? `${w.paper.pieces} hojas` : "Revisar papel";
+    const paperHint = w.paper.paperUse ? `${w.paper.paperUse.label}` : `${w.paperWidth.toFixed(0)} × ${w.paperHeight.toFixed(0)} mm`;
+    const foldJointTitle = data.mode === "ring" ? "Doblez" : "Doblez / junta";
+    const foldJointValue = data.mode === "ring" ? `${mm(w.fold)}` : `${mm(w.fold)} / ${mm(w.joint)}`;
+    el.innerHTML = [
+      card(w.title, `${mm(w.designWidth)} × ${mm(w.designHeight)}`, w.note, true),
+      card("Papel disponible", `${mm(w.paperWidth)} × ${mm(w.paperHeight)}`, paperHint),
+      card("Resultado", paperText, w.paper.message),
+      card(foldJointTitle, foldJointValue, `Traslape ${mm(w.overlap)}`)
+    ].join("");
+    return;
+  }
+  if(data.mode === "ring" && ringSubmode === "covers"){
+    el.innerHTML = [
+      card("Tapa final", `${mm(data.coverWidth)} × ${mm(data.coverHeight)}`, "Incluye márgenes configurados", true),
+      card("Perforaciones", `${data.punchCount || "—"} aros`, "Referencia Wire-O paso 2:1"),
+      card("Márgenes", `${Number(form.topMargin || 0)} / ${Number(form.bottomMargin || 0)} / ${Number(form.oppositeMargin || 0)} mm`, "Arriba / abajo / lado opuesto"),
+      card("Hoja base", `${mm(form.paperWidth)} × ${mm(form.paperHeight)}`, selectedPreset ? (PRESETS[selectedPreset]?.label || "") : "Personalizado")
+    ].join("");
+    return;
+  }
+
+  if(data.mode === "ring" && ringSubmode === "ring"){
+    el.innerHTML = [
+      card("Anillo sugerido", data.ring.label, `Ø ${data.ring.diameter.toFixed(1)} mm · ${getRingRangeText(data.ring)}`, true),
+      card("Grosor proyecto", mm(data.ringThickness), "Hojas + tapas + separadores + forro"),
+      card("Capacidad del anillo", mm(data.ring.capacity), "Máximo recomendado"),
+      card("Disponible", `${Math.max(data.ring.capacity - data.ringThickness, 0).toFixed(1)} mm`, "Margen de seguridad aproximado")
+    ].join("");
+    return;
+  }
+
+  if(data.mode === "compound"){
+    el.innerHTML = [
+      card("Tapa 1", `${mm(data.compoundCover1Width)} × ${mm(data.coverHeight)}`, "Ancho de hojas + 3 mm", true),
+      card("Tapa 2", `${mm(data.compoundCover2Width)} × ${mm(data.coverHeight)}`, "Ancho de hojas + 1 mm"),
+      card("Tapa 3", `${mm(data.compoundCover3Width)} × ${mm(data.coverHeight)}`, "Ancho de hojas + 2 mm"),
+      card("Lomo 1", `${mm(data.spine1Width)} × ${mm(data.coverHeight)}`, "Hojas + 2 tapas + 2 mm forro + holgura"),
+      card("Lomo 2", `${mm(data.spine2Width)} × ${mm(data.coverHeight)}`, "Hojas + 1 tapa + 1 mm forro + holgura")
+    ].join("");
+    return;
+  }
+  if(data.mode === "flap"){
+    el.innerHTML = [
+      card("Tapa 1 y 2", `${mm(data.coverWidth)} × ${mm(data.coverHeight)}`, "", true),
+      card("Solapa", `${mm(data.flapWidth)} × ${mm(data.coverHeight)}`, "Ancho editable de la solapa"),
+      card("Lomo 1", `${mm(data.flapSpine1Width)} × ${mm(data.coverHeight)}`, `Incluye holgura configurada: ${mm(data.spineSlack)}`),
+      card("Lomo 2", `${mm(data.flapSpine2Width)} × ${mm(data.coverHeight)}`, `Incluye holgura configurada: ${mm(data.spineSlack)}`)
+    ].join("");
+    return;
+  }
+  el.innerHTML = [
+    card("Tapa", `${mm(data.coverWidth)} × ${mm(data.coverHeight)}`, "", true),
+    card("Lomo", `${mm(data.spineWidth)} × ${mm(data.coverHeight)}`, `Lomo final = base ${mm(data.spineBase)} + holgura ${mm(data.spineSlack)}`),
+    card("Grosor hojas", mm(data.pageThickness), `Estimado con ${form.gsm} gsm`),
+    card("Base para lomo", mm(data.spineBase), "Base sin holgura: hojas + separadores + guardas + 1 cartón + forro")
+  ].join("");
+}
+
+function renderRingCoverSchematic(data){
+  const pageW = Number(form.paperWidth || 0);
+  const pageH = Number(form.paperHeight || 0);
+  const coverW = data.coverWidth;
+  const coverH = data.coverHeight;
+  const topM = Number(form.topMargin || 0);
+  const coverMaxW = 170;
+  const coverMaxH = 170;
+  const scale = Math.min(coverMaxW / Math.max(coverW, 1), coverMaxH / Math.max(coverH, 1));
+  const coverX = 120;
+  const coverY = 42;
+  const w = coverW * scale;
+  const h = coverH * scale;
+  const pw = pageW * scale;
+  const ph = pageH * scale;
+  const pageX = coverX;
+  const pageY = coverY + topM * scale;
+  const centerX = coverX + w / 2;
+  const holeCount = Math.max(1, data.punchCount || 0);
+  const holes = Array.from({length: holeCount}, (_,i) => {
+    const step = ph / holeCount;
+    const cy = pageY + step / 2 + i * step;
+    return `<circle cx="${coverX + 8}" cy="${cy}" r="2.1" fill="#7f5970"/>`;
+  }).join("");
+
+  const punchPanelX = 500;
+  const punchPanelY = 52;
+  const punchStep = 118 / Math.min(holeCount, 15);
+  const punchPreview = Array.from({length: Math.min(holeCount, 15)}, (_,i) => {
+    const cy = punchPanelY + 18 + punchStep / 2 + i * punchStep;
+    return `<circle cx="${punchPanelX + 22}" cy="${cy}" r="2.1" fill="#7f5970"/>`;
+  }).join("");
+
+  const svg = `<svg id="schematic-svg" viewBox="0 0 700 250" style="width:100%;border:1px solid #e4d9d2;border-radius:14px;background:#fffdfb">
+    <text x="22" y="19" style="font-size:13px;font-weight:700;fill:#5d564d">Vista 2D · tapa anillada</text>
+
+    <rect x="${coverX}" y="${coverY}" width="${w}" height="${h}" rx="8" fill="#edf3ea" stroke="#7e8a74" stroke-width="1.5"/>
+    <rect x="${pageX}" y="${pageY}" width="${pw}" height="${ph}" rx="5" fill="#fffdfb" stroke="#7f5970" stroke-width="1.15" stroke-dasharray="4 3"/>
+    ${holes}
+
+    <line x1="${coverX - 7}" y1="${coverY}" x2="${coverX - 7}" y2="${coverY + h}" stroke="#7f5970" stroke-width="1.2" stroke-dasharray="3 3"/>
+    <text x="${coverX - 4}" y="${coverY - 10}" style="font-size:10px;fill:#7f5970">lado del anillo</text>
+
+    <text x="${pageX + pw / 2}" y="${pageY + ph / 2}" text-anchor="middle" style="font-size:11px;font-weight:700;fill:#7f5970">hoja ${pageW.toFixed(0)} × ${pageH.toFixed(0)} mm</text>
+    <text x="${centerX}" y="${coverY + h + 20}" text-anchor="middle" style="font-size:11px;font-weight:700;fill:#5d564d">Tapa final: ${coverW.toFixed(1)} × ${coverH.toFixed(1)} mm</text>
+
+    <rect x="${punchPanelX}" y="${punchPanelY}" width="150" height="144" rx="11" fill="#fcf9f7" stroke="#e4d9d2"/>
+    <text x="${punchPanelX + 48}" y="${punchPanelY + 24}" style="font-size:12px;font-weight:750;fill:#5d564d">Wire-O 2:1</text>
+    <text x="${punchPanelX + 48}" y="${punchPanelY + 46}" style="font-size:22px;font-weight:800;fill:#7f5970">${data.punchCount || "—"}</text>
+    <text x="${punchPanelX + 82}" y="${punchPanelY + 45}" style="font-size:11px;fill:#8c8378">aros aprox.</text>
+    ${punchPreview}
+  </svg>`;
+  document.getElementById("schematic").innerHTML = svg;
+  document.querySelector(".guide-box")?.classList.remove("ring-profile-box");
+  document.getElementById("flap-note").classList.add("hidden");
+}
+
+function renderRingProfile(data){
+  const thickness = Math.max(data.ringThickness, 0.5);
+  const ringDiameter = data.ring.diameter;
+  const mmScale = 4;
+  const bodyW = 245;
+  const bodyH = Math.max(14, thickness * mmScale);
+  const ringD = Math.max(38, ringDiameter * mmScale);
+  const ringR = ringD / 2;
+  const frameX = 18;
+  const frameY = 24;
+  const frameW = 664;
+  const frameH = 178;
+  const centerY = frameY + frameH / 2;
+  const bodyX = 106;
+  const bodyY = centerY - bodyH / 2;
+  const overlap = Math.max(16, ringD * 0.18);
+  const ringCx = bodyX + bodyW - overlap + ringR;
+  const ringCy = centerY;
+  const lineCount = Math.max(6, Math.min(18, Math.round(bodyH / 5)));
+  const pageLines = Array.from({length: lineCount}, (_,i) => {
+    const y = bodyY + 4 + i * ((bodyH - 8) / Math.max(lineCount - 1, 1));
+    return `<line x1="${bodyX}" y1="${y}" x2="${bodyX + bodyW}" y2="${y}" stroke="#c79bb6" stroke-width="1.6"/>`;
+  }).join("");
+
+  const topLineY = frameY + 18;
+  const bottomLineY = frameY + frameH - 18;
+  const svg = `<svg id="schematic-svg" viewBox="0 0 700 230" style="width:100%;border:1px solid #e4d9d2;border-radius:14px;background:#fffdfb">
+    <text x="22" y="20" style="font-size:13px;font-weight:700;fill:#5d564d">Perfil del cuaderno · Wire-O paso 2:1</text>
+    <rect x="${frameX}" y="${frameY}" width="${frameW}" height="${frameH}" fill="none" stroke="#1f1b1f" stroke-width="1.2"/>
+    <line x1="${frameX + 8}" y1="${topLineY}" x2="${frameX + frameW - 8}" y2="${topLineY}" stroke="#1f1b1f" stroke-width="1.2"/>
+    <line x1="${frameX + 8}" y1="${bottomLineY}" x2="${frameX + frameW - 8}" y2="${bottomLineY}" stroke="#1f1b1f" stroke-width="1.2"/>
+
+    <line x1="${frameX}" y1="${bodyY}" x2="${bodyX - 10}" y2="${bodyY}" stroke="#1f1b1f" stroke-width="1"/>
+    <line x1="${frameX}" y1="${bodyY + bodyH}" x2="${bodyX - 10}" y2="${bodyY + bodyH}" stroke="#1f1b1f" stroke-width="1"/>
+    <text x="${frameX + 24}" y="${centerY - 2}" style="font-size:18px;font-weight:700;fill:#2f2830">${thickness.toFixed(1)} mm</text>
+    <text x="${frameX + 28}" y="${centerY + 18}" style="font-size:11px;fill:#8c8378">grosor</text>
+
+    <rect x="${bodyX}" y="${bodyY}" width="${bodyW}" height="${bodyH}" fill="#f8eef3" stroke="none"/>
+    ${pageLines}
+
+    <circle cx="${ringCx}" cy="${ringCy}" r="${ringR}" fill="#fffdfb" stroke="#2f2830" stroke-width="3.2"/>
+    <path d="M${ringCx - ringR + overlap * 0.75} ${ringCy - ringR + 6} C${ringCx - ringR + overlap * 0.1} ${ringCy - ringR + 18}, ${ringCx - ringR + overlap * 0.1} ${ringCy + ringR - 18}, ${ringCx - ringR + overlap * 0.75} ${ringCy + ringR - 6}" fill="none" stroke="#8a7f87" stroke-width="1.8" opacity="0.75"/>
+    <text x="${ringCx}" y="${ringCy + 7}" text-anchor="middle" style="font-size:20px;font-weight:700;fill:#1f2432">${data.ring.label}</text>
+
+    <text x="${ringCx + ringR + 32}" y="${ringCy + 5}" style="font-size:18px;font-weight:700;fill:#1f2432">Ø ${ringDiameter.toFixed(1)} mm</text>
+    <text x="${ringCx}" y="${ringCy + ringR + 24}" text-anchor="middle" style="font-size:11px;fill:#8c8378">capacidad ${data.ring.capacity.toFixed(1)} mm</text>
+  </svg>`;
+  document.getElementById("schematic").innerHTML = svg;
+  document.querySelector(".guide-box")?.classList.add("ring-profile-box");
+  document.getElementById("flap-note").classList.add("hidden");
+}
+
+function renderWrapSchematic(data){
+  const w = data.wrap;
+  const maxW = 600;
+  const maxH = 142;
+  const scale = Math.min(maxW / Math.max(w.designWidth, 1), maxH / Math.max(w.designHeight, 1));
+  const startX = 48;
+  const startY = 50;
+  const drawW = w.designWidth * scale;
+  const drawH = w.designHeight * scale;
+  const innerX = startX + w.fold * scale;
+  const innerY = startY + w.fold * scale;
+  const innerH = (w.designHeight - w.fold * 2) * scale;
+  let x = innerX;
+  const pieceRects = [];
+  w.pieces.forEach((piece, index) => {
+    const pw = piece.width * scale;
+    pieceRects.push(`<rect x="${x}" y="${innerY}" width="${pw}" height="${innerH}" fill="${index % 2 ? '#efe7e1' : '#e6eee4'}" stroke="#8c8378" stroke-width="1"/>`);
+    pieceRects.push(`<text x="${x + pw/2}" y="${innerY + innerH/2 + 4}" text-anchor="middle" style="font-size:10px;font-weight:650;fill:#5d564d">${piece.label}</text>`);
+    x += pw;
+    if(index < w.pieces.length - 1){
+      const jw = w.joint * scale;
+      pieceRects.push(`<rect x="${x}" y="${innerY}" width="${jw}" height="${innerH}" fill="#fff7e8" stroke="#c9a96a" stroke-width="1" stroke-dasharray="3 3"/>`);
+      pieceRects.push(`<text x="${x + jw/2}" y="${innerY - 7}" text-anchor="middle" style="font-size:9px;fill:#9a7850">junta</text>`);
+      x += jw;
+    }
+  });
+
+  let paperOverlay = "";
+  if(w.paper.status === "multi" && w.paper.paperUse){
+    const pieceW = w.paper.paperUse.paperW * scale;
+    const overlapW = w.overlap * scale;
+    let px = startX;
+    for(let i=1;i<w.paper.pieces;i++){
+      const joinX = px + pieceW - overlapW;
+      paperOverlay += `<rect x="${joinX}" y="${startY - 10}" width="${Math.max(overlapW, 4)}" height="${drawH + 20}" fill="#f1e5ec" stroke="#7f5970" stroke-width="1" stroke-dasharray="4 3" opacity=".82"/>`;
+      paperOverlay += `<text x="${joinX + Math.max(overlapW,4)/2}" y="${startY + drawH + 27}" text-anchor="middle" style="font-size:10px;fill:#7f5970">traslape</text>`;
+      px += pieceW - overlapW;
+    }
+  }
+
+  const statusText = w.paper.status === "single" ? "Entra en 1 hoja" : w.paper.status === "multi" ? `Usa ${w.paper.pieces} hojas · traslape ${w.overlap.toFixed(1)} mm` : "Revisar alto del papel";
+  const svg = `<svg id="schematic-svg" viewBox="0 0 700 250" style="width:100%;border:1px solid #e4d9d2;border-radius:14px;background:#fffdfb">
+    <text x="22" y="24" style="font-size:13px;font-weight:700;fill:#5d564d">Vista de forro</text>
+    <text x="22" y="40" style="font-size:10.5px;fill:#8c8378">Diseño total: ${w.designWidth.toFixed(1)} × ${w.designHeight.toFixed(1)} mm · ${statusText}</text>
+    <rect x="${startX}" y="${startY}" width="${drawW}" height="${drawH}" rx="8" fill="#fcf9f7" stroke="#7f5970" stroke-width="1.4"/>
+    <rect x="${innerX}" y="${innerY}" width="${w.innerWidth * scale}" height="${innerH}" fill="none" stroke="#2f2830" stroke-width="1"/>
+    ${pieceRects.join("")}
+    ${paperOverlay}
+    <text x="${startX + drawW/2}" y="${startY + drawH + 18}" text-anchor="middle" style="font-size:11px;font-weight:700;fill:#5d564d">${w.title} · ${w.quantity > 1 ? 'hacer ' + w.quantity + ' unidades' : '1 unidad'}</text>
+  </svg>`;
+  document.getElementById("schematic").innerHTML = svg;
+  document.querySelector(".guide-box")?.classList.remove("ring-profile-box");
+  document.getElementById("flap-note").classList.add("hidden");
+}
+
+function renderSchematic(data){
+  if(ringSubmode === "wrap"){
+    renderWrapSchematic(data);
+    return;
+  }
+  if(data.mode === "ring" && ringSubmode === "covers"){
+    renderRingCoverSchematic(data);
+    return;
+  }
+  if(data.mode === "ring" && ringSubmode === "ring"){
+    renderRingProfile(data);
+    return;
+  }
+  document.querySelector(".guide-box")?.classList.remove("ring-profile-box");
+  const pieces = data.mode === "ring"
+    ? [{label:"Tapa 1", width:data.coverWidth}, {label:"Tapa 2", width:data.coverWidth}]
+    : data.mode === "compound"
+    ? [
+        {label:"Tapa 1", width:data.compoundCover1Width},
+        {label:"Lomo 1", width:data.spine1Width},
+        {label:"Tapa 2", width:data.compoundCover2Width},
+        {label:"Lomo 2", width:data.spine2Width},
+        {label:"Tapa 3", width:data.compoundCover3Width}
+      ]
+    : data.mode === "flap"
+    ? [
+        {label:"Tapa 1", width:data.coverWidth},
+        {label:"Lomo 1", width:data.flapSpine1Width},
+        {label:"Tapa 2", width:data.coverWidth},
+        {label:"Lomo 2", width:data.flapSpine2Width},
+        {label:"Solapa", width:data.flapWidth}
+      ]
+    : [{label:"Tapa 1", width:data.coverWidth}, {label:"Lomo", width:data.spineWidth}, {label:"Tapa 2", width:data.coverWidth}];
+
+  const gap = 10;
+  const totalWidth = pieces.reduce((sum, piece) => sum + piece.width, 0) + (pieces.length - 1) * gap;
+  const scale = Math.min(560 / Math.max(totalWidth, 1), 120 / Math.max(data.coverHeight, 1));
+  const startX = 78, topY = 54, pieceHeight = data.coverHeight * scale;
+  let x = startX;
+
+  let svg = `<svg id="schematic-svg" viewBox="0 0 700 235" style="width:100%;border:1px solid #e4d9d2;border-radius:14px;background:#fffdfb">
+    <text x="20" y="24" style="font-size:13px;fill:#8c8378">Vista 2D referencial</text>
+    <line x1="44" y1="${topY}" x2="44" y2="${topY + pieceHeight}" stroke="#9a9186" stroke-width="1.2"/>
+    <line x1="52" y1="${topY}" x2="${startX - 8}" y2="${topY}" stroke="#9a9186" stroke-width="1.2"/>
+    <line x1="52" y1="${topY + pieceHeight}" x2="${startX - 8}" y2="${topY + pieceHeight}" stroke="#9a9186" stroke-width="1.2"/>
+    <path d="M44 ${topY} l-4 7 h8 z" fill="#9a9186"/>
+    <path d="M44 ${topY + pieceHeight} l-4 -7 h8 z" fill="#9a9186"/>
+    <text x="24" y="${topY + pieceHeight / 2}" text-anchor="middle" transform="rotate(-90 24 ${topY + pieceHeight / 2})" style="font-size:11px;font-weight:600;fill:#8c8378">Alto ${data.coverHeight.toFixed(1)} mm</text>`;
+
+  pieces.forEach((piece, index) => {
+    const width = piece.width * scale;
+    const isSpine = piece.label.includes("Lomo");
+    const showRingHoles = data.mode === "ring" && ringSubmode === "covers";
+    const currentX = x;
+    const narrowPiece = width < 52;
+    const labelY = narrowPiece ? (index % 2 === 0 ? topY - 18 : topY - 30) : topY - 10;
+    const valueY = narrowPiece ? (index % 2 === 0 ? topY + pieceHeight + 18 : topY + pieceHeight + 30) : topY + pieceHeight + 16;
+    const labelFontSize = narrowPiece ? 10 : 11;
+    const valueFontSize = narrowPiece ? 9 : 10;
+    x += width + gap;
+
+    const holes = showRingHoles ? Array.from({length: Math.max(1, data.punchCount || 0)}, (_,i) => {
+      const step = pieceHeight / Math.max((data.punchCount || 1), 1);
+      const cy = topY + step / 2 + i * step;
+      return `<circle cx="${currentX + 9}" cy="${cy}" r="1.9" fill="#7f5970"/>`;
+    }).join("") : "";
+
+    svg += `<g>
+      <rect x="${currentX}" y="${topY}" width="${width}" height="${pieceHeight}" fill="${isSpine ? '#ece6dd' : '#e6eee4'}" stroke="#8c8378"/>
+      ${holes}
+      <text x="${currentX + width / 2}" y="${labelY}" text-anchor="middle" style="font-size:${labelFontSize}px;font-weight:600;fill:#5d564d">${piece.label}</text>
+      <text x="${currentX + width / 2}" y="${valueY}" text-anchor="middle" style="font-size:${valueFontSize}px;fill:#8c8378">${piece.width.toFixed(1)} mm</text>
+    </g>`;
+  });
+
+  if(data.mode === "ring" && ringSubmode === "covers"){
+    svg += `<text x="520" y="26" text-anchor="end" style="font-size:11px;font-weight:650;fill:#7f5970">Paso 2:1 · ${data.punchCount || "—"} perforaciones aprox.</text>`;
+  }
+  svg += `</svg>`;
+  document.getElementById("schematic").innerHTML = svg;
+  document.getElementById("flap-note").classList.toggle("hidden", data.mode !== "flap");
+}
+
+function renderRings(data){
+  const section = document.getElementById("rings-section");
+  const showRings = data.mode === "ring" && ringSubmode === "ring";
+  section.style.display = showRings ? "block" : "none";
+  if(!showRings) return;
+
+  const mid = Math.ceil(RINGS.length / 2);
+  const groups = [RINGS.slice(0, mid), RINGS.slice(mid)];
+
+  document.getElementById("rings-table").innerHTML = groups.map(group => `
+    <div class="rings-subtable">
+      <div class="table-head"><div>Medida</div><div>Diámetro</div><div>Capacidad</div></div>
+      ${group.map(r => `
+        <div class="table-row ${data.ring.label === r.label ? 'active' : ''}">
+          <div>${r.label}</div>
+          <div>${r.diameter.toFixed(1)} mm</div>
+          <div>${r.capacity.toFixed(1)} mm</div>
+        </div>
+      `).join("")}
+    </div>
+  `).join("");
+}
+
+function openPdfSheet(){
+  const data = compute();
+  const projectLabel = PROJECTS[projectKey].label;
+  const dateLabel = new Date().toLocaleDateString("es-PE");
+  const svgMarkup = document.getElementById("schematic-svg")?.outerHTML || "";
+
+  const summaryRows = ringSubmode === "wrap"
+    ? [
+        ["Forro", `${mm(data.wrap.designWidth)} × ${mm(data.wrap.designHeight)}`],
+        ["Tipo", `${data.wrap.title}${data.wrap.quantity > 1 ? " · hacer " + data.wrap.quantity + " unidades" : ""}`],
+        ["Papel disponible", `${mm(data.wrap.paperWidth)} × ${mm(data.wrap.paperHeight)}`],
+        ["Resultado", `${data.wrap.paper.message}`],
+        ["Doblez / junta / traslape", `${mm(data.wrap.fold)} · ${mm(data.wrap.joint)} · ${mm(data.wrap.overlap)}`]
+      ]
+    : data.mode === "ring" && ringSubmode === "covers"
+    ? [
+        ["Tapa final", `${mm(data.coverWidth)} × ${mm(data.coverHeight)}`],
+        ["Hoja base", `${mm(form.paperWidth)} × ${mm(form.paperHeight)}`],
+        ["Márgenes", `Arriba ${mm(form.topMargin)} · Abajo ${mm(form.bottomMargin)} · Opuesto ${mm(form.oppositeMargin)}`],
+        ["Perforaciones", `${data.punchCount} aros aprox. · paso 2:1`]
+      ]
+    : data.mode === "ring" && ringSubmode === "ring"
+    ? [
+        ["Anillo sugerido", `${data.ring.label} · Ø ${data.ring.diameter.toFixed(1)} mm`],
+        ["Capacidad", `${mm(data.ring.capacity)}`],
+        ["Grosor proyecto", `${mm(data.ringThickness)}`],
+        ["Margen disponible", `${Math.max(data.ring.capacity - data.ringThickness, 0).toFixed(1)} mm aprox.`]
+      ]
+    : data.mode === "compound"
+    ? [
+        ["Tapa 1", `${mm(data.compoundCover1Width)} × ${mm(data.coverHeight)}`],
+        ["Tapa 2", `${mm(data.compoundCover2Width)} × ${mm(data.coverHeight)}`],
+        ["Tapa 3", `${mm(data.compoundCover3Width)} × ${mm(data.coverHeight)}`],
+        ["Lomo 1", `${mm(data.spine1Width)} × ${mm(data.coverHeight)}`],
+        ["Lomo 2", `${mm(data.spine2Width)} × ${mm(data.coverHeight)}`]
+      ]
+    : data.mode === "flap"
+    ? [
+        ["Tapa 1 y 2", `${mm(data.coverWidth)} × ${mm(data.coverHeight)}`],
+        ["Lomo 1", `${mm(data.flapSpine1Width)} × ${mm(data.coverHeight)}`],
+        ["Lomo 2", `${mm(data.flapSpine2Width)} × ${mm(data.coverHeight)}`],
+        ["Solapa", `${mm(data.flapWidth)} × ${mm(data.coverHeight)}`]
+      ]
+    : [
+        ["Tapa", `${mm(data.coverWidth)} × ${mm(data.coverHeight)}`],
+        ["Lomo", `${mm(data.spineWidth)} × ${mm(data.coverHeight)}`],
+        ["Base para lomo", `${mm(data.spineBase)}`],
+        ["Holgura", `${mm(data.spineSlack)}`]
+      ];
+
+  const rowsHtml = summaryRows.map(([label, value]) => `<tr><td>${label}</td><td>${value}</td></tr>`).join("");
+  const notes = data.mode === "compound"
+    ? "En porta notas doble lomo, el extra por forro se considera dentro de la fórmula: 2 mm en lomo 1 y 1 mm en lomo 2."
+    : data.mode === "ring" && ringSubmode === "covers"
+    ? "Cálculo rápido de tapa para cuaderno anillado. Las perforaciones son referenciales para Wire-O paso 2:1."
+    : data.mode === "ring"
+    ? "Cálculo rápido para elegir anillo Wire-O paso 2:1 según el grosor del proyecto."
+    : "Cálculo basado en hojas, cartón, forro y holgura configurada.";
+
+  const fichaHtml = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Aral Calc - Ficha</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#fbf9f7;color:#2f2830;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:13px}
+    .page{max-width:960px;margin:0 auto;padding:26px}
+    .sheet{background:#fff;border:1px solid #e4d9d2;border-radius:18px;padding:24px;box-shadow:0 8px 24px rgba(37,27,34,.08)}
+    .brand{font-size:24px;font-weight:800;color:#574e48;letter-spacing:.01em}
+    .sub{margin-top:4px;color:#6f666d;font-size:13px}
+    .meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
+    .meta-card,.box{border:1px solid #e4d9d2;background:#fcf9f7;border-radius:14px;padding:13px}
+    .meta-k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#7a7068;font-weight:800}
+    .meta-v{margin-top:3px;font-size:15px;font-weight:750;color:#2f2830}
+    .grid{display:grid;grid-template-columns:minmax(280px,.85fr) minmax(360px,1.15fr);gap:14px;align-items:start}
+    h3{margin:0 0 10px;font-size:15px;color:#574e48}
+    table{width:100%;border-collapse:collapse}
+    td{border-bottom:1px solid #eadfd8;padding:9px 4px;vertical-align:top}
+    td:first-child{color:#6f666d;font-weight:650;width:42%}
+    td:last-child{font-weight:750;color:#2f2830}
+    .note{margin-top:12px;color:#6f666d;font-size:11.5px;line-height:1.35}
+    .svg-wrap svg{width:100%;height:auto;max-height:360px}
+    .bar{display:flex;justify-content:flex-end;margin-top:18px}
+    button{border:1px solid #7f5970;background:#7f5970;color:#fff;border-radius:10px;padding:9px 14px;font-weight:750;cursor:pointer}
+    @media print{
+      body{background:#fff}
+      .page{padding:0;max-width:none}
+      .sheet{box-shadow:none;border:none;border-radius:0}
+      .bar{display:none}
+    }
+    @media (max-width:760px){
+      .grid,.meta{grid-template-columns:1fr}
+      .page{padding:14px}
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="sheet">
+      <div class="brand">Aral Calc</div>
+      <div class="sub">Calculadora de encuadernación</div>
+      <div class="meta">
+        <div class="meta-card"><div class="meta-k">Proyecto</div><div class="meta-v">${projectLabel}</div></div>
+        <div class="meta-card"><div class="meta-k">Fecha</div><div class="meta-v">${dateLabel}</div></div>
+      </div>
+      <div class="grid">
+        <div class="box">
+          <h3>Resumen técnico</h3>
+          <table>${rowsHtml}</table>
+          <div class="note">${notes}</div>
+        </div>
+        <div class="box svg-wrap">
+          <h3>Guía visual 2D</h3>
+          ${svgMarkup}
+        </div>
+      </div>
+      <div class="bar"><button type="button" onclick="window.print()">Guardar / Imprimir PDF</button></div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  if(!win){
+    alert("Tu navegador bloqueó la apertura. Permite ventanas emergentes para este archivo y vuelve a intentar.");
+    return;
+  }
+  win.document.open();
+  win.document.write(fichaHtml);
+  win.document.close();
+}
+
+function renderOutputs(){
+  const data = compute();
+  renderCards(data);
+  renderSchematic(data);
+  renderRings(data);
+}
+
+function render(){
+  document.querySelectorAll(".project-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.project === projectKey));
+  document.querySelectorAll(".chip").forEach(btn => btn.classList.toggle("active", btn.dataset.preset === selectedPreset));
+  renderForm();
+  renderOutputs();
+}
+
+document.querySelectorAll(".project-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    projectKey = btn.dataset.project;
+    ringSubmode = "covers";
+    form = { ...PROJECTS[projectKey].defaults };
+    if(projectKey === "anillado"){
+      selectedPreset = "A5";
+      applyPresetToForm("A5");
+    }
+    render();
+  });
+});
+document.querySelectorAll(".chip").forEach(btn => {
+  btn.addEventListener("click", () => {
+    applyPresetToForm(btn.dataset.preset);
+    render();
+  });
+});
+document.querySelectorAll(".submode-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    setRingSubmode(btn.dataset.ringMode);
+  });
+});
+applyPresetToForm("A5");
+document.getElementById("pdf-btn").addEventListener("click", openPdfSheet);
+document.getElementById("logout-btn").addEventListener("click", async () => {
+  if(location.protocol==="file:"){alert("Vista local de prueba."); return;}
+  try {
+    let supabaseClient = window.__aralSupabaseClient;
+    if (!supabaseClient) {
+      const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
+      const config = await response.json();
+      if (config.enabled) {
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+      }
+    }
+
+    if (supabaseClient) {
+      await supabaseClient.auth.signOut();
+    }
+  } finally {
+    window.location.href = "/acceso/?app=aral_calc&next=/aral-calc/";
+  }
+});
+render();
+</script>
+</body>
 </html>
