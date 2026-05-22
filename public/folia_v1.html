@@ -179,6 +179,12 @@
       width:5px;
       background:linear-gradient(180deg,#B75F76,#7EA98B);
     }
+    .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .hero-quick-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .quick-link{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:4px 10px;border-radius:999px;border:1px solid #B8C2CF;background:rgba(255,253,251,.9);color:#344054;font-size:12px;font-weight:650;text-decoration:none;cursor:pointer;transition:all .16s ease}
+    .quick-link:hover{border-color:#9EACBA;background:#F6EEF1;color:#8E4057}
+    .quick-link:focus-visible{outline:2px solid rgba(193,111,130,.24);outline-offset:1px}
+    @media (max-width:640px){.hero-top{align-items:stretch}.hero-quick-actions{justify-content:flex-start}}
     h1{font-size:29px;letter-spacing:-.04em;color:#10192A}
     .sub{font-size:13px;color:#526174}
     .main{grid-template-columns:minmax(286px,318px) minmax(0,1fr);gap:12px}
@@ -1529,6 +1535,7 @@
   }
 
 </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/svg2pdf.js/2.2.1/svg2pdf.umd.min.js"></script>
 </head>
@@ -1536,11 +1543,17 @@
   <div class="wrap">
     <div class="hero">
       <div class="hero-grid">
-        <div class="brand-lockup">
-          <span class="brand-mark" aria-hidden="true"></span>
-          <div class="brand-copy">
-            <h1 class="brand-title">Folia</h1>
-            <p class="sub">Crea hojas personalizadas y listas para imprimir en segundos.</p>
+        <div class="hero-top">
+          <div class="brand-lockup">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <div class="brand-copy">
+              <h1 class="brand-title">Folia</h1>
+              <p class="sub">Crea hojas personalizadas y listas para imprimir en segundos.</p>
+            </div>
+          </div>
+          <div class="hero-quick-actions" aria-label="Accesos rápidos">
+            <a class="quick-link" href="/">Home</a>
+            <button class="quick-link" id="logoutBtn" type="button">Cerrar sesión</button>
           </div>
         </div>
       </div>
@@ -1716,6 +1729,42 @@ const LEGACY_MARKER_STYLE_MAP={
   regalo:"punto",
   web:"punto"
 };
+let supabaseClient = null;
+let supabaseReadyPromise = null;
+
+async function ensureSupabaseClient(){
+  if(supabaseClient) return supabaseClient;
+  if(supabaseReadyPromise) return supabaseReadyPromise;
+  supabaseReadyPromise = (async()=>{
+    if(!window.supabase || typeof window.supabase.createClient !== 'function') return null;
+    const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
+    if(!response.ok) throw new Error(`auth-config-${response.status}`);
+    const config = await response.json();
+    if(!config?.supabaseUrl || !config?.supabaseAnonKey) throw new Error('auth-config-missing');
+    supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+    return supabaseClient;
+  })().catch(()=>{
+    supabaseReadyPromise = null;
+    return null;
+  });
+  return supabaseReadyPromise;
+}
+
+async function logoutFolia(){
+  const logoutBtn = document.getElementById('logoutBtn');
+  if(logoutBtn){
+    logoutBtn.disabled = true;
+    logoutBtn.textContent = 'Saliendo...';
+  }
+  try{
+    const client = await ensureSupabaseClient();
+    if(client) await client.auth.signOut();
+  }catch(_err){
+    // mantener flujo: redirigir aunque falle el cierre remoto
+  }finally{
+    location.href = '/acceso/?app=folia';
+  }
+}
 /* v63: corrige pantalla en blanco de v62 y mantiene cápsulas bicolor curvas. */
 const CONTENT_CONFIG_DEFAULTS={
   lineSpacing:7,
@@ -4572,6 +4621,7 @@ function initCollapsiblePanels(){
 
 function bindStatic(){
   document.getElementById('projectName').addEventListener('input',e=>{state.projectName=e.target.value; updateUI();});
+  document.getElementById('logoutBtn')?.addEventListener('click',logoutFolia);
   document.getElementById('zoomOutBtn').addEventListener('click',()=>{state.previewZoom=Math.max(0.5, +(state.previewZoom-0.25).toFixed(2)); renderPreview();});
   document.getElementById('zoomInBtn').addEventListener('click',()=>{state.previewZoom=Math.min(6, +(state.previewZoom+0.25).toFixed(2)); renderPreview();});
   document.getElementById('zoomResetBtn').addEventListener('click',()=>{state.previewZoom=1; renderPreview(); const wrap=document.querySelector('.canvas-wrap'); if(wrap){wrap.scrollTop=0; wrap.scrollLeft=0;}});
