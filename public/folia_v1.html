@@ -1529,6 +1529,7 @@
   }
 
 </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/svg2pdf.js/2.2.1/svg2pdf.umd.min.js"></script>
 </head>
@@ -1543,6 +1544,10 @@
             <p class="sub">Crea hojas personalizadas y listas para imprimir en segundos.</p>
           </div>
         </div>
+        <nav class="hero-quick-actions" aria-label="Accesos rápidos">
+          <a class="hero-quick-link" href="/">Home</a>
+          <button id="foliaLogoutBtn" class="hero-quick-link" type="button">Cerrar sesión</button>
+        </nav>
       </div>
     </div>
     <div class="main">
@@ -1676,6 +1681,33 @@
   </div>
 
 <script>
+let foliaSupabaseClient=null;
+
+async function getFoliaSupabaseClient(){
+  if(foliaSupabaseClient) return foliaSupabaseClient;
+  const response=await fetch('/api/auth-config',{headers:{Accept:'application/json'}});
+  const config=await response.json();
+  if(!config.enabled||!config.supabaseUrl||!config.supabaseAnonKey){
+    throw new Error('Supabase config unavailable');
+  }
+  foliaSupabaseClient=window.supabase.createClient(config.supabaseUrl,config.supabaseAnonKey);
+  return foliaSupabaseClient;
+}
+
+async function logoutFolia(){
+  const loginUrl='/acceso/?app=folia';
+  try{
+    const client=await getFoliaSupabaseClient();
+    await client.auth.signOut();
+  }catch(_error){
+    // Si falla signOut, igual redirigimos al flujo de acceso de Folia.
+  }finally{
+    window.location.href=loginUrl;
+  }
+}
+
+document.getElementById('foliaLogoutBtn')?.addEventListener('click',logoutFolia);
+
 const SIZE_PRESETS={A4:{width:210,height:297},A5:{width:148,height:210},A6:{width:105,height:148},Carta:{width:216,height:279},"Media carta":{width:140,height:216},B5:{width:176,height:250},Personalizado:{width:148,height:210}};
 const ARMADOS=[["suelta","Hoja suelta"],["anillado","Anillado lateral"],["cuadernillo","Cuadernillo al centro"],["block","Anillado superior"]];
 const SHEETS=[["rayada","Rayada"],["punteada","Punteada"],["cuadriculada","Cuadriculada"],["lista","Lista"],["agenda","Modo agenda"]];
