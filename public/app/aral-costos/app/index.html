@@ -550,7 +550,11 @@
         // Ignorar errores de salida y continuar con redirección.
       }
 
-      window.location.href = '/acceso/?app=aral_costos';
+      try {
+  window.top.location.href = '/acceso/?app=aral_costos';
+} catch {
+  window.location.href = '/acceso/?app=aral_costos';
+}
     }
   </script>
 
