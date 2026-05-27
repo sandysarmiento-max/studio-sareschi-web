@@ -359,7 +359,10 @@
           <div class="logo-text">Aral<span>Costos</span></div>
           <div class="tagline">Tu Taller de Precisión</div>
         </div>
-        <button style="background:none; border:none; font-size:1.1rem; cursor:pointer;" onclick="toggleTheme()">🌙</button>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button style="background:none; border:1px solid var(--borde); color:var(--texto-principal); font-size:0.8rem; font-weight:600; border-radius:999px; padding:4px 10px; cursor:pointer;" onclick="cerrarSesionApp()">Salir</button>
+          <button style="background:none; border:none; font-size:1.1rem; cursor:pointer;" onclick="toggleTheme()">🌙</button>
+        </div>
       </header>
 
       <main id="tab-costear">
@@ -532,6 +535,27 @@
     }
 
     gateAccess();
+
+    async function cerrarSesionApp() {
+      try {
+        const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
+        if (response.ok) {
+          const config = await response.json();
+          if (config.enabled) {
+            const supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+            await supabaseClient.auth.signOut();
+          }
+        }
+      } catch {
+        // Ignorar errores de salida y continuar con redirección.
+      }
+
+      try {
+  window.top.location.href = '/acceso/?app=aral_costos';
+} catch {
+  window.location.href = '/acceso/?app=aral_costos';
+}
+    }
   </script>
 
   <script>
