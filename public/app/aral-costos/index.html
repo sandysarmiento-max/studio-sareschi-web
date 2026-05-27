@@ -68,11 +68,23 @@
         }
       }
 
-      function showApp() {
-        document.getElementById('loading').hidden = true;
-        document.getElementById('blocked').hidden = true;
-        document.getElementById('app-frame').hidden = false;
-      }
+     function showApp() {
+  const shell = document.querySelector('.app-shell');
+  const frame = document.getElementById('app-frame');
+
+  document.getElementById('loading').hidden = true;
+  document.getElementById('blocked').hidden = true;
+
+  if (shell) {
+    shell.style.display = 'none';
+  }
+
+  frame.hidden = false;
+  frame.style.position = 'fixed';
+  frame.style.inset = '0';
+  frame.style.width = '100%';
+  frame.style.height = '100dvh';
+}
 
       async function registerServiceWorker() {
         if (!('serviceWorker' in navigator)) return;
