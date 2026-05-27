@@ -55,6 +55,16 @@
     <a class="btn btn-primary" href="/acceso/?app=aral_calc">Entrar a Aral Calc</a>
   </div>
 
+
+
+  <div class="card" style="padding:16px">
+    <h2 style="margin:0 0 8px;font-size:1.1rem">Aral Costos</h2>
+    <p class="tiny-note" style="margin:0 0 12px">
+      App de costos para suscriptoras con acceso privado.
+    </p>
+    <a class="btn btn-primary" href="/acceso/?app=aral_costos">Entrar a Aral Costos</a>
+  </div>
+
   <div class="card" style="padding:16px">
     <h2 style="margin:0 0 8px;font-size:1.1rem">Folia</h2>
     <p class="tiny-note" style="margin:0 0 12px">
@@ -143,6 +153,12 @@ const APP_CONFIG = {
     alternateLabel: 'Folia',
     alternateHref: '/acceso/?app=folia',
   },
+  aral_costos: {
+    name: 'Aral Costos',
+    next: '/app/aral-costos/',
+    alternateLabel: 'Aral Calc',
+    alternateHref: '/acceso/?app=aral_calc',
+  },
   folia: {
     name: 'Folia',
     next: '/app/folia',
@@ -174,7 +190,7 @@ const noAccessAppNameEl = document.getElementById('no-access-app-name');
 if (!currentApp) {
   document.title = 'Acceso a apps | Studio Sareschi';
   titleEl.textContent = 'Elige la app que quieres abrir';
-  descriptionEl.textContent = 'Selecciona Aral Calc o Folia para continuar con tu acceso protegido.';
+  descriptionEl.textContent = 'Selecciona Aral Calc, Aral Costos o Folia para continuar con tu acceso protegido.';
   appSelector.hidden = false;
   appSelector.style.display = 'grid';
   form.hidden = true;
