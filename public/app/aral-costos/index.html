@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aral Costos | Suscriptoras</title>
+  <meta name="theme-color" content="#c13f75" />
+  <link rel="manifest" href="/app/aral-costos/manifest.webmanifest" />
+  <style>body{font-family:Inter,system-ui,sans-serif;margin:0;background:#fffafb;color:#2f2630}.wrap{max-width:900px;margin:0 auto;padding:24px}.card{border:1px solid #f0dbe6;background:#fff;border-radius:16px;padding:16px;margin-bottom:16px}.hidden{display:none}.btn{background:#c13f75;color:#fff;padding:10px 14px;border-radius:12px;text-decoration:none;display:inline-block;border:0;cursor:pointer}</style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div id="loading" class="card">Validando acceso...</div>
+    <div id="blocked" class="card hidden">
+      <h2>Acceso bloqueado</h2>
+      <p>Tu sesión está activa, pero no tienes acceso a Aral Costos en este momento.</p>
+      <a class="btn" href="/">Volver al inicio</a>
+    </div>
+    <main id="app" class="hidden">
+      <div class="card"><h1>Aral Costos · Suscriptoras</h1><p>Versión protegida dentro de Studio Sareschi.</p><button id="logout" class="btn">Cerrar sesión</button></div>
+      <div class="card"><p>Espacio reservado para la copia de la app Aral Costos (independiente de GitHub Pages).</p></div>
+    </main>
+  </div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/app/aral-costos/sw.js', { scope: '/app/aral-costos/' }));
+    }
+    (async function(){
+      const loading = document.getElementById('loading');
+      const blocked = document.getElementById('blocked');
+      const app = document.getElementById('app');
+      const next = encodeURIComponent('/app/aral-costos/');
+      try {
+        const response = await fetch('/api/auth-config',{headers:{Accept:'application/json'}});
+        const config = await response.json();
+        if (!config.enabled) { window.location.href = '/acceso/?app=aral_costos&next='+next; return; }
+        const supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { window.location.href = '/acceso/?app=aral_costos&next='+next; return; }
+        const { data } = await supabase.from('app_access').select('id').eq('app_key','aral_costos').eq('status','active').limit(1).maybeSingle();
+        loading.classList.add('hidden');
+        if (!data) { blocked.classList.remove('hidden'); return; }
+        app.classList.remove('hidden');
+        document.getElementById('logout').addEventListener('click', async ()=>{ await supabase.auth.signOut(); window.location.href='/acceso/?app=aral_costos'; });
+      } catch (_e) { window.location.href = '/acceso/?app=aral_costos&next='+next; }
+    })();
+  </script>
+</body>
+</html>

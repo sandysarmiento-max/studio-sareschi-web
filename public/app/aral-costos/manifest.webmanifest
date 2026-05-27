@@ -1,0 +1,10 @@
+{
+  "name": "Aral Costos Suscriptoras",
+  "short_name": "Aral Costos",
+  "start_url": "/app/aral-costos/",
+  "scope": "/app/aral-costos/",
+  "display": "standalone",
+  "background_color": "#fffafb",
+  "theme_color": "#c13f75",
+  "icons": []
+}
