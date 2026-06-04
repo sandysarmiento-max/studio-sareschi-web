@@ -890,7 +890,7 @@
     showInfoModal({
       badge: "🎁",
       title: "¡Ganaste el recurso creativo de este mes!",
-      message: `Juntaste ${REWARD_GOAL} monedas acumuladas. Ya puedes descargar el recurso de ${getSpanishMonthName()}.`,
+      message: `Juntaste ${REWARD_GOAL} monedas acumuladas. Para evitar errores de descarga en celular, abre este juego desde Google Chrome y descarga el recurso de ${getSpanishMonthName()}.`,
       primaryText: "Descargar recurso",
       onPrimary: tryDownloadReward,
       secondaryText: "Seguir jugando",
@@ -1061,9 +1061,9 @@
       : "Puedes seguir jugando para acumular monedas para el próximo mes.";
 
     showSingleButtonModal(
-      "¡Recurso descargado!",
-      `La descarga se inició y el recurso de este mes quedó bloqueado. ${extraMessage}`
-    );
+  "¡Recurso descargado!",
+  `La descarga se inició correctamente. El siguiente recurso se activará el próximo mes.`
+);
   }
 
   function launchCelebration(type = "level") {
