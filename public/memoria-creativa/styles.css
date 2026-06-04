@@ -2078,3 +2078,29 @@ h2,
     zoom: 0.88;
   }
 }
+.back-arrow-img {
+  display: block;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+}
+
+.back-arrow-img--game {
+  width: 28px;
+  height: 28px;
+}
+
+.back-arrow-img--home {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
+.home-back-link {
+  gap: 0.35rem;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+}
