@@ -1,0 +1,1333 @@
+(() => {
+  "use strict";
+
+  const STORAGE_KEY = "studioSareschi.memoriaCreativa.v8";
+  const LEGACY_STORAGE_KEY = "studioSareschi.memoriaCreativa.v1";
+  const LEGACY_STORAGE_KEY_V2 = "studioSareschi.memoriaCreativa.v2";
+  const REWARD_GOAL = 3000;
+  const STARTING_COINS = 100;
+  const ERROR_COST = 2;
+  const PLAYER_MATCH_REWARD = 5;
+  const PROGRESS_MATCH_REWARD = 10;
+  const DAILY_BONUS = 50;
+  const STREAK_PLAYER_BONUS = 10;
+  const STREAK_PROGRESS_BONUS = 20;
+  const TIME_BONUS_PLAYER = 50;
+  const TIME_BONUS_PROGRESS = 50;
+
+  const LEVELS = [
+    { level: 1, pairs: 4, mode: "normal", label: "Normal", playerBonus: 40, progressBonus: 80 },
+    { level: 2, pairs: 6, mode: "normal", label: "Normal", playerBonus: 60, progressBonus: 120 },
+    { level: 3, pairs: 6, mode: "quick", label: "Vista rápida", playerBonus: 80, progressBonus: 160, previewSeconds: 3 },
+    { level: 4, pairs: 8, mode: "normal", label: "Normal", playerBonus: 100, progressBonus: 200 },
+    { level: 5, pairs: 8, mode: "streak", label: "Racha creativa", playerBonus: 120, progressBonus: 240 },
+    { level: 6, pairs: 8, mode: "moves", label: "Movimientos limitados", playerBonus: 150, progressBonus: 300, moves: 22 },
+    { level: 7, pairs: 10, mode: "normal", label: "Normal", playerBonus: 150, progressBonus: 300 },
+    { level: 8, pairs: 10, mode: "timer", label: "Tiempo bonus", playerBonus: 150, progressBonus: 300, bonusSeconds: 75 },
+    { level: 9, pairs: 10, mode: "restless", label: "Cartas inquietas", playerBonus: 150, progressBonus: 300, restlessEvery: 3 },
+    { level: 10, pairs: 12, mode: "normal", label: "Normal", playerBonus: 150, progressBonus: 300 },
+    { level: 11, pairs: 12, mode: "moves", label: "Movimientos limitados", playerBonus: 150, progressBonus: 300, moves: 32 },
+    { level: 12, pairs: 12, mode: "special", label: "Reto especial", playerBonus: 150, progressBonus: 300, previewSeconds: 3 }
+  ];
+
+  const CARD_ICONS = {
+    cuaderno: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Cuaderno espiral">
+        <rect x="32" y="20" width="66" height="82" rx="13" fill="#ffd9ec" stroke="#fff" stroke-width="6"/>
+        <rect x="43" y="34" width="42" height="52" rx="8" fill="#fffdf8" opacity=".95"/>
+        <path d="M31 34h-10M31 48h-10M31 62h-10M31 76h-10M31 90h-10" stroke="#7f74d8" stroke-width="6" stroke-linecap="round"/>
+        <path d="M51 50h27M51 63h27M51 76h20" stroke="#ff7fbd" stroke-width="4" stroke-linecap="round"/>
+      </svg>`,
+    planner: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Planner mensual">
+        <rect x="24" y="29" width="72" height="62" rx="12" fill="#fffdf8" stroke="#fff" stroke-width="6"/>
+        <rect x="24" y="29" width="72" height="18" rx="10" fill="#ff8fc7"/>
+        <path d="M42 22v14M78 22v14" stroke="#6f5f7c" stroke-width="6" stroke-linecap="round"/>
+        <path d="M38 59h11M55 59h11M72 59h11M38 74h11M55 74h11M72 74h11" stroke="#8adfc5" stroke-width="5" stroke-linecap="round"/>
+      </svg>`,
+    impresora: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Impresora">
+        <rect x="35" y="19" width="50" height="29" rx="5" fill="#ffffff" stroke="#b9d7ec" stroke-width="4"/>
+        <rect x="24" y="45" width="72" height="39" rx="11" fill="#cdefff" stroke="#fff" stroke-width="6"/>
+        <rect x="35" y="68" width="50" height="31" rx="6" fill="#ffffff" stroke="#fff" stroke-width="5"/>
+        <path d="M44 79h32M44 89h24" stroke="#ff8fc7" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="83" cy="58" r="4" fill="#7f74d8"/>
+      </svg>`,
+    lapiz: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Lápiz">
+        <g transform="rotate(-32 60 60)">
+          <rect x="33" y="50" width="56" height="18" rx="8" fill="#ffd56d" stroke="#fff" stroke-width="6"/>
+          <rect x="33" y="50" width="16" height="18" rx="7" fill="#ff8fc7"/>
+          <path d="M89 50l18 9-18 9z" fill="#fff4d7" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+          <path d="M103 59l-7 4v-8z" fill="#6f5f7c"/>
+          <path d="M54 54h25" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+        </g>
+      </svg>`,
+    regla: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Regla">
+        <g transform="rotate(-8 60 60)">
+          <rect x="16" y="46" width="88" height="28" rx="8" fill="#aef0d5" stroke="#fff" stroke-width="6"/>
+          <path d="M28 50v19M38 50v12M48 50v19M58 50v12M68 50v19M78 50v12M88 50v19" stroke="#6f5f7c" stroke-width="4" stroke-linecap="round"/>
+        </g>
+      </svg>`,
+    cutter: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Cutter">
+        <g transform="rotate(-28 60 60)">
+          <rect x="28" y="46" width="66" height="26" rx="10" fill="#ff8fc7" stroke="#fff" stroke-width="6"/>
+          <rect x="31" y="50" width="22" height="18" rx="7" fill="#b7d5ff"/>
+          <rect x="57" y="51" width="18" height="16" rx="5" fill="#fff" opacity=".85"/>
+          <path d="M94 52l12 7-12 7z" fill="#fffdf8" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+          <path d="M103 59l-7 4v-8z" fill="#6f5f7c"/>
+        </g>
+      </svg>`,
+    clip: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Clip">
+        <g transform="rotate(14 60 60)">
+          <path d="M79 35c9 0 16 7 16 16v31c0 17-14 31-31 31S33 99 33 82V45c0-12 10-22 22-22s22 10 22 22v32c0 8-6 14-14 14s-14-6-14-14V50" fill="none" stroke="#6f5f7c" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M74 35c9 0 16 7 16 16v28c0 14-11 25-25 25s-25-11-25-25V46c0-9 7-16 16-16" fill="none" stroke="#ff8fc7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+      </svg>`,
+    pegamento: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Pegamento">
+        <rect x="43" y="18" width="34" height="18" rx="6" fill="#8ee8ff" stroke="#fff" stroke-width="5"/>
+        <rect x="36" y="34" width="48" height="66" rx="14" fill="#fffdf8" stroke="#fff" stroke-width="6"/>
+        <rect x="42" y="55" width="36" height="23" rx="8" fill="#ffb7dd"/>
+        <path d="M50 66h20" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+      </svg>`,
+    sobre: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Sobre">
+        <rect x="21" y="38" width="78" height="46" rx="10" fill="#fffdf8" stroke="#fff" stroke-width="6"/>
+        <path d="M28 47l32 23 32-23" fill="none" stroke="#ff8fc7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M29 78l22-17M91 78L69 61" fill="none" stroke="#ffd19d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`,
+    sello: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Sello">
+        <path d="M46 29c0-10 28-10 28 0v16H46z" fill="#c9b6ff" stroke="#fff" stroke-width="6"/>
+        <rect x="34" y="43" width="52" height="22" rx="8" fill="#ffcf7c" stroke="#fff" stroke-width="5"/>
+        <rect x="26" y="67" width="68" height="24" rx="8" fill="#ff8fc7" stroke="#fff" stroke-width="5"/>
+        <path d="M39 79h42" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+      </svg>`,
+    washi: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Washi tape">
+        <circle cx="58" cy="58" r="32" fill="#ffcf7c" stroke="#fff" stroke-width="7"/>
+        <circle cx="58" cy="58" r="14" fill="#fff8ec"/>
+        <path d="M29 55c16-10 43-10 58 0" stroke="#ff78b7" stroke-width="8" stroke-linecap="round" opacity=".82"/>
+        <path d="M34 76c14-9 35-9 49 0" stroke="#8ee8ff" stroke-width="7" stroke-linecap="round" opacity=".9"/>
+      </svg>`,
+    stickers: `
+      <svg viewBox="0 0 120 120" role="img" aria-label="Stickers">
+        <path d="M56 18l9 21 23 2-18 15 6 23-20-12-20 12 6-23-18-15 23-2z" fill="#ffd75f" stroke="#fff" stroke-width="6"/>
+        <circle cx="84" cy="80" r="16" fill="#a8f4d3" stroke="#fff" stroke-width="5"/>
+        <path d="M31 78c8-11 20-11 28 0-8 12-20 12-28 0z" fill="#ff8fc7" stroke="#fff" stroke-width="5"/>
+      </svg>`
+  };
+
+  const TROPHY_BADGE_IMAGE = "assets/ui/trophy-badge.png";
+
+  const CARDS = [
+    { id: "cuaderno", name: "Cuaderno espiral", image: "assets/cards/cuaderno.png" },
+    { id: "planner", name: "Planner", image: "assets/cards/planner.png" },
+    { id: "impresora", name: "Impresora", image: "assets/cards/impresora.png" },
+    { id: "lapiz", name: "Lápiz", image: "assets/cards/lapiz.png" },
+    { id: "regla", name: "Regla", image: "assets/cards/regla.png" },
+    { id: "cutter", name: "Cutter", image: "assets/cards/cutter.png" },
+    { id: "clip", name: "Clip", image: "assets/cards/clip.png" },
+    { id: "pegamento", name: "Pegamento", image: "assets/cards/pegamento.png" },
+    { id: "sobre", name: "Sobre", image: "assets/cards/sobre.png" },
+    { id: "sello", name: "Sello", image: "assets/cards/sello.png" },
+    { id: "washi", name: "Washi tape", image: "assets/cards/washi-tape.png" },
+    { id: "stickers", name: "Stickers", image: "assets/cards/stickers.png" }
+  ];
+
+  const els = {
+    homeScreen: document.querySelector("#home-screen"),
+    gameScreen: document.querySelector("#game-screen"),
+    homeCoins: document.querySelector("#home-coins"),
+    homeLevel: document.querySelector("#home-level"),
+    homeRound: document.querySelector("#home-round"),
+    homeProgressText: document.querySelector("#home-progress-text"),
+    homeProgressFill: document.querySelector("#home-progress-fill"),
+    homeRewardStatus: document.querySelector("#home-reward-status"),
+    homeRewardButton: document.querySelector("#home-reward-button"),
+    homeDailyMessage: document.querySelector("#home-daily-message"),
+    playButton: document.querySelector("#play-button"),
+    shareButton: document.querySelector("#share-button"),
+    homeSoundButton: document.querySelector("#home-sound-button"),
+    gameSoundButton: document.querySelector("#game-sound-button"),
+    backHomeButton: document.querySelector("#back-home-button"),
+    gameLevel: document.querySelector("#game-level"),
+    gameRound: document.querySelector("#game-round"),
+    gameMode: document.querySelector("#game-mode"),
+    gameCoins: document.querySelector("#game-coins"),
+    gameProgressText: document.querySelector("#game-progress-text"),
+    gameProgressFill: document.querySelector("#game-progress-fill"),
+    gameRewardStatus: document.querySelector("#game-reward-status"),
+    gameRewardButton: document.querySelector("#game-reward-button"),
+    matchedPairs: document.querySelector("#matched-pairs"),
+    totalPairs: document.querySelector("#total-pairs"),
+    movesPanel: document.querySelector("#moves-panel"),
+    movesLeft: document.querySelector("#moves-left"),
+    timerPanel: document.querySelector("#timer-panel"),
+    timerLeft: document.querySelector("#timer-left"),
+    gameMessage: document.querySelector("#game-message"),
+    board: document.querySelector("#memory-board"),
+    restartLevelButton: document.querySelector("#restart-level-button"),
+    resetProgressButton: document.querySelector("#reset-progress-button"),
+    modal: document.querySelector("#modal"),
+    modalBadge: document.querySelector("#modal-badge"),
+    modalTitle: document.querySelector("#modal-title"),
+    modalMessage: document.querySelector("#modal-message"),
+    modalActions: document.querySelector("#modal-actions"),
+    levelIntro: document.querySelector("#level-intro"),
+    levelIntroTitle: document.querySelector("#level-intro-title"),
+    levelIntroText: document.querySelector("#level-intro-text"),
+    levelIntroKicker: document.querySelector("#level-intro-kicker"),
+    levelIntroOk: document.querySelector("#level-intro-ok")
+  };
+
+  let state = loadState();
+  let firstCard = null;
+  let secondCard = null;
+  let lockBoard = false;
+  let matchedCount = 0;
+  let mismatchStreak = 0;
+  let matchStreak = 0;
+  let movesLeft = null;
+  let timerId = null;
+  let introTimerId = null;
+  let celebrationTimerId = null;
+  let timerLeft = 0;
+  let timerBonusAvailable = false;
+  let audioUnlocked = false;
+  let audioContext = null;
+  let audioReadyPromise = null;
+  let audioPrimed = false;
+
+  function defaultState() {
+    return {
+      playerCoins: STARTING_COINS,
+      rewardProgress: 0,
+      currentLevel: 1,
+      roundNumber: 1,
+      currentRewardMonth: monthKey(),
+      monthlyRewardUnlocked: false,
+      monthlyRewardClaimed: false,
+      unlockedReward: false,
+      soundEnabled: true,
+      lastDailyResetDate: todayKey(),
+      lastDailyBonusDate: "",
+      bestProgress: 0,
+      completedCycles: 0
+    };
+  }
+
+  function loadState() {
+    try {
+      const storedV4 = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      const storedV2 = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY_V2));
+      const storedV1 = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY));
+      const stored = storedV4 || storedV2 || storedV1 || {};
+      return normalizeState({ ...defaultState(), ...stored });
+    } catch (error) {
+      return defaultState();
+    }
+  }
+
+  function normalizeState(nextState) {
+    nextState.playerCoins = Math.max(0, Number(nextState.playerCoins) || 0);
+    nextState.rewardProgress = Math.max(0, Number(nextState.rewardProgress) || 0);
+    nextState.currentLevel = clamp(Number(nextState.currentLevel) || 1, 1, LEVELS.length);
+    nextState.roundNumber = Math.max(1, Number(nextState.roundNumber) || Number(nextState.completedCycles || 0) + 1 || 1);
+    nextState.currentRewardMonth = nextState.currentRewardMonth || monthKey();
+    nextState.monthlyRewardClaimed = Boolean(nextState.monthlyRewardClaimed);
+    nextState.soundEnabled = nextState.soundEnabled !== false;
+    nextState.lastDailyResetDate = nextState.lastDailyResetDate || todayKey();
+    nextState.lastDailyBonusDate = nextState.lastDailyBonusDate || nextState.lastShareBonusDate || "";
+    delete nextState.lastShareBonusDate;
+    nextState.bestProgress = Math.max(Number(nextState.bestProgress) || 0, nextState.rewardProgress);
+    nextState.completedCycles = Math.max(0, Number(nextState.completedCycles) || 0);
+    return applyMonthlyRewardReset(nextState);
+  }
+
+  function saveState() {
+    state.rewardProgress = Math.max(0, Number(state.rewardProgress) || 0);
+    state.bestProgress = Math.max(state.bestProgress, state.rewardProgress);
+    state.monthlyRewardUnlocked = isRewardReady();
+    state.unlockedReward = state.monthlyRewardUnlocked;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function todayKey() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function monthKey() {
+    return todayKey().slice(0, 7);
+  }
+
+  function applyMonthlyRewardReset(nextState = state) {
+    const currentMonth = monthKey();
+    if (nextState.currentRewardMonth !== currentMonth) {
+      nextState.currentRewardMonth = currentMonth;
+      nextState.monthlyRewardClaimed = false;
+    }
+    nextState.rewardProgress = Math.max(0, Number(nextState.rewardProgress) || 0);
+    nextState.monthlyRewardUnlocked = !nextState.monthlyRewardClaimed && nextState.rewardProgress >= REWARD_GOAL;
+    nextState.unlockedReward = nextState.monthlyRewardUnlocked;
+    return nextState;
+  }
+
+  function isRewardReady() {
+    applyMonthlyRewardReset(state);
+    return !state.monthlyRewardClaimed && state.rewardProgress >= REWARD_GOAL;
+  }
+
+  function getSpanishMonthName(month = state.currentRewardMonth || monthKey()) {
+    const monthNames = [
+      "enero",
+      "febrero",
+      "marzo",
+      "abril",
+      "mayo",
+      "junio",
+      "julio",
+      "agosto",
+      "septiembre",
+      "octubre",
+      "noviembre",
+      "diciembre"
+    ];
+    const monthIndex = Number(String(month).slice(5, 7)) - 1;
+    return monthNames[monthIndex] || "mes";
+  }
+
+  function applyDailyRecharge() {
+    const today = todayKey();
+    applyMonthlyRewardReset(state);
+
+    if (state.playerCoins <= 0 && state.lastDailyResetDate !== today) {
+      state.playerCoins = STARTING_COINS;
+      state.lastDailyResetDate = today;
+      saveState();
+      setMessage(els.homeDailyMessage, "Recargamos 100 monedas para que sigas jugando hoy.", "success");
+      return;
+    }
+
+    if (!state.lastDailyResetDate) {
+      state.lastDailyResetDate = today;
+      saveState();
+    }
+  }
+
+  function isDailyLocked() {
+    return state.playerCoins <= 0 && state.lastDailyResetDate === todayKey();
+  }
+
+  function currentLevelConfig() {
+    return LEVELS[state.currentLevel - 1] || LEVELS[0];
+  }
+
+  function renderAll() {
+    applyMonthlyRewardReset(state);
+    const progressPercent = Math.min(100, (state.rewardProgress / REWARD_GOAL) * 100);
+    const level = currentLevelConfig();
+
+    setText(els.homeCoins, state.playerCoins);
+    setText(els.homeLevel, state.currentLevel);
+    setText(els.homeRound, state.roundNumber);
+    setText(els.homeProgressText, state.rewardProgress);
+    setText(els.gameCoins, state.playerCoins);
+    setText(els.gameLevel, state.currentLevel);
+    setText(els.gameRound, state.roundNumber);
+    setText(els.gameMode, level.label);
+    setText(els.gameProgressText, state.rewardProgress);
+
+    if (els.homeProgressFill) els.homeProgressFill.style.width = `${progressPercent}%`;
+    if (els.gameProgressFill) els.gameProgressFill.style.width = `${progressPercent}%`;
+
+    const rewardStatus = getRewardStatusText();
+    setText(els.homeRewardStatus, rewardStatus);
+    setText(els.gameRewardStatus, rewardStatus);
+
+    els.playButton.disabled = isDailyLocked();
+    els.restartLevelButton.disabled = isDailyLocked();
+    renderShareButton();
+    renderRewardButtons();
+    renderSoundButtons();
+    renderChallengePanels();
+
+    if (isDailyLocked()) {
+      setMessage(els.homeDailyMessage, "Te quedaste sin monedas por hoy. Vuelve mañana para seguir jugando.", "warning");
+      setMessage(els.gameMessage, "Te quedaste sin monedas por hoy. Vuelve mañana para seguir jugando.", "warning");
+    } else if (!els.homeDailyMessage.textContent) {
+      setMessage(els.homeDailyMessage, "", "");
+    }
+  }
+
+  function getRewardStatusText() {
+    if (state.monthlyRewardClaimed) {
+      if (state.rewardProgress >= REWARD_GOAL) {
+        return "Ya recibiste el recurso de este mes. Tus monedas extra quedan guardadas y el próximo mes el botón se activará automáticamente.";
+      }
+      return "Ya recibiste el recurso de este mes. Sigue jugando: tus monedas acumuladas quedan guardadas para el próximo mes.";
+    }
+    if (isRewardReady()) {
+      return "¡Tu recurso creativo del mes ya está disponible!";
+    }
+    const remaining = Math.max(0, REWARD_GOAL - state.rewardProgress);
+    return `Junta ${remaining} monedas más para desbloquear 1 recurso gratis este mes.`;
+  }
+
+  function setText(element, value) {
+    if (element) element.textContent = value;
+  }
+
+  function renderShareButton() {
+    if (!els.shareButton) return;
+    const usedToday = state.lastDailyBonusDate === todayKey();
+    els.shareButton.textContent = usedToday ? "Regalo diario recibido" : "Regalo diario +50";
+    els.shareButton.disabled = usedToday;
+  }
+
+  function renderRewardButtons() {
+    const rewardReady = isRewardReady();
+    const monthName = getSpanishMonthName();
+    [els.homeRewardButton, els.gameRewardButton].forEach((button) => {
+      if (!button) return;
+      button.hidden = !rewardReady;
+      button.disabled = !rewardReady;
+      if (rewardReady) {
+        button.textContent = button === els.homeRewardButton ? `Descargar recurso de ${monthName}` : "Descargar recurso";
+      }
+    });
+  }
+
+  function renderChallengePanels() {
+    const level = currentLevelConfig();
+    if (els.movesPanel) {
+      const showMoves = level.mode === "moves" && movesLeft !== null;
+      els.movesPanel.hidden = !showMoves;
+      setText(els.movesLeft, showMoves ? movesLeft : "—");
+    }
+    if (els.timerPanel) {
+      const showTimer = level.mode === "timer" && timerLeft > 0;
+      els.timerPanel.hidden = !showTimer;
+      setText(els.timerLeft, showTimer ? `${timerLeft}s` : "—");
+    }
+  }
+
+  function renderSoundButtons() {
+    const label = state.soundEnabled ? "Sonido: activado" : "Sonido: desactivado";
+    els.homeSoundButton.textContent = label;
+    els.homeSoundButton.setAttribute("aria-pressed", String(state.soundEnabled));
+    els.gameSoundButton.textContent = state.soundEnabled ? "🔊" : "🔇";
+    els.gameSoundButton.setAttribute("aria-label", label);
+    els.gameSoundButton.setAttribute("aria-pressed", String(state.soundEnabled));
+  }
+
+  function startGame() {
+    unlockAudio();
+    applyDailyRecharge();
+    renderAll();
+
+    if (isDailyLocked()) {
+      return;
+    }
+
+    showScreen("game");
+    buildLevel();
+  }
+
+  function showScreen(screenName) {
+    els.homeScreen.classList.toggle("is-active", screenName === "home");
+    els.gameScreen.classList.toggle("is-active", screenName === "game");
+    if (screenName !== "game") hideLevelIntro();
+  }
+
+  function buildLevel() {
+    clearTimer();
+    firstCard = null;
+    secondCard = null;
+    lockBoard = false;
+    matchedCount = 0;
+    mismatchStreak = 0;
+    matchStreak = 0;
+
+    const level = currentLevelConfig();
+    movesLeft = level.mode === "moves" ? level.moves : null;
+    timerLeft = level.mode === "timer" ? level.bonusSeconds : 0;
+    timerBonusAvailable = level.mode === "timer";
+
+    const selectedCards = CARDS.slice(0, level.pairs);
+    const deck = shuffle([...selectedCards, ...selectedCards].map((card, index) => ({
+      ...card,
+      instanceId: `${card.id}-${index}`
+    })));
+
+    els.board.innerHTML = "";
+    els.board.style.setProperty("--columns", String(getColumnCount(level.pairs)));
+    els.totalPairs.textContent = level.pairs;
+    els.matchedPairs.textContent = "0";
+    setMessage(els.gameMessage, getStartMessage(level), "");
+
+    deck.forEach((card) => {
+      els.board.appendChild(createCardButton(card));
+    });
+
+    renderAll();
+    showLevelIntro(level, () => {
+      if (level.mode === "quick" || level.mode === "special") {
+        scrollBoardIntoView();
+        window.setTimeout(() => revealPreview(level.previewSeconds || 3), 260);
+      } else {
+        lockBoard = false;
+      }
+
+      if (level.mode === "timer") {
+        startTimer();
+      }
+    });
+  }
+
+  function getStartMessage(level) {
+    if (level.mode === "quick" || level.mode === "special") {
+      return "Mira las cartas unos segundos y memoriza su lugar.";
+    }
+    if (level.mode === "moves") {
+      return `Tienes ${level.moves} movimientos para completar el nivel.`;
+    }
+    if (level.mode === "timer") {
+      return "Completa el nivel antes de que acabe el tiempo para ganar bonus extra.";
+    }
+    if (level.mode === "restless") {
+      return "Cuidado: después de varios errores, algunas cartas se reordenan.";
+    }
+    if (level.mode === "streak") {
+      return "Encuentra pares seguidos para activar una racha creativa.";
+    }
+    return "Elige dos cartas para encontrar un par.";
+  }
+
+
+  function getModeIntro(level) {
+    const map = {
+      normal: { kicker: `Nivel ${level.level}`, title: "¡A jugar!", text: "Encuentra todos los pares para avanzar al siguiente reto." },
+      quick: { kicker: `Nivel ${level.level}`, title: "¡Vista rápida!", text: "Al tocar OK, subiremos el tablero y verás las cartas unos segundos." },
+      streak: { kicker: `Nivel ${level.level}`, title: "¡Racha creativa!", text: "Haz dos aciertos seguidos para ganar un pequeño impulso extra." },
+      moves: { kicker: `Nivel ${level.level}`, title: "¡Movimientos limitados!", text: `Tienes ${level.moves} movimientos. Juega con calma y piensa cada toque.` },
+      timer: { kicker: `Nivel ${level.level}`, title: "¡Tiempo bonus!", text: "Si completas rápido, ganas un bonus extra. Si no, igual puedes terminar el nivel." },
+      restless: { kicker: `Nivel ${level.level}`, title: "¡Cartas inquietas!", text: "Después de varios errores, las cartas ocultas se reordenan. ¡Atenta!" },
+      special: { kicker: `Nivel ${level.level}`, title: "¡Reto especial!", text: "Al tocar OK, verás las cartas unos segundos antes de jugar." }
+    };
+    return map[level.mode] || map.normal;
+  }
+
+  function showLevelIntro(level, onContinue) {
+    if (!els.levelIntro) {
+      if (typeof onContinue === "function") onContinue();
+      return;
+    }
+    const intro = getModeIntro(level);
+    lockBoard = true;
+    if (els.levelIntroKicker) els.levelIntroKicker.textContent = `Ronda ${state.roundNumber} · ${intro.kicker}`;
+    els.levelIntroTitle.textContent = intro.title;
+    els.levelIntroText.textContent = intro.text;
+    els.levelIntro.hidden = false;
+    els.levelIntro.classList.remove('is-hiding');
+    els.levelIntro.classList.add('is-visible');
+    window.clearTimeout(introTimerId);
+
+    if (els.levelIntroOk) {
+      els.levelIntroOk.onclick = () => {
+        hideLevelIntro(onContinue);
+      };
+      window.setTimeout(() => els.levelIntroOk.focus(), 80);
+    }
+  }
+
+  function hideLevelIntro(onHidden) {
+    if (!els.levelIntro || els.levelIntro.hidden) {
+      if (typeof onHidden === "function") onHidden();
+      return;
+    }
+    els.levelIntro.classList.remove('is-visible');
+    els.levelIntro.classList.add('is-hiding');
+    window.clearTimeout(introTimerId);
+    introTimerId = window.setTimeout(() => {
+      els.levelIntro.hidden = true;
+      els.levelIntro.classList.remove('is-hiding');
+      if (typeof onHidden === "function") onHidden();
+    }, 260);
+  }
+
+  function scrollBoardIntoView() {
+    const target = document.querySelector(".board-wrap") || els.board;
+    if (!target) return;
+    try {
+      target.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
+    } catch (error) {
+      target.scrollIntoView(true);
+    }
+  }
+
+  function revealPreview(seconds) {
+    lockBoard = true;
+    const cards = [...els.board.querySelectorAll(".memory-card:not(.is-matched)")];
+    cards.forEach((card) => card.classList.add("is-flipped", "is-preview"));
+    window.setTimeout(() => {
+      cards.forEach((card) => card.classList.remove("is-flipped", "is-preview"));
+      lockBoard = false;
+      setMessage(els.gameMessage, "Ahora sí: encuentra los pares creativos.", "success");
+    }, Math.max(1, seconds) * 1000);
+  }
+
+  function startTimer() {
+    clearTimer();
+    timerId = window.setInterval(() => {
+      timerLeft = Math.max(0, timerLeft - 1);
+      renderChallengePanels();
+      if (timerLeft <= 0) {
+        timerBonusAvailable = false;
+        clearTimer();
+        setMessage(els.gameMessage, "Se acabó el tiempo bonus, pero puedes seguir jugando el nivel.", "warning");
+      }
+    }, 1000);
+  }
+
+  function clearTimer() {
+    if (timerId) {
+      window.clearInterval(timerId);
+      timerId = null;
+    }
+  }
+
+  function getColumnCount(pairCount) {
+    // En celular usamos siempre 4 columnas para aprovechar mejor el alto de la pantalla.
+    // Antes los niveles de 10 y 12 pares pasaban a 5/6 columnas y las cartas se achicaban demasiado.
+    if (window.matchMedia("(max-width: 520px)").matches) {
+      return 4;
+    }
+    if (pairCount >= 10) return 6;
+    return 4;
+  }
+
+  function createCardButton(card) {
+    const button = document.createElement("button");
+    button.className = "memory-card";
+    button.type = "button";
+    button.dataset.cardId = card.id;
+    button.setAttribute("aria-label", "Carta oculta");
+
+    const inner = document.createElement("span");
+    inner.className = "card-inner";
+
+    const back = document.createElement("span");
+    back.className = "card-face card-back";
+
+    const question = document.createElement("span");
+    question.className = "card-question";
+    question.setAttribute("aria-hidden", "true");
+    question.textContent = "?";
+
+    const front = document.createElement("span");
+    front.className = "card-face card-front";
+
+    const image = document.createElement("img");
+    image.src = card.image;
+    image.alt = "";
+    image.loading = "lazy";
+
+    const placeholder = document.createElement("span");
+    placeholder.className = "card-placeholder";
+    placeholder.innerHTML = CARD_ICONS[card.id] || CARD_ICONS.stickers;
+    placeholder.setAttribute("aria-hidden", "true");
+    placeholder.hidden = true;
+
+    image.addEventListener("error", () => {
+      image.hidden = true;
+      placeholder.hidden = false;
+    }, { once: true });
+
+    front.append(image, placeholder);
+    back.append(question);
+    inner.append(back, front);
+    button.append(inner);
+    button.addEventListener("click", () => handleCardClick(button));
+    return button;
+  }
+
+  function handleCardClick(cardButton) {
+    unlockAudio();
+
+    if (lockBoard || isDailyLocked() || cardButton === firstCard || cardButton.classList.contains("is-matched") || cardButton.classList.contains("is-preview")) {
+      return;
+    }
+
+    cardButton.classList.add("is-flipped");
+    cardButton.setAttribute("aria-label", "Carta descubierta");
+    playSound("flip");
+
+    if (!firstCard) {
+      firstCard = cardButton;
+      return;
+    }
+
+    secondCard = cardButton;
+    lockBoard = true;
+    countMoveIfNeeded();
+
+    if (firstCard.dataset.cardId === secondCard.dataset.cardId) {
+      handleMatch();
+    } else {
+      handleMismatch();
+    }
+  }
+
+  function countMoveIfNeeded() {
+    const level = currentLevelConfig();
+    if (level.mode !== "moves" || movesLeft === null) return;
+    movesLeft = Math.max(0, movesLeft - 1);
+    renderChallengePanels();
+  }
+
+  function handleMatch() {
+    firstCard.classList.add("is-matched");
+    secondCard.classList.add("is-matched");
+    firstCard.disabled = true;
+    secondCard.disabled = true;
+    matchedCount += 1;
+    matchStreak += 1;
+    mismatchStreak = 0;
+    els.matchedPairs.textContent = matchedCount;
+
+    addRewards(PLAYER_MATCH_REWARD, PROGRESS_MATCH_REWARD);
+    let message = `¡Buen match! +${PLAYER_MATCH_REWARD} monedas para jugar y +${PROGRESS_MATCH_REWARD} monedas acumuladas.`;
+
+    if ((currentLevelConfig().mode === "streak" || currentLevelConfig().mode === "special") && matchStreak >= 2) {
+      addRewards(STREAK_PLAYER_BONUS, STREAK_PROGRESS_BONUS);
+      message = `¡Racha creativa x${matchStreak}! +${PLAYER_MATCH_REWARD + STREAK_PLAYER_BONUS} monedas.`;
+    }
+
+    setMessage(els.gameMessage, message, "success");
+    playSound("match");
+    playSound("coins");
+    resetTurn();
+
+    if (matchedCount === currentLevelConfig().pairs) {
+      window.setTimeout(completeLevel, 520);
+      return;
+    }
+
+    maybeStopForMovesLimit();
+  }
+
+  function handleMismatch() {
+    const level = currentLevelConfig();
+    matchStreak = 0;
+    mismatchStreak += 1;
+    state.playerCoins = Math.max(0, state.playerCoins - ERROR_COST);
+    state.lastDailyResetDate = todayKey();
+    saveState();
+    renderAll();
+    playSound("error");
+
+    if (isDailyLocked()) {
+      setMessage(els.gameMessage, "Te quedaste sin monedas por hoy. Vuelve mañana para seguir jugando.", "warning");
+      lockRemainingCards();
+      resetTurn(false);
+      return;
+    }
+
+    setMessage(els.gameMessage, `Inténtalo otra vez. -${ERROR_COST} monedas.`, "warning");
+    window.setTimeout(() => {
+      firstCard.classList.remove("is-flipped");
+      secondCard.classList.remove("is-flipped");
+      firstCard.setAttribute("aria-label", "Carta oculta");
+      secondCard.setAttribute("aria-label", "Carta oculta");
+      resetTurn();
+
+      if (level.mode === "restless" && mismatchStreak > 0 && mismatchStreak % (level.restlessEvery || 3) === 0) {
+        shuffleHiddenCards();
+        setMessage(els.gameMessage, "Las cartas inquietas se mezclaron. Respira y sigue intentando.", "warning");
+      }
+
+      maybeStopForMovesLimit();
+    }, 760);
+  }
+
+  function maybeStopForMovesLimit() {
+    const level = currentLevelConfig();
+    if (level.mode !== "moves" || movesLeft === null || matchedCount === level.pairs) return;
+    if (movesLeft <= 0) {
+      lockBoard = true;
+      lockRemainingCards();
+      showInfoModal({
+        badge: "🎲",
+        title: "Se acabaron los movimientos",
+        message: "Puedes reordenar el mismo nivel y volver a intentarlo. No perderás tu nivel actual.",
+        primaryText: "Reintentar nivel",
+        onPrimary: () => {
+          closeModal();
+          buildLevel();
+        },
+        secondaryText: "Ir al inicio",
+        onSecondary: () => {
+          closeModal();
+          showScreen("home");
+          renderAll();
+        }
+      });
+    }
+  }
+
+  function shuffleHiddenCards() {
+    const hiddenCards = [...els.board.querySelectorAll(".memory-card:not(.is-matched):not(.is-flipped)")];
+    shuffle(hiddenCards).forEach((card) => els.board.appendChild(card));
+  }
+
+  function addRewards(playerAmount, progressAmount) {
+    state.playerCoins += Math.max(0, Number(playerAmount) || 0);
+    if (progressAmount > 0) {
+      const wasReady = isRewardReady();
+      state.rewardProgress = Math.max(0, state.rewardProgress + Number(progressAmount));
+      applyMonthlyRewardReset(state);
+      if (!wasReady && isRewardReady()) {
+        window.setTimeout(showRewardModal, 420);
+        playSound("win");
+      }
+    }
+    saveState();
+    renderAll();
+  }
+
+  function completeLevel() {
+    clearTimer();
+    const level = currentLevelConfig();
+    addRewards(level.playerBonus, level.progressBonus);
+
+    let extraMessage = `Ganaste +${level.playerBonus} monedas para jugar y +${level.progressBonus} monedas acumuladas.`;
+    if (level.mode === "timer" && timerBonusAvailable) {
+      addRewards(TIME_BONUS_PLAYER, TIME_BONUS_PROGRESS);
+      extraMessage += ` También lograste el bonus de tiempo: +${TIME_BONUS_PLAYER} monedas.`;
+    }
+
+    const finishedAllLevels = state.currentLevel === LEVELS.length;
+    if (finishedAllLevels) {
+      state.completedCycles += 1;
+      state.roundNumber += 1;
+      state.currentLevel = 1;
+      saveState();
+      renderAll();
+      launchCelebration("round");
+      playSound("fanfare");
+      showInfoModal({
+        badge: "🏆",
+        title: "¡Ronda completada!",
+        message: `${extraMessage} Desbloqueaste la Ronda ${state.roundNumber}. Tu progreso mensual se mantiene.`,
+        primaryText: "Jugar ronda nueva",
+        onPrimary: () => {
+          closeModal();
+          buildLevel();
+        },
+        secondaryText: "Ir al inicio",
+        onSecondary: () => {
+          closeModal();
+          showScreen("home");
+        }
+      });
+      return;
+    }
+
+    state.currentLevel += 1;
+    saveState();
+    renderAll();
+    launchCelebration("level");
+    playSound("celebrate");
+    showInfoModal({
+      badge: "✨",
+      title: `¡Nivel ${level.level} completo!`,
+      message: `${extraMessage} El siguiente nivel trae otro reto creativo.`,
+      primaryText: "Siguiente nivel",
+      onPrimary: () => {
+        closeModal();
+        buildLevel();
+      },
+      secondaryText: "Ir al inicio",
+      onSecondary: () => {
+        closeModal();
+        showScreen("home");
+      }
+    });
+  }
+
+  function showRewardModal() {
+    if (state.monthlyRewardClaimed) {
+      showInfoModal({
+        badge: "🎁",
+        title: "Recurso mensual bloqueado",
+        message: "Ya descargaste el recurso creativo de este mes. Puedes seguir jugando para acumular monedas para el próximo mes.",
+        primaryText: "Entendido",
+        onPrimary: closeModal
+      });
+      return;
+    }
+
+    if (!isRewardReady()) {
+      showInfoModal({
+        badge: "🎁",
+        title: "Aún falta un poco",
+        message: `Te faltan ${Math.max(0, REWARD_GOAL - state.rewardProgress)} monedas acumuladas para desbloquear el recurso de este mes.`,
+        primaryText: "Seguir jugando",
+        onPrimary: closeModal
+      });
+      return;
+    }
+
+    showInfoModal({
+      badge: "🎁",
+      title: "¡Ganaste el recurso creativo de este mes!",
+      message: `Juntaste ${REWARD_GOAL} monedas acumuladas. Para evitar errores de descarga en celular, abre este juego desde Google Chrome y descarga el recurso de ${getSpanishMonthName()}.`,
+      primaryText: "Descargar recurso",
+      onPrimary: tryDownloadReward,
+      secondaryText: "Seguir jugando",
+      onSecondary: closeModal
+    });
+  }
+
+  function showInfoModal({ badge, title, message, primaryText, onPrimary, secondaryText, onSecondary }) {
+    const modalCard = els.modal.querySelector(".modal-card");
+    renderModalBadge(badge);
+    els.modalTitle.textContent = title;
+    els.modalMessage.textContent = message;
+    els.modalActions.innerHTML = "";
+    if (modalCard) {
+      modalCard.classList.toggle("is-trophy", badge === "🏆");
+      modalCard.classList.toggle("is-level-win", badge === "✨");
+      modalCard.classList.toggle("is-gift", badge === "🎁");
+    }
+
+    const primary = document.createElement("button");
+    primary.className = "btn btn-primary";
+    primary.type = "button";
+    primary.textContent = primaryText;
+    primary.addEventListener("click", onPrimary);
+    els.modalActions.appendChild(primary);
+
+    if (secondaryText) {
+      const secondary = document.createElement("button");
+      secondary.className = "btn btn-soft";
+      secondary.type = "button";
+      secondary.textContent = secondaryText;
+      secondary.addEventListener("click", onSecondary || closeModal);
+      els.modalActions.appendChild(secondary);
+    }
+
+    els.modal.hidden = false;
+  }
+
+  function renderModalBadge(badge) {
+    els.modalBadge.innerHTML = "";
+    if (badge === "🏆") {
+      const img = document.createElement("img");
+      img.src = TROPHY_BADGE_IMAGE;
+      img.alt = "";
+      img.className = "modal-badge-image";
+      img.draggable = false;
+      els.modalBadge.appendChild(img);
+      return;
+    }
+    els.modalBadge.textContent = badge;
+  }
+
+  function closeModal() {
+    const modalCard = els.modal.querySelector(".modal-card");
+    if (modalCard) modalCard.classList.remove("is-trophy", "is-level-win", "is-gift");
+    els.modal.hidden = true;
+  }
+
+  function getAppBaseUrl() {
+    const pathname = window.location.pathname;
+
+    if (pathname.endsWith("/")) {
+      return new URL(pathname, window.location.origin).href;
+    }
+
+    if (pathname.endsWith("/index.html")) {
+      return new URL(pathname.replace(/index\.html$/, ""), window.location.origin).href;
+    }
+
+    const appSegment = "/memoria-creativa";
+    const appIndex = pathname.indexOf(appSegment);
+    if (appIndex >= 0) {
+      return new URL(pathname.slice(0, appIndex + appSegment.length) + "/", window.location.origin).href;
+    }
+
+    return new URL(pathname.replace(/\/[^/]*$/, "/"), window.location.origin).href;
+  }
+
+  function getRewardAssetUrl() {
+    const rewardAssetFileName = "recompensa-demo.pdf";
+    return new URL(`assets/rewards/${rewardAssetFileName}?month=${state.currentRewardMonth || monthKey()}&v=${Date.now()}`, getAppBaseUrl()).href;
+  }
+
+  function getRewardDownloadFileName() {
+    return `recompensa-${getSpanishMonthName()}-studio-sareschi.pdf`;
+  }
+
+  async function fetchRewardBlob(rewardUrl) {
+    try {
+      const response = await fetch(rewardUrl, { cache: "no-store" });
+      if (!response.ok) return null;
+
+      const blob = await response.blob();
+      if (!blob || blob.size <= 1024) return null;
+
+      const headerBuffer = await blob.slice(0, 5).arrayBuffer();
+      const header = new TextDecoder().decode(headerBuffer);
+      if (!header.startsWith("%PDF-")) return null;
+
+      return blob;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function showSingleButtonModal(title, message, buttonText = "Entendido") {
+    els.modalTitle.textContent = title;
+    els.modalMessage.textContent = message;
+    els.modalActions.innerHTML = "";
+
+    const closeButton = document.createElement("button");
+    closeButton.className = "btn btn-primary";
+    closeButton.type = "button";
+    closeButton.textContent = buttonText;
+    closeButton.addEventListener("click", closeModal);
+    els.modalActions.appendChild(closeButton);
+  }
+
+  async function tryDownloadReward() {
+    applyMonthlyRewardReset(state);
+
+    if (state.monthlyRewardClaimed) {
+      showSingleButtonModal(
+        "Recurso mensual bloqueado",
+        "Ya descargaste el recurso creativo de este mes. El botón volverá a activarse el próximo mes si tienes 3000 monedas acumuladas."
+      );
+      return;
+    }
+
+    if (!isRewardReady()) {
+      showSingleButtonModal(
+        "Aún falta un poco",
+        `Te faltan ${Math.max(0, REWARD_GOAL - state.rewardProgress)} monedas acumuladas para desbloquear el recurso de este mes.`,
+        "Seguir jugando"
+      );
+      return;
+    }
+
+    els.modalMessage.textContent = "Preparando el recurso creativo...";
+
+    const rewardBlob = await fetchRewardBlob(getRewardAssetUrl());
+    if (!rewardBlob) {
+      showSingleButtonModal(
+        "PDF no válido",
+        "La recompensa está desbloqueada, pero el archivo en assets/rewards/recompensa-demo.pdf no parece ser un PDF real o todavía está vacío. Sube nuevamente el PDF real con ese nombre. Tu barra no se descontó."
+      );
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(rewardBlob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = getRewardDownloadFileName();
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
+
+    state.monthlyRewardClaimed = true;
+    state.monthlyRewardUnlocked = false;
+    state.unlockedReward = false;
+    state.rewardProgress = Math.max(0, state.rewardProgress - REWARD_GOAL);
+    saveState();
+    renderAll();
+
+    const extraMessage = state.rewardProgress >= REWARD_GOAL
+      ? "Tus monedas extra quedaron guardadas. El botón volverá a aparecer automáticamente el próximo mes."
+      : "Puedes seguir jugando para acumular monedas para el próximo mes.";
+
+    showSingleButtonModal(
+  "¡Recurso descargado!",
+  `La descarga se inició correctamente. El siguiente recurso se activará el próximo mes.`
+);
+  }
+
+  function launchCelebration(type = "level") {
+    window.clearTimeout(celebrationTimerId);
+    document.querySelectorAll(".celebration-layer").forEach((node) => node.remove());
+
+    const layer = document.createElement("div");
+    layer.className = `celebration-layer celebration-${type}`;
+    layer.setAttribute("aria-hidden", "true");
+
+    const burst = document.createElement("div");
+    burst.className = "celebration-burst";
+    layer.appendChild(burst);
+
+    const pieces = type === "round" ? 56 : 34;
+    for (let i = 0; i < pieces; i += 1) {
+      const piece = document.createElement("span");
+      piece.className = "confetti-piece";
+      piece.style.setProperty("--x", `${Math.random() * 100}%`);
+      piece.style.setProperty("--delay", `${(Math.random() * 0.45).toFixed(2)}s`);
+      piece.style.setProperty("--duration", `${(1.2 + Math.random() * 1.25).toFixed(2)}s`);
+      piece.style.setProperty("--rotate", `${Math.round(Math.random() * 360)}deg`);
+      piece.style.setProperty("--drift", `${(-120 + Math.random() * 240).toFixed(0)}px`);
+      piece.style.setProperty("--size", `${8 + Math.random() * 10}px`);
+      piece.style.setProperty("--hue", `${Math.round(Math.random() * 360)}deg`);
+      layer.appendChild(piece);
+    }
+
+    document.body.appendChild(layer);
+    celebrationTimerId = window.setTimeout(() => layer.remove(), 2400);
+  }
+
+  function claimDailyBonus() {
+    unlockAudio();
+    applyDailyRecharge();
+
+    if (state.lastDailyBonusDate === todayKey()) {
+      setMessage(els.homeDailyMessage, "Ya recibiste tu regalo diario. Vuelve mañana para ganar más monedas.", "warning");
+      renderShareButton();
+      return;
+    }
+
+    state.playerCoins += DAILY_BONUS;
+    state.lastDailyBonusDate = todayKey();
+    saveState();
+    renderAll();
+    setMessage(els.homeDailyMessage, `Regalo creativo recibido: +${DAILY_BONUS} monedas para seguir jugando.`, "success");
+    playSound("coins");
+  }
+
+  function resetTurn(allowPlay = true) {
+    firstCard = null;
+    secondCard = null;
+    lockBoard = !allowPlay;
+  }
+
+  function lockRemainingCards() {
+    els.board.querySelectorAll(".memory-card:not(.is-matched)").forEach((card) => {
+      card.disabled = true;
+    });
+  }
+
+  function setMessage(element, text, type) {
+    element.textContent = text;
+    element.classList.toggle("is-warning", type === "warning");
+    element.classList.toggle("is-success", type === "success");
+  }
+
+  function toggleSound() {
+    unlockAudio();
+    state.soundEnabled = !state.soundEnabled;
+    saveState();
+    renderSoundButtons();
+
+    if (state.soundEnabled) {
+      window.setTimeout(() => playSound("coins"), 80);
+      setMessage(els.gameMessage || els.homeDailyMessage, "Sonido activado. Sube el volumen multimedia si no lo escuchas.", "success");
+    }
+  }
+
+  function unlockAudio() {
+    audioUnlocked = true;
+
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return Promise.resolve(false);
+      if (!audioContext) audioContext = new AudioContextClass();
+
+      const resumePromise = audioContext.state === "suspended"
+        ? audioContext.resume()
+        : Promise.resolve();
+
+      audioReadyPromise = resumePromise
+        .then(() => {
+          primeAudioContext();
+          return audioContext.state === "running";
+        })
+        .catch(() => false);
+
+      return audioReadyPromise;
+    } catch (error) {
+      return Promise.resolve(false);
+    }
+  }
+
+  function primeAudioContext() {
+    if (!audioContext || audioPrimed || audioContext.state !== "running") return;
+
+    try {
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const now = audioContext.currentTime;
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(440, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.015);
+      audioPrimed = true;
+    } catch (error) {
+      audioPrimed = true;
+    }
+  }
+
+  function playSound(name) {
+    if (!state.soundEnabled) return;
+
+    if (!audioUnlocked || !audioContext || audioContext.state !== "running") {
+      unlockAudio().then((ready) => {
+        if (ready) scheduleSound(name);
+      });
+      return;
+    }
+
+    scheduleSound(name);
+  }
+
+  function scheduleSound(name) {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      if (!audioContext) audioContext = new AudioContextClass();
+      if (audioContext.state !== "running") return;
+
+      const presets = {
+        flip: { frequencies: [620], duration: 0.075, type: "triangle", volume: 0.13 },
+        match: { frequencies: [720, 960], duration: 0.105, type: "sine", volume: 0.16 },
+        error: { frequencies: [210, 150], duration: 0.14, type: "sawtooth", volume: 0.075 },
+        coins: { frequencies: [920, 1220, 1540], duration: 0.08, type: "triangle", volume: 0.15 },
+        win: { frequencies: [660, 880, 1040, 1320], duration: 0.13, type: "sine", volume: 0.17 },
+        celebrate: { frequencies: [784, 1046, 1318, 1568], duration: 0.13, type: "triangle", volume: 0.18 },
+        fanfare: { frequencies: [523, 659, 784, 1046, 1318], duration: 0.15, type: "triangle", volume: 0.18 }
+      };
+
+      const preset = presets[name] || presets.flip;
+      const now = audioContext.currentTime + 0.01;
+
+      preset.frequencies.forEach((frequency, index) => {
+        const start = now + index * preset.duration * 0.82;
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        oscillator.type = preset.type;
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(preset.volume, start + 0.014);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + preset.duration);
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start(start);
+        oscillator.stop(start + preset.duration + 0.03);
+      });
+    } catch (error) {
+      // Sonidos generados con Web Audio. Si el navegador los bloquea, no interrumpimos el juego.
+    }
+  }
+
+  function resetProgress() {
+    const confirmed = window.confirm("¿Reiniciar monedas, niveles, rondas y progreso mensual? Esta acción no se puede deshacer.");
+    if (!confirmed) return;
+    clearTimer();
+    state = defaultState();
+    saveState();
+    renderAll();
+    buildLevel();
+    setMessage(els.gameMessage, "Progreso reiniciado. Empiezas con 100 monedas.", "success");
+  }
+
+  function shuffle(items) {
+    const copy = [...items];
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function applyTestRewardFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("testReward") !== "1") return;
+
+    state.currentRewardMonth = monthKey();
+    state.rewardProgress = Math.max(state.rewardProgress, REWARD_GOAL);
+    state.monthlyRewardClaimed = false;
+    state.monthlyRewardUnlocked = true;
+    state.unlockedReward = true;
+    saveState();
+  }
+
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) {
+      return;
+    }
+
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/memoria-creativa/service-worker.js", { scope: "/memoria-creativa/" }).catch(() => {});
+    });
+  }
+
+  els.playButton.addEventListener("click", startGame);
+  els.shareButton.addEventListener("click", claimDailyBonus);
+  if (els.homeRewardButton) els.homeRewardButton.addEventListener("click", showRewardModal);
+  if (els.gameRewardButton) els.gameRewardButton.addEventListener("click", showRewardModal);
+  els.homeSoundButton.addEventListener("click", toggleSound);
+  els.gameSoundButton.addEventListener("click", toggleSound);
+  els.backHomeButton.addEventListener("click", () => {
+    clearTimer();
+    showScreen("home");
+    renderAll();
+  });
+  els.restartLevelButton.addEventListener("click", () => {
+    if (!isDailyLocked()) {
+      buildLevel();
+      setMessage(els.gameMessage, "Nivel reordenado sin perder tu progreso.", "success");
+    }
+  });
+  els.resetProgressButton.addEventListener("click", resetProgress);
+  els.modal.addEventListener("click", (event) => {
+    if (event.target === els.modal) {
+      closeModal();
+    }
+  });
+  if (els.levelIntro) {
+    els.levelIntro.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+  }
+
+  ["pointerdown", "touchstart", "click"].forEach((eventName) => {
+    document.addEventListener(eventName, () => {
+      if (state.soundEnabled) unlockAudio();
+    }, { passive: true });
+  });
+
+  applyTestRewardFromUrl();
+  applyDailyRecharge();
+  saveState();
+  renderAll();
+  registerServiceWorker();
+})();

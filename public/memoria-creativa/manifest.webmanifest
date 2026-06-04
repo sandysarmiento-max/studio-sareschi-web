@@ -1,0 +1,29 @@
+{
+  "name": "Memoria Creativa | Studio Sareschi",
+  "short_name": "Memoria Creativa",
+  "description": "Juego gratuito de memoria con papelería creativa, monedas, rondas y un recurso mensual.",
+  "start_url": "/memoria-creativa/",
+  "scope": "/memoria-creativa/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#24063b",
+  "theme_color": "#ff3bbd",
+  "categories": [
+    "games",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
