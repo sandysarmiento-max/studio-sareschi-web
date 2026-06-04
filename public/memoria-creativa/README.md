@@ -65,7 +65,7 @@ V14: retomada desde v11. Se corrige el apilado usando hidden real para que no ap
 
 ## Notas v27
 
-- La recompensa mensual debe estar en `assets/rewards/recompensa-demo.pdf`.
+- La recompensa mensual debe estar en `assets/rewards/recompensa-mensual.pdf`.
 - Esta versión incluye un PDF de prueba para verificar el botón de descarga. Antes de publicar para clientas, reemplazarlo por el PDF real.
 - En celular, el tablero usa 4 columnas para que las cartas no se achiquen en niveles altos.
 - Se usa una pila de fuentes del sistema para evitar cambios raros de tipografía en navegadores móviles.
@@ -77,3 +77,10 @@ V14: retomada desde v11. Se corrige el apilado usando hidden real para que no ap
 - Tablero móvil más cómodo: usa menos columnas en celulares para que las cartas no se achiquen tanto.
 - Fuente estable del sistema para evitar cambios raros de tipografía en celular.
 - Service worker actualizado a memoria-creativa-v28.
+
+
+## v29
+- Mantiene la ruta interna `assets/rewards/recompensa-demo.pdf`, pero descarga el archivo como `recompensa-junio-studio-sareschi.pdf`.
+- Valida que el recurso sea un PDF real antes de reiniciar la barra de recompensa. Si el archivo está vacío o inválido, no reinicia el progreso.
+- Agrega modo de prueba con `/memoria-creativa/?testReward=1` para desbloquear la recompensa sin jugar hasta 3000 durante pruebas.
+- Service worker actualizado a memoria-creativa-v29.

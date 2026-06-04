@@ -915,30 +915,36 @@
   async function rewardFileExists(rewardUrl) {
     try {
       const response = await fetch(rewardUrl, { method: "HEAD", cache: "no-store" });
-      if (response.ok) return true;
+      const length = Number(response.headers.get("content-length") || 0);
+      if (response.ok && length > 1024) return true;
+      if (response.ok && length > 0 && length <= 1024) return false;
     } catch (error) {
-      // Algunos navegadores antiguos pueden fallar con HEAD; probamos GET liviano.
+      // Algunos navegadores antiguos pueden fallar con HEAD; probamos leyendo el inicio del archivo.
     }
 
     try {
       const response = await fetch(rewardUrl, {
         cache: "no-store",
-        headers: { Range: "bytes=0-0" }
+        headers: { Range: "bytes=0-4" }
       });
-      return response.ok || response.status === 206;
+      if (!response.ok && response.status !== 206) return false;
+      const buffer = await response.arrayBuffer();
+      const header = new TextDecoder().decode(buffer);
+      return header.startsWith("%PDF-");
     } catch (error) {
       return false;
     }
   }
 
   async function tryDownloadReward() {
-    const rewardFileName = "recompensa-demo.pdf";
-    const rewardUrl = new URL(`assets/rewards/${rewardFileName}?month=${state.currentRewardMonth || monthKey()}`, getAppBaseUrl()).href;
+    const rewardAssetFileName = "recompensa-demo.pdf";
+    const rewardDownloadFileName = "recompensa-junio-studio-sareschi.pdf";
+    const rewardUrl = new URL(`assets/rewards/${rewardAssetFileName}?month=${state.currentRewardMonth || monthKey()}`, getAppBaseUrl()).href;
 
     const openReward = () => {
       const link = document.createElement("a");
       link.href = rewardUrl;
-      link.download = rewardFileName;
+      link.download = rewardDownloadFileName;
       link.target = "_blank";
       link.rel = "noopener";
       document.body.appendChild(link);
@@ -950,8 +956,8 @@
 
     const exists = await rewardFileExists(rewardUrl);
     if (!exists) {
-      els.modalTitle.textContent = "Archivo no encontrado";
-      els.modalMessage.textContent = "La recompensa está desbloqueada, pero todavía no encuentro el PDF en assets/rewards/recompensa-demo.pdf. Sube el archivo con ese nombre y vuelve a tocar descargar. Tu barra no se reinició.";
+      els.modalTitle.textContent = "PDF no válido";
+      els.modalMessage.textContent = "La recompensa está desbloqueada, pero el archivo en assets/rewards/recompensa-demo.pdf no parece ser un PDF real o todavía está vacío. Sube nuevamente el PDF real con ese nombre. Tu barra no se reinició.";
       els.modalActions.innerHTML = "";
 
       const closeButton = document.createElement("button");
@@ -1193,6 +1199,17 @@
     return Math.min(max, Math.max(min, value));
   }
 
+  function applyTestRewardFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("testReward") !== "1") return;
+
+    state.rewardProgress = REWARD_GOAL;
+    state.monthlyRewardUnlocked = true;
+    state.monthlyRewardClaimed = false;
+    state.unlockedReward = true;
+    saveState();
+  }
+
   function registerServiceWorker() {
     if (!("serviceWorker" in navigator)) {
       return;
@@ -1236,6 +1253,7 @@
     }, { passive: true });
   });
 
+  applyTestRewardFromUrl();
   applyDailyRecharge();
   saveState();
   renderAll();
