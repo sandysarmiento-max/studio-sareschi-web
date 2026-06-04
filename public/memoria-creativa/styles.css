@@ -1847,3 +1847,118 @@ h2,
     padding: 12px 16px;
   }
 }
+
+
+/* ===== V25: tablero más compacto + vista rápida visible ===== */
+.screen-game {
+  width: min(100%, 680px);
+  margin-left: auto;
+  margin-right: auto;
+  gap: 6px;
+}
+
+.screen-game .game-header,
+.screen-game .dashboard,
+.screen-game .game-progress,
+.screen-game .game-message,
+.screen-game .board-wrap,
+.screen-game .secondary-actions {
+  width: min(100%, 600px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.screen-game .board-wrap {
+  padding: 5px;
+  border-radius: 18px;
+}
+
+.screen-game .memory-board {
+  gap: clamp(5px, 1.1vw, 8px);
+}
+
+.screen-game .memory-card {
+  border-radius: clamp(12px, 2.4vw, 17px);
+}
+
+.screen-game .dashboard {
+  gap: 6px;
+}
+
+.screen-game .dash-item {
+  min-height: 42px;
+}
+
+.screen-game .game-progress {
+  padding: 9px 12px;
+}
+
+.screen-game .game-message {
+  justify-content: center;
+  text-align: center;
+  min-height: 0;
+  padding: 8px 12px;
+}
+
+.level-intro {
+  position: fixed;
+  top: 72px;
+  width: min(88vw, 420px);
+}
+
+.level-intro-card {
+  padding: 14px 16px 15px;
+}
+
+.level-intro-title {
+  font-size: clamp(1.55rem, 6vw, 2.35rem);
+}
+
+.level-intro-text {
+  font-size: 0.95rem;
+}
+
+@media (min-width: 760px) {
+  .screen-game .board-wrap,
+  .screen-game .game-header,
+  .screen-game .dashboard,
+  .screen-game .game-progress,
+  .screen-game .game-message,
+  .screen-game .secondary-actions {
+    width: 560px;
+  }
+}
+
+@media (max-width: 520px) {
+  .screen-game {
+    width: 100%;
+    gap: 5px;
+  }
+
+  .level-intro {
+    top: 54px;
+    width: min(92vw, 360px);
+  }
+
+  .screen-game .game-header,
+  .screen-game .dashboard,
+  .screen-game .game-progress,
+  .screen-game .game-message,
+  .screen-game .board-wrap,
+  .screen-game .secondary-actions {
+    width: 100%;
+  }
+
+  .screen-game .memory-board {
+    gap: 5px;
+  }
+
+  .screen-game .game-message {
+    font-size: 0.78rem;
+    padding: 7px 10px;
+  }
+
+  .level-intro-text {
+    font-size: 0.82rem;
+  }
+}

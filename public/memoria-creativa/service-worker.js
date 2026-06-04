@@ -1,4 +1,4 @@
-const CACHE_NAME = "memoria-creativa-v24";
+const CACHE_NAME = "memoria-creativa-v26";
 const APP_SHELL = [
   "/memoria-creativa/",
   "/memoria-creativa/index.html",

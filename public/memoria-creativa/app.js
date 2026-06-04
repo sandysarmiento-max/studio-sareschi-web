@@ -18,7 +18,7 @@
   const LEVELS = [
     { level: 1, pairs: 4, mode: "normal", label: "Normal", playerBonus: 40, progressBonus: 80 },
     { level: 2, pairs: 6, mode: "normal", label: "Normal", playerBonus: 60, progressBonus: 120 },
-    { level: 3, pairs: 6, mode: "quick", label: "Vista rápida", playerBonus: 80, progressBonus: 160, previewSeconds: 2 },
+    { level: 3, pairs: 6, mode: "quick", label: "Vista rápida", playerBonus: 80, progressBonus: 160, previewSeconds: 3 },
     { level: 4, pairs: 8, mode: "normal", label: "Normal", playerBonus: 100, progressBonus: 200 },
     { level: 5, pairs: 8, mode: "streak", label: "Racha creativa", playerBonus: 120, progressBonus: 240 },
     { level: 6, pairs: 8, mode: "moves", label: "Movimientos limitados", playerBonus: 150, progressBonus: 300, moves: 22 },
@@ -27,7 +27,7 @@
     { level: 9, pairs: 10, mode: "restless", label: "Cartas inquietas", playerBonus: 150, progressBonus: 300, restlessEvery: 3 },
     { level: 10, pairs: 12, mode: "normal", label: "Normal", playerBonus: 150, progressBonus: 300 },
     { level: 11, pairs: 12, mode: "moves", label: "Movimientos limitados", playerBonus: 150, progressBonus: 300, moves: 32 },
-    { level: 12, pairs: 12, mode: "special", label: "Reto especial", playerBonus: 150, progressBonus: 300, previewSeconds: 2 }
+    { level: 12, pairs: 12, mode: "special", label: "Reto especial", playerBonus: 150, progressBonus: 300, previewSeconds: 3 }
   ];
 
   const CARD_ICONS = {
@@ -198,6 +198,8 @@
   let timerBonusAvailable = false;
   let audioUnlocked = false;
   let audioContext = null;
+  let audioReadyPromise = null;
+  let audioPrimed = false;
 
   function defaultState() {
     return {
@@ -441,7 +443,8 @@
     renderAll();
     showLevelIntro(level, () => {
       if (level.mode === "quick" || level.mode === "special") {
-        revealPreview(level.previewSeconds || 2);
+        scrollBoardIntoView();
+        window.setTimeout(() => revealPreview(level.previewSeconds || 3), 260);
       } else {
         lockBoard = false;
       }
@@ -475,12 +478,12 @@
   function getModeIntro(level) {
     const map = {
       normal: { kicker: `Nivel ${level.level}`, title: "¡A jugar!", text: "Encuentra todos los pares para avanzar al siguiente reto." },
-      quick: { kicker: `Nivel ${level.level}`, title: "¡Vista rápida!", text: "Mira las cartas unos segundos y memoriza su lugar." },
+      quick: { kicker: `Nivel ${level.level}`, title: "¡Vista rápida!", text: "Al tocar OK, subiremos el tablero y verás las cartas unos segundos." },
       streak: { kicker: `Nivel ${level.level}`, title: "¡Racha creativa!", text: "Haz dos aciertos seguidos para ganar un pequeño impulso extra." },
       moves: { kicker: `Nivel ${level.level}`, title: "¡Movimientos limitados!", text: `Tienes ${level.moves} movimientos. Juega con calma y piensa cada toque.` },
       timer: { kicker: `Nivel ${level.level}`, title: "¡Tiempo bonus!", text: "Si completas rápido, ganas un bonus extra. Si no, igual puedes terminar el nivel." },
       restless: { kicker: `Nivel ${level.level}`, title: "¡Cartas inquietas!", text: "Después de varios errores, las cartas ocultas se reordenan. ¡Atenta!" },
-      special: { kicker: `Nivel ${level.level}`, title: "¡Reto especial!", text: "Combina memoria rápida y atención para superar este nivel." }
+      special: { kicker: `Nivel ${level.level}`, title: "¡Reto especial!", text: "Al tocar OK, verás las cartas unos segundos antes de jugar." }
     };
     return map[level.mode] || map.normal;
   }
@@ -521,6 +524,16 @@
       els.levelIntro.classList.remove('is-hiding');
       if (typeof onHidden === "function") onHidden();
     }, 260);
+  }
+
+  function scrollBoardIntoView() {
+    const target = document.querySelector(".board-wrap") || els.board;
+    if (!target) return;
+    try {
+      target.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
+    } catch (error) {
+      target.scrollIntoView(true);
+    }
   }
 
   function revealPreview(seconds) {
@@ -881,10 +894,23 @@
 
   async function tryDownloadReward() {
     const rewardPath = "assets/rewards/recompensa-demo.pdf";
+    const rewardUrl = new URL(rewardPath, window.location.href).href;
 
-    // La recompensa mensual se considera recibida al presionar el botón.
-    // Esto corrige estados anteriores donde la barra quedaba visualmente en 3000/3000
-    // aunque la usuaria ya hubiera reclamado el recurso.
+    const openReward = () => {
+      const link = document.createElement("a");
+      link.href = rewardUrl;
+      link.download = "recompensa-demo.pdf";
+      link.target = "_blank";
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    };
+
+    // Primero intentamos abrir/descargar el PDF real.
+    // Luego marcamos la recompensa como recibida para que la barra vuelva a cero.
+    openReward();
+
     state.monthlyRewardClaimed = true;
     state.monthlyRewardUnlocked = false;
     state.unlockedReward = false;
@@ -892,26 +918,23 @@
     saveState();
     renderAll();
 
-    try {
-      const response = await fetch(rewardPath, { method: "HEAD", cache: "no-store" });
-      if (!response.ok) {
-        throw new Error("Reward not available yet");
-      }
-      const link = document.createElement("a");
-      link.href = rewardPath;
-      link.download = "recompensa-demo.pdf";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      closeModal();
-    } catch (error) {
-      els.modalMessage.textContent = "Tu recurso quedó registrado y la barra volvió a cero. Si el archivo aún no está cargado, podrás enviarlo manualmente.";
-      const primaryButton = els.modalActions.querySelector(".btn-primary");
-      if (primaryButton) {
-        primaryButton.textContent = "Entendido";
-        primaryButton.onclick = closeModal;
-      }
-    }
+    els.modalTitle.textContent = "¡Recurso descargado!";
+    els.modalMessage.textContent = "La descarga se inició y tu barra volvió a cero. Si no ves el archivo, revisa la carpeta de descargas o toca abrir nuevamente.";
+    els.modalActions.innerHTML = "";
+
+    const closeButton = document.createElement("button");
+    closeButton.className = "btn btn-primary";
+    closeButton.type = "button";
+    closeButton.textContent = "Entendido";
+    closeButton.addEventListener("click", closeModal);
+    els.modalActions.appendChild(closeButton);
+
+    const retryButton = document.createElement("button");
+    retryButton.className = "btn btn-soft";
+    retryButton.type = "button";
+    retryButton.textContent = "Abrir descarga";
+    retryButton.addEventListener("click", openReward);
+    els.modalActions.appendChild(retryButton);
   }
 
   function launchCelebration(type = "level") {
@@ -985,58 +1008,107 @@
     state.soundEnabled = !state.soundEnabled;
     saveState();
     renderSoundButtons();
+
+    if (state.soundEnabled) {
+      window.setTimeout(() => playSound("coins"), 80);
+      setMessage(els.gameMessage || els.homeDailyMessage, "Sonido activado. Sube el volumen multimedia si no lo escuchas.", "success");
+    }
   }
 
   function unlockAudio() {
     audioUnlocked = true;
+
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) return;
+      if (!AudioContextClass) return Promise.resolve(false);
       if (!audioContext) audioContext = new AudioContextClass();
-      if (audioContext.state === "suspended") {
-        audioContext.resume().catch(() => {});
-      }
+
+      const resumePromise = audioContext.state === "suspended"
+        ? audioContext.resume()
+        : Promise.resolve();
+
+      audioReadyPromise = resumePromise
+        .then(() => {
+          primeAudioContext();
+          return audioContext.state === "running";
+        })
+        .catch(() => false);
+
+      return audioReadyPromise;
     } catch (error) {
-      // El audio es opcional; si el navegador no lo permite, el juego sigue funcionando.
+      return Promise.resolve(false);
+    }
+  }
+
+  function primeAudioContext() {
+    if (!audioContext || audioPrimed || audioContext.state !== "running") return;
+
+    try {
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const now = audioContext.currentTime;
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(440, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.015);
+      audioPrimed = true;
+    } catch (error) {
+      audioPrimed = true;
     }
   }
 
   function playSound(name) {
-    if (!state.soundEnabled || !audioUnlocked) return;
+    if (!state.soundEnabled) return;
 
+    if (!audioUnlocked || !audioContext || audioContext.state !== "running") {
+      unlockAudio().then((ready) => {
+        if (ready) scheduleSound(name);
+      });
+      return;
+    }
+
+    scheduleSound(name);
+  }
+
+  function scheduleSound(name) {
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) return;
       if (!audioContext) audioContext = new AudioContextClass();
+      if (audioContext.state !== "running") return;
 
       const presets = {
-        flip: { frequencies: [520], duration: 0.055, type: "triangle", volume: 0.035 },
-        match: { frequencies: [660, 880], duration: 0.09, type: "sine", volume: 0.045 },
-        error: { frequencies: [190, 150], duration: 0.11, type: "sawtooth", volume: 0.025 },
-        coins: { frequencies: [880, 1180, 1440], duration: 0.065, type: "triangle", volume: 0.04 },
-        win: { frequencies: [660, 880, 1040, 1320], duration: 0.11, type: "sine", volume: 0.05 },
-        celebrate: { frequencies: [784, 1046, 1318, 1568], duration: 0.12, type: "triangle", volume: 0.06 },
-        fanfare: { frequencies: [523, 659, 784, 1046, 1318], duration: 0.14, type: "triangle", volume: 0.07 }
+        flip: { frequencies: [620], duration: 0.075, type: "triangle", volume: 0.13 },
+        match: { frequencies: [720, 960], duration: 0.105, type: "sine", volume: 0.16 },
+        error: { frequencies: [210, 150], duration: 0.14, type: "sawtooth", volume: 0.075 },
+        coins: { frequencies: [920, 1220, 1540], duration: 0.08, type: "triangle", volume: 0.15 },
+        win: { frequencies: [660, 880, 1040, 1320], duration: 0.13, type: "sine", volume: 0.17 },
+        celebrate: { frequencies: [784, 1046, 1318, 1568], duration: 0.13, type: "triangle", volume: 0.18 },
+        fanfare: { frequencies: [523, 659, 784, 1046, 1318], duration: 0.15, type: "triangle", volume: 0.18 }
       };
 
       const preset = presets[name] || presets.flip;
-      const now = audioContext.currentTime;
+      const now = audioContext.currentTime + 0.01;
 
       preset.frequencies.forEach((frequency, index) => {
-        const start = now + index * preset.duration * 0.85;
+        const start = now + index * preset.duration * 0.82;
         const oscillator = audioContext.createOscillator();
         const gain = audioContext.createGain();
 
         oscillator.type = preset.type;
         oscillator.frequency.setValueAtTime(frequency, start);
         gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(preset.volume, start + 0.012);
+        gain.gain.exponentialRampToValueAtTime(preset.volume, start + 0.014);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + preset.duration);
 
         oscillator.connect(gain);
         gain.connect(audioContext.destination);
         oscillator.start(start);
-        oscillator.stop(start + preset.duration + 0.02);
+        oscillator.stop(start + preset.duration + 0.03);
       });
     } catch (error) {
       // Sonidos generados con Web Audio. Si el navegador los bloquea, no interrumpimos el juego.
@@ -1103,6 +1175,12 @@
       event.stopPropagation();
     });
   }
+
+  ["pointerdown", "touchstart", "click"].forEach((eventName) => {
+    document.addEventListener(eventName, () => {
+      if (state.soundEnabled) unlockAudio();
+    }, { passive: true });
+  });
 
   applyDailyRecharge();
   saveState();
