@@ -87,3 +87,12 @@ V14: retomada desde v11. Se corrige el apilado usando hidden real para que no ap
 
 
 V30: agrega botón visible de descarga en la pantalla de inicio y en el progreso del juego cuando la recompensa mensual ya está desbloqueada, para no depender solo del popup. Cache actualizada a v30.
+
+
+## v31 local
+- La recompensa mensual se maneja por mes: una descarga por mes calendario.
+- Al descargar, se descuentan 3000 monedas acumuladas y el botón queda bloqueado hasta el siguiente mes.
+- Las monedas extra siguen acumuladas; si la usuaria tiene 3000 o más al iniciar el siguiente mes, el botón aparece automáticamente.
+- Después de descargar ya no aparece el botón de abrir descarga en el modal.
+- La descarga usa un nombre visible de mes, por ejemplo `recompensa-junio-studio-sareschi.pdf`, aunque el archivo interno siga en `assets/rewards/recompensa-demo.pdf`.
+- Cache del service worker actualizada a v31.

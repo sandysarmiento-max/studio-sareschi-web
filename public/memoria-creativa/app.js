@@ -235,19 +235,11 @@
 
   function normalizeState(nextState) {
     nextState.playerCoins = Math.max(0, Number(nextState.playerCoins) || 0);
-    nextState.rewardProgress = clamp(Number(nextState.rewardProgress) || 0, 0, REWARD_GOAL);
+    nextState.rewardProgress = Math.max(0, Number(nextState.rewardProgress) || 0);
     nextState.currentLevel = clamp(Number(nextState.currentLevel) || 1, 1, LEVELS.length);
     nextState.roundNumber = Math.max(1, Number(nextState.roundNumber) || Number(nextState.completedCycles || 0) + 1 || 1);
     nextState.currentRewardMonth = nextState.currentRewardMonth || monthKey();
     nextState.monthlyRewardClaimed = Boolean(nextState.monthlyRewardClaimed);
-    if (nextState.monthlyRewardClaimed) {
-      nextState.rewardProgress = 0;
-      nextState.monthlyRewardUnlocked = false;
-      nextState.unlockedReward = false;
-    } else {
-      nextState.monthlyRewardUnlocked = Boolean(nextState.monthlyRewardUnlocked || nextState.unlockedReward || nextState.rewardProgress >= REWARD_GOAL);
-      nextState.unlockedReward = nextState.monthlyRewardUnlocked;
-    }
     nextState.soundEnabled = nextState.soundEnabled !== false;
     nextState.lastDailyResetDate = nextState.lastDailyResetDate || todayKey();
     nextState.lastDailyBonusDate = nextState.lastDailyBonusDate || nextState.lastShareBonusDate || "";
@@ -258,7 +250,9 @@
   }
 
   function saveState() {
+    state.rewardProgress = Math.max(0, Number(state.rewardProgress) || 0);
     state.bestProgress = Math.max(state.bestProgress, state.rewardProgress);
+    state.monthlyRewardUnlocked = isRewardReady();
     state.unlockedReward = state.monthlyRewardUnlocked;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
@@ -279,12 +273,36 @@
     const currentMonth = monthKey();
     if (nextState.currentRewardMonth !== currentMonth) {
       nextState.currentRewardMonth = currentMonth;
-      nextState.rewardProgress = 0;
-      nextState.monthlyRewardUnlocked = false;
       nextState.monthlyRewardClaimed = false;
-      nextState.unlockedReward = false;
     }
+    nextState.rewardProgress = Math.max(0, Number(nextState.rewardProgress) || 0);
+    nextState.monthlyRewardUnlocked = !nextState.monthlyRewardClaimed && nextState.rewardProgress >= REWARD_GOAL;
+    nextState.unlockedReward = nextState.monthlyRewardUnlocked;
     return nextState;
+  }
+
+  function isRewardReady() {
+    applyMonthlyRewardReset(state);
+    return !state.monthlyRewardClaimed && state.rewardProgress >= REWARD_GOAL;
+  }
+
+  function getSpanishMonthName(month = state.currentRewardMonth || monthKey()) {
+    const monthNames = [
+      "enero",
+      "febrero",
+      "marzo",
+      "abril",
+      "mayo",
+      "junio",
+      "julio",
+      "agosto",
+      "septiembre",
+      "octubre",
+      "noviembre",
+      "diciembre"
+    ];
+    const monthIndex = Number(String(month).slice(5, 7)) - 1;
+    return monthNames[monthIndex] || "mes";
   }
 
   function applyDailyRecharge() {
@@ -352,12 +370,16 @@
 
   function getRewardStatusText() {
     if (state.monthlyRewardClaimed) {
-      return "Ya recibiste tu recurso creativo de este mes. La barra vuelve a cero hasta la próxima recompensa mensual.";
+      if (state.rewardProgress >= REWARD_GOAL) {
+        return "Ya recibiste el recurso de este mes. Tus monedas extra quedan guardadas y el próximo mes el botón se activará automáticamente.";
+      }
+      return "Ya recibiste el recurso de este mes. Sigue jugando: tus monedas acumuladas quedan guardadas para el próximo mes.";
     }
-    if (state.monthlyRewardUnlocked) {
+    if (isRewardReady()) {
       return "¡Tu recurso creativo del mes ya está disponible!";
     }
-    return "Junta 3000 monedas acumuladas para desbloquear 1 recurso gratis este mes.";
+    const remaining = Math.max(0, REWARD_GOAL - state.rewardProgress);
+    return `Junta ${remaining} monedas más para desbloquear 1 recurso gratis este mes.`;
   }
 
   function setText(element, value) {
@@ -372,11 +394,15 @@
   }
 
   function renderRewardButtons() {
-    const rewardReady = state.monthlyRewardUnlocked && !state.monthlyRewardClaimed;
+    const rewardReady = isRewardReady();
+    const monthName = getSpanishMonthName();
     [els.homeRewardButton, els.gameRewardButton].forEach((button) => {
       if (!button) return;
       button.hidden = !rewardReady;
       button.disabled = !rewardReady;
+      if (rewardReady) {
+        button.textContent = button === els.homeRewardButton ? `Descargar recurso de ${monthName}` : "Descargar recurso";
+      }
     });
   }
 
@@ -765,14 +791,11 @@
 
   function addRewards(playerAmount, progressAmount) {
     state.playerCoins += Math.max(0, Number(playerAmount) || 0);
-    if (!state.monthlyRewardClaimed && progressAmount > 0) {
-      const wasUnlocked = state.monthlyRewardUnlocked;
-      state.rewardProgress = clamp(state.rewardProgress + progressAmount, 0, REWARD_GOAL);
-      if (state.rewardProgress >= REWARD_GOAL) {
-        state.monthlyRewardUnlocked = true;
-        state.unlockedReward = true;
-      }
-      if (!wasUnlocked && state.monthlyRewardUnlocked) {
+    if (progressAmount > 0) {
+      const wasReady = isRewardReady();
+      state.rewardProgress = Math.max(0, state.rewardProgress + Number(progressAmount));
+      applyMonthlyRewardReset(state);
+      if (!wasReady && isRewardReady()) {
         window.setTimeout(showRewardModal, 420);
         playSound("win");
       }
@@ -842,10 +865,32 @@
   }
 
   function showRewardModal() {
+    if (state.monthlyRewardClaimed) {
+      showInfoModal({
+        badge: "🎁",
+        title: "Recurso mensual bloqueado",
+        message: "Ya descargaste el recurso creativo de este mes. Puedes seguir jugando para acumular monedas para el próximo mes.",
+        primaryText: "Entendido",
+        onPrimary: closeModal
+      });
+      return;
+    }
+
+    if (!isRewardReady()) {
+      showInfoModal({
+        badge: "🎁",
+        title: "Aún falta un poco",
+        message: `Te faltan ${Math.max(0, REWARD_GOAL - state.rewardProgress)} monedas acumuladas para desbloquear el recurso de este mes.`,
+        primaryText: "Seguir jugando",
+        onPrimary: closeModal
+      });
+      return;
+    }
+
     showInfoModal({
       badge: "🎁",
       title: "¡Ganaste el recurso creativo de este mes!",
-      message: "Juntaste 3000 monedas acumuladas. Puedes descargar el recurso mensual cuando esté disponible.",
+      message: `Juntaste ${REWARD_GOAL} monedas acumuladas. Ya puedes descargar el recurso de ${getSpanishMonthName()}.`,
       primaryText: "Descargar recurso",
       onPrimary: tryDownloadReward,
       secondaryText: "Seguir jugando",
@@ -924,89 +969,101 @@
     return new URL(pathname.replace(/\/[^/]*$/, "/"), window.location.origin).href;
   }
 
-  async function rewardFileExists(rewardUrl) {
-    try {
-      const response = await fetch(rewardUrl, { method: "HEAD", cache: "no-store" });
-      const length = Number(response.headers.get("content-length") || 0);
-      if (response.ok && length > 1024) return true;
-      if (response.ok && length > 0 && length <= 1024) return false;
-    } catch (error) {
-      // Algunos navegadores antiguos pueden fallar con HEAD; probamos leyendo el inicio del archivo.
-    }
+  function getRewardAssetUrl() {
+    const rewardAssetFileName = "recompensa-demo.pdf";
+    return new URL(`assets/rewards/${rewardAssetFileName}?month=${state.currentRewardMonth || monthKey()}&v=${Date.now()}`, getAppBaseUrl()).href;
+  }
 
+  function getRewardDownloadFileName() {
+    return `recompensa-${getSpanishMonthName()}-studio-sareschi.pdf`;
+  }
+
+  async function fetchRewardBlob(rewardUrl) {
     try {
-      const response = await fetch(rewardUrl, {
-        cache: "no-store",
-        headers: { Range: "bytes=0-4" }
-      });
-      if (!response.ok && response.status !== 206) return false;
-      const buffer = await response.arrayBuffer();
-      const header = new TextDecoder().decode(buffer);
-      return header.startsWith("%PDF-");
+      const response = await fetch(rewardUrl, { cache: "no-store" });
+      if (!response.ok) return null;
+
+      const blob = await response.blob();
+      if (!blob || blob.size <= 1024) return null;
+
+      const headerBuffer = await blob.slice(0, 5).arrayBuffer();
+      const header = new TextDecoder().decode(headerBuffer);
+      if (!header.startsWith("%PDF-")) return null;
+
+      return blob;
     } catch (error) {
-      return false;
+      return null;
     }
   }
 
-  async function tryDownloadReward() {
-    const rewardAssetFileName = "recompensa-demo.pdf";
-    const rewardDownloadFileName = "recompensa-junio-studio-sareschi.pdf";
-    const rewardUrl = new URL(`assets/rewards/${rewardAssetFileName}?month=${state.currentRewardMonth || monthKey()}`, getAppBaseUrl()).href;
-
-    const openReward = () => {
-      const link = document.createElement("a");
-      link.href = rewardUrl;
-      link.download = rewardDownloadFileName;
-      link.target = "_blank";
-      link.rel = "noopener";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    };
-
-    els.modalMessage.textContent = "Buscando el recurso creativo...";
-
-    const exists = await rewardFileExists(rewardUrl);
-    if (!exists) {
-      els.modalTitle.textContent = "PDF no válido";
-      els.modalMessage.textContent = "La recompensa está desbloqueada, pero el archivo en assets/rewards/recompensa-demo.pdf no parece ser un PDF real o todavía está vacío. Sube nuevamente el PDF real con ese nombre. Tu barra no se reinició.";
-      els.modalActions.innerHTML = "";
-
-      const closeButton = document.createElement("button");
-      closeButton.className = "btn btn-primary";
-      closeButton.type = "button";
-      closeButton.textContent = "Entendido";
-      closeButton.addEventListener("click", closeModal);
-      els.modalActions.appendChild(closeButton);
-      return;
-    }
-
-    openReward();
-
-    state.monthlyRewardClaimed = true;
-    state.monthlyRewardUnlocked = false;
-    state.unlockedReward = false;
-    state.rewardProgress = 0;
-    saveState();
-    renderAll();
-
-    els.modalTitle.textContent = "¡Recurso descargado!";
-    els.modalMessage.textContent = "La descarga se inició y tu barra volvió a cero. Si no ves el archivo, revisa la carpeta de descargas o toca abrir nuevamente.";
+  function showSingleButtonModal(title, message, buttonText = "Entendido") {
+    els.modalTitle.textContent = title;
+    els.modalMessage.textContent = message;
     els.modalActions.innerHTML = "";
 
     const closeButton = document.createElement("button");
     closeButton.className = "btn btn-primary";
     closeButton.type = "button";
-    closeButton.textContent = "Entendido";
+    closeButton.textContent = buttonText;
     closeButton.addEventListener("click", closeModal);
     els.modalActions.appendChild(closeButton);
+  }
 
-    const retryButton = document.createElement("button");
-    retryButton.className = "btn btn-soft";
-    retryButton.type = "button";
-    retryButton.textContent = "Abrir descarga";
-    retryButton.addEventListener("click", openReward);
-    els.modalActions.appendChild(retryButton);
+  async function tryDownloadReward() {
+    applyMonthlyRewardReset(state);
+
+    if (state.monthlyRewardClaimed) {
+      showSingleButtonModal(
+        "Recurso mensual bloqueado",
+        "Ya descargaste el recurso creativo de este mes. El botón volverá a activarse el próximo mes si tienes 3000 monedas acumuladas."
+      );
+      return;
+    }
+
+    if (!isRewardReady()) {
+      showSingleButtonModal(
+        "Aún falta un poco",
+        `Te faltan ${Math.max(0, REWARD_GOAL - state.rewardProgress)} monedas acumuladas para desbloquear el recurso de este mes.`,
+        "Seguir jugando"
+      );
+      return;
+    }
+
+    els.modalMessage.textContent = "Preparando el recurso creativo...";
+
+    const rewardBlob = await fetchRewardBlob(getRewardAssetUrl());
+    if (!rewardBlob) {
+      showSingleButtonModal(
+        "PDF no válido",
+        "La recompensa está desbloqueada, pero el archivo en assets/rewards/recompensa-demo.pdf no parece ser un PDF real o todavía está vacío. Sube nuevamente el PDF real con ese nombre. Tu barra no se descontó."
+      );
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(rewardBlob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = getRewardDownloadFileName();
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
+
+    state.monthlyRewardClaimed = true;
+    state.monthlyRewardUnlocked = false;
+    state.unlockedReward = false;
+    state.rewardProgress = Math.max(0, state.rewardProgress - REWARD_GOAL);
+    saveState();
+    renderAll();
+
+    const extraMessage = state.rewardProgress >= REWARD_GOAL
+      ? "Tus monedas extra quedaron guardadas. El botón volverá a aparecer automáticamente el próximo mes."
+      : "Puedes seguir jugando para acumular monedas para el próximo mes.";
+
+    showSingleButtonModal(
+      "¡Recurso descargado!",
+      `La descarga se inició y el recurso de este mes quedó bloqueado. ${extraMessage}`
+    );
   }
 
   function launchCelebration(type = "level") {
@@ -1215,9 +1272,10 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get("testReward") !== "1") return;
 
-    state.rewardProgress = REWARD_GOAL;
-    state.monthlyRewardUnlocked = true;
+    state.currentRewardMonth = monthKey();
+    state.rewardProgress = Math.max(state.rewardProgress, REWARD_GOAL);
     state.monthlyRewardClaimed = false;
+    state.monthlyRewardUnlocked = true;
     state.unlockedReward = true;
     saveState();
   }
