@@ -62,3 +62,18 @@ V14: retomada desde v11. Se corrige el apilado usando hidden real para que no ap
 - Corrige la carta de cuaderno para usar `assets/cards/cuaderno.png` en lugar del fallback SVG anterior.
 - El aviso de inicio de nivel ya no se cierra solo: ahora muestra botón OK para leerlo con calma.
 - Cache del service worker actualizada a v15.
+
+## Notas v27
+
+- La recompensa mensual debe estar en `assets/rewards/recompensa-demo.pdf`.
+- Esta versión incluye un PDF de prueba para verificar el botón de descarga. Antes de publicar para clientas, reemplazarlo por el PDF real.
+- En celular, el tablero usa 4 columnas para que las cartas no se achiquen en niveles altos.
+- Se usa una pila de fuentes del sistema para evitar cambios raros de tipografía en navegadores móviles.
+
+
+## Ajustes v28
+- Mantiene la descarga apuntando a `assets/rewards/recompensa-demo.pdf`, para respetar el PDF ya subido en GitHub.
+- Conserva la validación antes de descargar: si el PDF no existe, no reinicia la barra de recompensa.
+- Tablero móvil más cómodo: usa menos columnas en celulares para que las cartas no se achiquen tanto.
+- Fuente estable del sistema para evitar cambios raros de tipografía en celular.
+- Service worker actualizado a memoria-creativa-v28.

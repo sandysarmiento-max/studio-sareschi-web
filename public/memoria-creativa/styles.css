@@ -1962,3 +1962,70 @@ h2,
     font-size: 0.82rem;
   }
 }
+
+/* ===== V27: celular más cómodo + fuente estable ===== */
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body,
+button,
+input,
+select,
+textarea,
+h1,
+h2,
+#game-title,
+.level-intro-title,
+#modal-title,
+.card-question,
+.memory-card::after {
+  font-family: inherit;
+}
+
+.screen-game {
+  overflow: visible;
+}
+
+@media (max-width: 520px) {
+  .app-shell {
+    padding: 8px 10px calc(14px + var(--safe-bottom));
+  }
+
+  .screen {
+    min-height: auto;
+  }
+
+  .screen-game {
+    min-height: auto;
+    gap: 7px;
+  }
+
+  .screen-game .memory-board {
+    gap: clamp(6px, 1.6vw, 8px);
+  }
+
+  .screen-game .memory-card {
+    aspect-ratio: 1 / 1.05;
+    border-radius: clamp(13px, 3.6vw, 18px);
+  }
+
+  .screen-game .board-wrap {
+    padding: 5px;
+  }
+
+  .screen-game .secondary-actions {
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+}
+
+@media (max-width: 380px) {
+  .screen-game .memory-board {
+    gap: 5px;
+  }
+
+  .screen-game .memory-card {
+    aspect-ratio: 1 / 1.02;
+  }
+}

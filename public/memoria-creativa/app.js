@@ -568,9 +568,9 @@
   }
 
   function getColumnCount(pairCount) {
+    // En celular usamos siempre 4 columnas para aprovechar mejor el alto de la pantalla.
+    // Antes los niveles de 10 y 12 pares pasaban a 5/6 columnas y las cartas se achicaban demasiado.
     if (window.matchMedia("(max-width: 520px)").matches) {
-      if (pairCount >= 12) return 6;
-      if (pairCount >= 10) return 5;
       return 4;
     }
     if (pairCount >= 10) return 6;
@@ -892,14 +892,53 @@
     els.modal.hidden = true;
   }
 
+  function getAppBaseUrl() {
+    const pathname = window.location.pathname;
+
+    if (pathname.endsWith("/")) {
+      return new URL(pathname, window.location.origin).href;
+    }
+
+    if (pathname.endsWith("/index.html")) {
+      return new URL(pathname.replace(/index\.html$/, ""), window.location.origin).href;
+    }
+
+    const appSegment = "/memoria-creativa";
+    const appIndex = pathname.indexOf(appSegment);
+    if (appIndex >= 0) {
+      return new URL(pathname.slice(0, appIndex + appSegment.length) + "/", window.location.origin).href;
+    }
+
+    return new URL(pathname.replace(/\/[^/]*$/, "/"), window.location.origin).href;
+  }
+
+  async function rewardFileExists(rewardUrl) {
+    try {
+      const response = await fetch(rewardUrl, { method: "HEAD", cache: "no-store" });
+      if (response.ok) return true;
+    } catch (error) {
+      // Algunos navegadores antiguos pueden fallar con HEAD; probamos GET liviano.
+    }
+
+    try {
+      const response = await fetch(rewardUrl, {
+        cache: "no-store",
+        headers: { Range: "bytes=0-0" }
+      });
+      return response.ok || response.status === 206;
+    } catch (error) {
+      return false;
+    }
+  }
+
   async function tryDownloadReward() {
-    const rewardPath = "assets/rewards/recompensa-demo.pdf";
-    const rewardUrl = new URL(rewardPath, window.location.href).href;
+    const rewardFileName = "recompensa-demo.pdf";
+    const rewardUrl = new URL(`assets/rewards/${rewardFileName}?month=${state.currentRewardMonth || monthKey()}`, getAppBaseUrl()).href;
 
     const openReward = () => {
       const link = document.createElement("a");
       link.href = rewardUrl;
-      link.download = "recompensa-demo.pdf";
+      link.download = rewardFileName;
       link.target = "_blank";
       link.rel = "noopener";
       document.body.appendChild(link);
@@ -907,8 +946,23 @@
       link.remove();
     };
 
-    // Primero intentamos abrir/descargar el PDF real.
-    // Luego marcamos la recompensa como recibida para que la barra vuelva a cero.
+    els.modalMessage.textContent = "Buscando el recurso creativo...";
+
+    const exists = await rewardFileExists(rewardUrl);
+    if (!exists) {
+      els.modalTitle.textContent = "Archivo no encontrado";
+      els.modalMessage.textContent = "La recompensa está desbloqueada, pero todavía no encuentro el PDF en assets/rewards/recompensa-demo.pdf. Sube el archivo con ese nombre y vuelve a tocar descargar. Tu barra no se reinició.";
+      els.modalActions.innerHTML = "";
+
+      const closeButton = document.createElement("button");
+      closeButton.className = "btn btn-primary";
+      closeButton.type = "button";
+      closeButton.textContent = "Entendido";
+      closeButton.addEventListener("click", closeModal);
+      els.modalActions.appendChild(closeButton);
+      return;
+    }
+
     openReward();
 
     state.monthlyRewardClaimed = true;

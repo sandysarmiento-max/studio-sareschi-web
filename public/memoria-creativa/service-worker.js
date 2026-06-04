@@ -1,4 +1,4 @@
-const CACHE_NAME = "memoria-creativa-v26";
+const CACHE_NAME = "memoria-creativa-v28";
 const APP_SHELL = [
   "/memoria-creativa/",
   "/memoria-creativa/index.html",
@@ -48,6 +48,13 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (event.request.method !== "GET") {
+    return;
+  }
+
+  // La recompensa mensual no se guarda en caché para evitar que el mes siguiente
+  // se quede pegado un PDF antiguo en celulares con PWA instalada.
+  if (requestUrl.pathname.includes("/assets/rewards/")) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
