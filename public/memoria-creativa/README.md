@@ -84,3 +84,6 @@ V14: retomada desde v11. Se corrige el apilado usando hidden real para que no ap
 - Valida que el recurso sea un PDF real antes de reiniciar la barra de recompensa. Si el archivo está vacío o inválido, no reinicia el progreso.
 - Agrega modo de prueba con `/memoria-creativa/?testReward=1` para desbloquear la recompensa sin jugar hasta 3000 durante pruebas.
 - Service worker actualizado a memoria-creativa-v29.
+
+
+V30: agrega botón visible de descarga en la pantalla de inicio y en el progreso del juego cuando la recompensa mensual ya está desbloqueada, para no depender solo del popup. Cache actualizada a v30.

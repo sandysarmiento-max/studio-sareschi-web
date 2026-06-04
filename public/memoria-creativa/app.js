@@ -148,6 +148,7 @@
     homeProgressText: document.querySelector("#home-progress-text"),
     homeProgressFill: document.querySelector("#home-progress-fill"),
     homeRewardStatus: document.querySelector("#home-reward-status"),
+    homeRewardButton: document.querySelector("#home-reward-button"),
     homeDailyMessage: document.querySelector("#home-daily-message"),
     playButton: document.querySelector("#play-button"),
     shareButton: document.querySelector("#share-button"),
@@ -161,6 +162,7 @@
     gameProgressText: document.querySelector("#game-progress-text"),
     gameProgressFill: document.querySelector("#game-progress-fill"),
     gameRewardStatus: document.querySelector("#game-reward-status"),
+    gameRewardButton: document.querySelector("#game-reward-button"),
     matchedPairs: document.querySelector("#matched-pairs"),
     totalPairs: document.querySelector("#total-pairs"),
     movesPanel: document.querySelector("#moves-panel"),
@@ -336,6 +338,7 @@
     els.playButton.disabled = isDailyLocked();
     els.restartLevelButton.disabled = isDailyLocked();
     renderShareButton();
+    renderRewardButtons();
     renderSoundButtons();
     renderChallengePanels();
 
@@ -366,6 +369,15 @@
     const usedToday = state.lastDailyBonusDate === todayKey();
     els.shareButton.textContent = usedToday ? "Regalo diario recibido" : "Regalo diario +50";
     els.shareButton.disabled = usedToday;
+  }
+
+  function renderRewardButtons() {
+    const rewardReady = state.monthlyRewardUnlocked && !state.monthlyRewardClaimed;
+    [els.homeRewardButton, els.gameRewardButton].forEach((button) => {
+      if (!button) return;
+      button.hidden = !rewardReady;
+      button.disabled = !rewardReady;
+    });
   }
 
   function renderChallengePanels() {
@@ -1222,6 +1234,8 @@
 
   els.playButton.addEventListener("click", startGame);
   els.shareButton.addEventListener("click", claimDailyBonus);
+  if (els.homeRewardButton) els.homeRewardButton.addEventListener("click", showRewardModal);
+  if (els.gameRewardButton) els.gameRewardButton.addEventListener("click", showRewardModal);
   els.homeSoundButton.addEventListener("click", toggleSound);
   els.gameSoundButton.addEventListener("click", toggleSound);
   els.backHomeButton.addEventListener("click", () => {
