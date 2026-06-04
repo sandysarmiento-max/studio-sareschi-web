@@ -2029,3 +2029,30 @@ h2,
     aspect-ratio: 1 / 1.02;
   }
 }
+.home-back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  margin: 0 0 0.9rem;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #5a2d68;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 0 10px 24px rgba(58, 16, 76, 0.14);
+}
+
+.home-back-link:hover,
+.home-back-link:focus-visible {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .home-back-link {
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 0.9rem;
+  }
+}
