@@ -4,9 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ff8fc7" />
-    <meta name="description" content="Memoria Creativa: encuentra pares de papelería, gana monedas y desbloquea una recompensa." />
+    <meta name="description" content="Memoria Creativa: encuentra pares de papelería, gana monedas y desbloquea un recurso creativo mensual." />
     <title>Memoria Creativa | Studio Sareschi</title>
     <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -17,9 +19,12 @@
     <main class="app-shell" id="app">
       <section class="screen screen-home is-active" id="home-screen" aria-labelledby="home-title">
         <div class="hero-card">
+          <figure class="home-promo" aria-hidden="true">
+            <img src="assets/ui/home-banner.png" alt="" />
+          </figure>
           <p class="eyebrow">Studio Sareschi presenta</p>
           <h1 id="home-title">Memoria Creativa</h1>
-          <p class="subtitle">Encuentra los pares y gana recompensas</p>
+          <p class="subtitle"><strong>Activa tu mente y encuentra los pares.</strong><br />Junta monedas acumuladas y desbloquea 1 recurso gratis al mes.</p>
 
           <div class="quick-stats" aria-label="Resumen de progreso">
             <div class="stat-pill">
@@ -30,21 +35,27 @@
               <span class="stat-icon" aria-hidden="true">🎁</span>
               <span>Nivel <strong id="home-level">1</strong></span>
             </div>
+            <div class="stat-pill">
+              <span class="stat-icon" aria-hidden="true">🏆</span>
+              <span>Ronda <strong id="home-round">1</strong></span>
+            </div>
           </div>
 
           <div class="reward-card compact">
             <div class="reward-heading">
-              <span>Progreso al recurso creativo</span>
+              <span>Recurso creativo del mes</span>
               <strong><span id="home-progress-text">0</span>/3000</strong>
             </div>
             <div class="progress-track" aria-hidden="true">
               <span class="progress-fill" id="home-progress-fill"></span>
             </div>
-            <p class="reward-status" id="home-reward-status">Sigue juntando estrellitas creativas.</p>
+            <p class="reward-status" id="home-reward-status">Junta 3000 monedas acumuladas para desbloquear 1 recurso gratis este mes.</p>
+            <p class="reward-note">Las monedas extra te ayudan a seguir jugando. La recompensa digital se entrega una vez al mes.</p>
           </div>
 
           <div class="home-actions">
             <button class="btn btn-primary" id="play-button" type="button">Jugar</button>
+            <button class="btn btn-soft" id="share-button" type="button">Regalo diario +50</button>
             <button class="btn btn-soft" id="home-sound-button" type="button" aria-pressed="true">Sonido: activado</button>
           </div>
 
@@ -56,11 +67,21 @@
         <header class="game-header">
           <button class="icon-button" id="back-home-button" type="button" aria-label="Volver al inicio">←</button>
           <div>
-            <p class="eyebrow mini">Jugando</p>
+            <p class="eyebrow mini">Jugando · Ronda <span id="game-round">1</span></p>
             <h2 id="game-title">Nivel <span id="game-level">1</span></h2>
+            <p class="mode-label" id="game-mode">Normal</p>
           </div>
           <button class="sound-chip" id="game-sound-button" type="button" aria-pressed="true">🔊</button>
         </header>
+
+        <div class="level-intro" id="level-intro" hidden>
+          <div class="level-intro-card">
+            <p class="level-intro-kicker" id="level-intro-kicker">Ronda 1 · Nivel 1</p>
+            <h3 class="level-intro-title" id="level-intro-title">¡A jugar!</h3>
+            <p class="level-intro-text" id="level-intro-text">Encuentra todos los pares para avanzar al siguiente reto.</p>
+            <button class="level-intro-ok" id="level-intro-ok" type="button">OK, empezar</button>
+          </div>
+        </div>
 
         <section class="dashboard" aria-label="Estado del juego">
           <div class="dash-item coins">
@@ -77,16 +98,31 @@
               <strong><span id="matched-pairs">0</span>/<span id="total-pairs">4</span></strong>
             </div>
           </div>
+          <div class="dash-item challenge" id="moves-panel" hidden>
+            <span aria-hidden="true">🎲</span>
+            <div>
+              <small>Movimientos</small>
+              <strong id="moves-left">—</strong>
+            </div>
+          </div>
+          <div class="dash-item challenge" id="timer-panel" hidden>
+            <span aria-hidden="true">⏱️</span>
+            <div>
+              <small>Bonus</small>
+              <strong id="timer-left">—</strong>
+            </div>
+          </div>
         </section>
 
-        <section class="reward-card game-progress" aria-label="Progreso hacia recompensa">
+        <section class="reward-card game-progress" aria-label="Progreso hacia recompensa mensual">
           <div class="reward-heading">
-            <span>Recompensa</span>
+            <span>Recurso creativo del mes</span>
             <strong><span id="game-progress-text">0</span>/3000</strong>
           </div>
           <div class="progress-track" aria-hidden="true">
             <span class="progress-fill" id="game-progress-fill"></span>
           </div>
+          <p class="reward-status small" id="game-reward-status">Junta 3000 monedas acumuladas para desbloquear 1 recurso gratis este mes.</p>
         </section>
 
         <p class="game-message" id="game-message" role="status" aria-live="polite">Elige dos cartas para encontrar un par.</p>
@@ -101,6 +137,7 @@
         </div>
       </section>
     </main>
+
 
     <div class="modal-backdrop" id="modal" hidden>
       <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-message">

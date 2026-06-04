@@ -1,10 +1,27 @@
-const CACHE_NAME = "memoria-creativa-v1";
+const CACHE_NAME = "memoria-creativa-v24";
 const APP_SHELL = [
   "/memoria-creativa/",
   "/memoria-creativa/index.html",
   "/memoria-creativa/styles.css",
   "/memoria-creativa/app.js",
-  "/memoria-creativa/manifest.webmanifest"
+  "/memoria-creativa/manifest.webmanifest",
+  "/memoria-creativa/assets/cards/clip.png",
+  "/memoria-creativa/assets/cards/cuaderno.png",
+  "/memoria-creativa/assets/cards/cutter.png",
+  "/memoria-creativa/assets/cards/impresora.png",
+  "/memoria-creativa/assets/cards/lapiz.png",
+  "/memoria-creativa/assets/cards/pegamento.png",
+  "/memoria-creativa/assets/cards/planner.png",
+  "/memoria-creativa/assets/cards/regla.png",
+  "/memoria-creativa/assets/cards/sello.png",
+  "/memoria-creativa/assets/cards/sobre.png",
+  "/memoria-creativa/assets/cards/stickers.png",
+  "/memoria-creativa/assets/cards/washi-tape.png",
+  "/memoria-creativa/assets/ui/trophy-badge.png",
+  "/memoria-creativa/assets/ui/home-banner.png",
+  "/memoria-creativa/assets/icons/icon-192.png",
+  "/memoria-creativa/assets/icons/icon-512.png",
+  "/memoria-creativa/assets/icons/apple-touch-icon.png",
 ];
 
 self.addEventListener("install", (event) => {
