@@ -1,4 +1,4 @@
-const CACHE_NAME = "memoria-creativa-v31";
+const CACHE_NAME = "memoria-creativa-v32";
 const APP_SHELL = [
   "/memoria-creativa/",
   "/memoria-creativa/index.html",
@@ -19,6 +19,7 @@ const APP_SHELL = [
   "/memoria-creativa/assets/cards/washi-tape.png",
   "/memoria-creativa/assets/ui/trophy-badge.png",
   "/memoria-creativa/assets/ui/home-banner.png",
+  "/memoria-creativa/assets/ui/arrow-back.png",
   "/memoria-creativa/assets/icons/icon-192.png",
   "/memoria-creativa/assets/icons/icon-512.png",
   "/memoria-creativa/assets/icons/apple-touch-icon.png",
