@@ -816,10 +816,16 @@ body.modal-open {
   font-size: 1rem;
 }
 .pdf-store-top {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
-  gap: 1rem;
-  align-items: start;
+  position: relative;
+  display: block;
+  padding-right: min(37vw, 430px);
+}
+
+.pdf-store-top .pdf-freebie-compact {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(34vw, 398px);
 }
 
 .pdf-freebie-compact {
@@ -1120,7 +1126,14 @@ body.modal-open {
 
 @media (max-width: 840px) {
   .pdf-store-top {
+    display: grid;
     grid-template-columns: 1fr;
+    padding-right: 0;
+  }
+
+  .pdf-store-top .pdf-freebie-compact {
+    position: static;
+    width: auto;
   }
 }
 
