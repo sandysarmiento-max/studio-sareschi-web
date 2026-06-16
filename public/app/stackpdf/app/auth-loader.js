@@ -1,7 +1,5 @@
 const APP_KEY = 'stackpdf';
 const LOGIN_URL = '/acceso/?app=stackpdf&next=%2Fapp%2Fstackpdf%2F';
-const CSS_PARTS = ["styles-css.b64.00.txt", "styles-css.b64.01.txt", "styles-css.b64.02.txt", "styles-css.b64.03.txt", "styles-css.b64.04.txt", "styles-css.b64.05.txt"];
-const JS_PARTS = ["app-js.b64.00.txt", "app-js.b64.01.txt", "app-js.b64.02.txt", "app-js.b64.03.txt", "app-js.b64.04.txt", "app-js.b64.05.txt"];
 
 function authBlock(text) {
   const message = document.getElementById('stackpdfAuthMessage');
@@ -16,12 +14,18 @@ async function fetchText(path) {
   return response.text();
 }
 
-async function decodeBase64Parts(parts) {
-  const base64 = (await Promise.all(parts.map(fetchText))).join('');
+async function decodeGzipBase64(path) {
+  const base64 = await fetchText(path);
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return new TextDecoder('utf-8').decode(bytes);
+
+  if (!('DecompressionStream' in window)) {
+    throw new Error('El navegador no soporta DecompressionStream');
+  }
+
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Response(stream).text();
 }
 
 async function hasAccess(supabaseClient) {
@@ -71,7 +75,7 @@ async function bootStackPdf() {
   const allowed = await validateAccess();
   if (!allowed) return;
 
-  const css = await decodeBase64Parts(CSS_PARTS);
+  const css = await decodeGzipBase64('./styles.css.gz.b64.txt');
   const style = document.createElement('style');
   style.setAttribute('data-stackpdf', 'styles');
   style.textContent = css + '\n.brand-logo-fallback{display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;letter-spacing:.04em;background:#fff8f4;color:#8b5d6f;border:1px solid rgba(139,93,111,.20)}';
@@ -83,11 +87,11 @@ async function bootStackPdf() {
 
   await loadScript('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js');
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
-  const js = await decodeBase64Parts(JS_PARTS);
+  const js = await decodeGzipBase64('./app.js.gz.b64.txt');
   new Function(js)();
 }
 
 bootStackPdf().catch((error) => {
   console.error('stackpdf auth/load error', error);
-  authBlock('No fue posible cargar StackPDF. Actualiza la página e intenta otra vez.');
+  authBlock('No fue posible cargar StackPDF. Usa Chrome o Edge actualizado, o actualiza la página e intenta otra vez.');
 });
