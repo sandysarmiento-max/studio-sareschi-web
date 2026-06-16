@@ -72,56 +72,30 @@ async function loadScript(src) {
   });
 }
 
-async function applyEmbeddedLogo() {
-  const logo = document.querySelector('.brand-logo-img[data-logo-base64-src]');
-  if (!logo) return;
-  try {
-    const logoBase64 = (await fetchText(logo.dataset.logoBase64Src)).trim();
-    logo.src = `data:image/png;base64,${logoBase64}`;
-  } catch (error) {
-    console.warn('No se pudo cargar el logo de StackPDF', error);
-    logo.replaceWith(Object.assign(document.createElement('div'), {
-      className: 'brand-logo brand-logo-fallback',
-      textContent: 'StackPDF',
-    }));
-  }
-}
-
-function pinLogoLayout() {
+async function installHeaderLogo() {
+  const topbar = document.querySelector('.topbar');
   const brand = document.querySelector('.brand-stackpdf');
-  const logo = document.querySelector('.brand-logo-img');
-  const copy = document.querySelector('.brand-copy-stackpdf');
-
-  if (copy) copy.style.setProperty('display', 'none', 'important');
+  if (!topbar) return;
 
   if (brand) {
-    brand.style.setProperty('width', '340px', 'important');
-    brand.style.setProperty('min-width', '340px', 'important');
-    brand.style.setProperty('max-width', '340px', 'important');
-    brand.style.setProperty('height', '76px', 'important');
-    brand.style.setProperty('min-height', '76px', 'important');
-    brand.style.setProperty('overflow', 'visible', 'important');
-    brand.style.setProperty('display', 'flex', 'important');
-    brand.style.setProperty('align-items', 'center', 'important');
-    brand.style.setProperty('padding', '0', 'important');
-    brand.style.setProperty('gap', '0', 'important');
+    brand.style.setProperty('display', 'none', 'important');
   }
 
-  if (logo) {
-    logo.style.setProperty('display', 'block', 'important');
-    logo.style.setProperty('width', '320px', 'important');
-    logo.style.setProperty('min-width', '320px', 'important');
-    logo.style.setProperty('max-width', '320px', 'important');
-    logo.style.setProperty('height', '74px', 'important');
-    logo.style.setProperty('min-height', '74px', 'important');
-    logo.style.setProperty('max-height', '74px', 'important');
-    logo.style.setProperty('object-fit', 'contain', 'important');
-    logo.style.setProperty('object-position', 'left center', 'important');
-    logo.style.setProperty('overflow', 'visible', 'important');
-    logo.style.setProperty('clip-path', 'none', 'important');
-    logo.style.setProperty('background', 'transparent', 'important');
-    logo.style.setProperty('border', '0', 'important');
-    logo.style.setProperty('box-shadow', 'none', 'important');
+  try {
+    const logoBase64 = (await fetchText('./stackpdf-logo.png.b64.txt')).trim();
+    const existing = topbar.querySelector('.stackpdf-header-logo');
+    if (existing) existing.remove();
+
+    const logoLayer = document.createElement('div');
+    logoLayer.className = 'stackpdf-header-logo';
+    logoLayer.setAttribute('aria-label', 'StackPDF');
+    logoLayer.style.setProperty('background-image', `url(data:image/png;base64,${logoBase64})`, 'important');
+    topbar.prepend(logoLayer);
+  } catch (error) {
+    console.warn('No se pudo cargar el logo de StackPDF', error);
+    if (brand) {
+      brand.style.setProperty('display', 'flex', 'important');
+    }
   }
 }
 
@@ -135,29 +109,27 @@ async function bootStackPdf() {
   style.textContent = css + `
 html,body{overflow-x:hidden!important}
 body{padding:0!important;display:block!important;place-items:initial!important}
-.topbar{width:100%!important;max-width:none!important;margin:0!important;border-radius:0!important;box-sizing:border-box!important;overflow:visible!important;min-height:92px!important;height:auto!important;align-items:center!important;padding-top:8px!important;padding-bottom:8px!important}
-.brand-stackpdf,.brand.brand-stackpdf{display:flex!important;align-items:center!important;gap:0!important;flex:0 0 340px!important;min-width:340px!important;width:340px!important;max-width:340px!important;height:76px!important;min-height:76px!important;max-height:76px!important;overflow:visible!important;padding:0!important}
-.brand-logo-img{display:block!important;flex:0 0 320px!important;width:320px!important;min-width:320px!important;max-width:320px!important;height:74px!important;min-height:74px!important;max-height:74px!important;object-fit:contain!important;object-position:left center!important;overflow:visible!important;clip-path:none!important;border:0!important;background:transparent!important;box-shadow:none!important}
-.brand-copy-stackpdf{display:none!important}
+.topbar{position:relative!important;width:100%!important;max-width:none!important;margin:0!important;border-radius:0!important;box-sizing:border-box!important;overflow:visible!important;min-height:94px!important;height:auto!important;align-items:center!important;padding-top:8px!important;padding-bottom:8px!important;padding-left:470px!important}
+.brand-stackpdf,.brand.brand-stackpdf{display:none!important}
+.brand-logo-img,.brand-copy-stackpdf{display:none!important}
+.stackpdf-header-logo{position:absolute!important;left:24px!important;top:50%!important;transform:translateY(-50%)!important;width:390px!important;height:82px!important;background-repeat:no-repeat!important;background-position:left center!important;background-size:contain!important;z-index:50!important;pointer-events:none!important;overflow:visible!important}
 .app-shell,.workspace{width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box!important}
-.brand-logo-fallback{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:150px!important;width:auto!important;height:34px!important;padding:0 18px!important;border-radius:999px!important;font-size:14px!important;font-weight:900!important;letter-spacing:.02em!important;background:#fff8f4!important;color:#8b5d6f!important;border:1px solid rgba(139,93,111,.20)!important;box-shadow:none!important}
-@media (max-width:980px){.brand-stackpdf,.brand.brand-stackpdf{flex-basis:260px!important;min-width:260px!important;width:260px!important;max-width:260px!important}.brand-logo-img{flex-basis:245px!important;width:245px!important;min-width:245px!important;max-width:245px!important;height:58px!important;min-height:58px!important;max-height:58px!important}.brand-copy-stackpdf{display:none!important}}
+@media (max-width:980px){.topbar{padding-left:285px!important;min-height:80px!important}.stackpdf-header-logo{left:18px!important;width:245px!important;height:62px!important}}
 `;
   document.head.appendChild(style);
 
   const ui = await fetchText('./ui.html');
   document.body.removeAttribute('style');
   document.body.innerHTML = ui;
-  await applyEmbeddedLogo();
-  pinLogoLayout();
+  await installHeaderLogo();
 
   await loadScript('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js');
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
   const js = await decodeGzipBase64(['./app.js.gz.b64.00.txt', './app.js.gz.b64.01.txt', './app.js.gz.b64.02.txt']);
   new Function(js)();
-  pinLogoLayout();
-  window.setTimeout(pinLogoLayout, 50);
-  window.setTimeout(pinLogoLayout, 250);
+  await installHeaderLogo();
+  window.setTimeout(installHeaderLogo, 50);
+  window.setTimeout(installHeaderLogo, 250);
 }
 
 bootStackPdf().catch((error) => {
