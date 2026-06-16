@@ -94,7 +94,17 @@ async function bootStackPdf() {
   const css = await decodeGzipBase64('./styles.css.gz.b64.txt');
   const style = document.createElement('style');
   style.setAttribute('data-stackpdf', 'styles');
-  style.textContent = css + '\n.brand-logo-img{display:block!important;width:auto!important;height:48px!important;max-width:300px!important;object-fit:contain!important}.brand-stackpdf{display:flex!important;align-items:center!important;gap:14px!important}.brand-logo-fallback{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:150px!important;width:auto!important;height:34px!important;padding:0 18px!important;border-radius:999px!important;font-size:14px!important;font-weight:900!important;letter-spacing:.02em!important;background:#fff8f4!important;color:#8b5d6f!important;border:1px solid rgba(139,93,111,.20)!important;box-shadow:none!important}';
+  style.textContent = css + `
+html,body{overflow-x:hidden!important}
+body{padding:0!important;display:block!important;place-items:initial!important}
+.topbar{width:100%!important;max-width:none!important;margin:0!important;border-radius:0!important;box-sizing:border-box!important;overflow:visible!important;min-height:86px!important;height:auto!important;align-items:center!important;padding-top:10px!important;padding-bottom:10px!important}
+.brand-stackpdf,.brand.brand-stackpdf{display:flex!important;align-items:center!important;gap:14px!important;flex:0 0 auto!important;min-width:470px!important;width:470px!important;max-width:none!important;height:66px!important;min-height:66px!important;max-height:none!important;overflow:visible!important;padding:0!important}
+.brand-logo-img{display:block!important;flex:0 0 250px!important;width:250px!important;min-width:250px!important;max-width:250px!important;height:62px!important;min-height:62px!important;max-height:62px!important;object-fit:contain!important;object-position:left center!important;overflow:visible!important;clip-path:none!important;border:0!important;background:transparent!important;box-shadow:none!important}
+.brand-copy-stackpdf{display:block!important;flex:0 0 auto!important;min-width:205px!important;max-width:none!important;overflow:visible!important}
+.app-shell,.workspace{width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box!important}
+.brand-logo-fallback{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:150px!important;width:auto!important;height:34px!important;padding:0 18px!important;border-radius:999px!important;font-size:14px!important;font-weight:900!important;letter-spacing:.02em!important;background:#fff8f4!important;color:#8b5d6f!important;border:1px solid rgba(139,93,111,.20)!important;box-shadow:none!important}
+@media (max-width:980px){.brand-stackpdf,.brand.brand-stackpdf{min-width:250px!important;width:250px!important}.brand-logo-img{flex-basis:225px!important;width:225px!important;min-width:225px!important;max-width:225px!important;height:56px!important;min-height:56px!important;max-height:56px!important}.brand-copy-stackpdf{display:none!important}}
+`;
   document.head.appendChild(style);
 
   const ui = await fetchText('./ui.html');
