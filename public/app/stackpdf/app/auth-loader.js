@@ -14,8 +14,9 @@ async function fetchText(path) {
   return response.text();
 }
 
-async function decodeGzipBase64(path) {
-  const base64 = await fetchText(path);
+async function decodeGzipBase64(parts) {
+  const list = Array.isArray(parts) ? parts : [parts];
+  const base64 = (await Promise.all(list.map(fetchText))).join('');
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
@@ -87,7 +88,7 @@ async function bootStackPdf() {
 
   await loadScript('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js');
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
-  const js = await decodeGzipBase64('./app.js.gz.b64.txt');
+  const js = await decodeGzipBase64(['./app.js.gz.b64.00.txt', './app.js.gz.b64.01.txt', './app.js.gz.b64.02.txt']);
   new Function(js)();
 }
 
