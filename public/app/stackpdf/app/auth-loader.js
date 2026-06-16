@@ -72,6 +72,21 @@ async function loadScript(src) {
   });
 }
 
+async function applyEmbeddedLogo() {
+  const logo = document.querySelector('.brand-logo-img[data-logo-base64-src]');
+  if (!logo) return;
+  try {
+    const logoBase64 = (await fetchText(logo.dataset.logoBase64Src)).trim();
+    logo.src = `data:image/png;base64,${logoBase64}`;
+  } catch (error) {
+    console.warn('No se pudo cargar el logo de StackPDF', error);
+    logo.replaceWith(Object.assign(document.createElement('div'), {
+      className: 'brand-logo brand-logo-fallback',
+      textContent: 'StackPDF',
+    }));
+  }
+}
+
 async function bootStackPdf() {
   const allowed = await validateAccess();
   if (!allowed) return;
@@ -79,12 +94,13 @@ async function bootStackPdf() {
   const css = await decodeGzipBase64('./styles.css.gz.b64.txt');
   const style = document.createElement('style');
   style.setAttribute('data-stackpdf', 'styles');
-  style.textContent = css + '\n.brand-logo-fallback{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:150px!important;width:auto!important;height:34px!important;padding:0 18px!important;border-radius:999px!important;font-size:14px!important;font-weight:900!important;letter-spacing:.02em!important;background:#fff8f4!important;color:#8b5d6f!important;border:1px solid rgba(139,93,111,.20)!important;box-shadow:none!important}';
+  style.textContent = css + '\n.brand-logo-img{display:block!important;width:auto!important;height:48px!important;max-width:300px!important;object-fit:contain!important}.brand-stackpdf{display:flex!important;align-items:center!important;gap:14px!important}.brand-logo-fallback{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:150px!important;width:auto!important;height:34px!important;padding:0 18px!important;border-radius:999px!important;font-size:14px!important;font-weight:900!important;letter-spacing:.02em!important;background:#fff8f4!important;color:#8b5d6f!important;border:1px solid rgba(139,93,111,.20)!important;box-shadow:none!important}';
   document.head.appendChild(style);
 
   const ui = await fetchText('./ui.html');
   document.body.removeAttribute('style');
   document.body.innerHTML = ui;
+  await applyEmbeddedLogo();
 
   await loadScript('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js');
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
