@@ -33,6 +33,26 @@
       "permanent": false
     },
     {
+      "source": "/admin/stackpdf-invite",
+      "destination": "/admin/stackpdf-invite/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/stackpdf-invite/",
+      "destination": "/admin/stackpdf-invite/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/stackpdf",
+      "destination": "/app/stackpdf/",
+      "permanent": false
+    },
+    {
+      "source": "/stackpdf/",
+      "destination": "/app/stackpdf/",
+      "permanent": false
+    },
+    {
       "source": "/AralCalc-v1.html",
       "destination": "/acceso/?next=/aral-calc/",
       "permanent": false

@@ -1,0 +1,123 @@
+<header class="topbar">
+    <div class="brand brand-stackpdf" aria-label="StackPDF by Studio Sareschi">
+      <img class="brand-logo-img" alt="StackPDF" data-logo-base64-src="./stackpdf-logo.png.b64.txt" />
+      <div class="brand-copy brand-copy-stackpdf">
+        <p class="brand-tagline">Une y ordena tus PDFs para imprimir.</p>
+        <p class="brand-byline">by <strong>Studio Sareschi</strong></p>
+      </div>
+    </div>
+
+    <nav class="tabs" aria-label="Herramientas PDF">
+      <button class="tab is-active" type="button" data-mode="merge"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x='5' y='6' width='9' height='12' rx='2'/><path d='M10 3h7a2 2 0 0 1 2 2v11'/><path d='M8 10h3M8 13h3'/></svg></span>Unir PDFs</button>
+      <button class="tab" type="button" data-mode="pages"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M7 3h7l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z'/><path d='M14 3v5h5'/><path d='M8 12h7M8 15h7'/></svg></span>Páginas y rangos</button>
+    </nav>
+
+    <div class="top-actions">
+      <button id="clearBtn" class="ghost-btn" type="button" disabled><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M4 7h16'/><path d='M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2'/><path d='M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13'/><path d='M10 11v6M14 11v6'/></svg></span>Limpiar</button>
+      <button id="downloadBtn" class="primary-btn" type="button" disabled><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M12 4v11'/><path d='m7 10 5 5 5-5'/><path d='M5 20h14'/></svg></span>Unir y descargar</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside class="side-tools" aria-label="Acciones rápidas">
+      <button id="sideAddBtn" class="icon-btn" type="button" title="Subir PDFs" aria-label="Subir PDFs"><span class="icon-only" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M12 5v14M5 12h14'/></svg></span></button>
+      <button id="sideClearBtn" class="icon-btn" type="button" title="Limpiar" aria-label="Limpiar"><span class="icon-only" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M6 6l12 12M18 6 6 18'/></svg></span></button>
+      <button id="sideDownloadBtn" class="icon-btn accent" type="button" title="Descargar" aria-label="Descargar"><span class="icon-only" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M12 4v11'/><path d='m7 10 5 5 5-5'/><path d='M5 20h14'/></svg></span></button>
+    </aside>
+
+    <section class="workspace">
+            <section class="control-strip" aria-label="Controles principales">
+        <button id="mainAddBtn" class="soft-btn" type="button"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M12 20V9'/><path d='m7 14 5-5 5 5'/><path d='M5 20h14'/></svg></span>Subir PDFs</button>
+        <div class="output-name">
+          <label for="outputName">Nombre</label>
+          <input id="outputName" type="text" value="stackpdf-final" autocomplete="off" />
+        </div>
+        <p class="privacy-note"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x='5' y='10' width='14' height='10' rx='2'/><path d='M8 10V7a4 4 0 0 1 8 0v3'/></svg></span><strong>Privado:</strong> se procesa en tu navegador. No se sube ni se guarda.</p>
+        <span id="limitInfo" class="limit-pill"><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z'/><path d='M14 3v5h5'/></svg></span>Máx. 10 PDFs · 80 MB</span>
+      </section>
+
+      <section id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Seleccionar archivos PDF">
+        <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple hidden />
+        <div class="drop-copy">
+          <span class="drop-icon" aria-hidden="true">＋</span>
+          <div>
+            <h2>Arrastra o sube tus PDFs</h2>
+            <p>Revisa el preview y ordena antes de descargar.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="mergePanel" class="preview-area" aria-label="Orden de PDFs completos">
+        <div class="section-heading">
+          <div>
+            <h2><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='m12 3 9 5-9 5-9-5 9-5Z'/><path d='m3 12 9 5 9-5'/><path d='m3 16 9 5 9-5'/></svg></span>Orden final del PDF</h2>
+            <p id="mergeSummaryText">Todavía no hay archivos cargados.</p>
+          </div>
+        </div>
+
+        <div id="mergeEmptyState" class="empty-state">
+          <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M12 5v14M5 12h14'/></svg></span>
+          <span>Sube 2 o más PDFs</span>
+        </div>
+
+        <ol id="fileList" class="file-list" aria-live="polite"></ol>
+      </section>
+
+      <section id="pagesPanel" class="pages-layout" aria-label="Organizar páginas internas" hidden>
+        <section class="source-panel">
+          <div class="section-heading compact-heading">
+            <div>
+              <h2><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M6 4h8l4 4v12H6z'/><path d='M14 4v5h5'/><path d='M9 13h6M9 16h6'/></svg></span>PDFs cargados</h2>
+              <p id="pageSourceSummary">Sube archivos para elegir páginas o rangos.</p>
+            </div>
+          </div>
+          <div id="sourceList" class="source-list"></div>
+        </section>
+
+        <section class="queue-panel">
+          <div class="section-heading compact-heading">
+            <div>
+              <h2><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x='5' y='4' width='12' height='16' rx='2'/><path d='M9 9h5M9 13h5M9 17h5'/></svg></span>PDF final armado</h2>
+              <p id="queueSummary">Todavía no agregaste páginas.</p>
+            </div>
+            <div class="queue-header-actions">
+              <button id="queuePreviewBtn" class="tiny-btn preview-final-btn" type="button" disabled><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x='5' y='4' width='12' height='16' rx='2'/><path d='M9 8h5M9 12h5M9 16h5'/></svg></span>Preview final</button>
+              <button id="clearQueueBtn" class="tiny-btn" type="button" disabled><span class="ui-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M4 7h16'/><path d='M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2'/><path d='M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13'/><path d='M10 11v6M14 11v6'/></svg></span>Vaciar armado</button>
+            </div>
+          </div>
+
+          <div id="queueEmptyState" class="empty-state small-empty">
+            <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d='M12 5v14M5 12h14'/></svg></span>
+            <span>Agrega páginas al armado</span>
+          </div>
+
+          <ol id="queueList" class="queue-list" aria-live="polite"></ol>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+
+  <div id="previewDialog" class="preview-dialog" hidden aria-hidden="true">
+    <div class="preview-backdrop" data-action="close-preview"></div>
+    <section class="preview-modal" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+      <button id="previewCloseBtn" class="preview-close" type="button" aria-label="Cerrar preview grande">×</button>
+      <div class="preview-head">
+        <div>
+          <h2 id="previewTitle">Preview grande</h2>
+          <p id="previewMeta">Revisa orientación y margen.</p>
+        </div>
+      </div>
+      <div class="preview-stage" aria-label="Vista grande de la página seleccionada">
+        <span class="preview-guide preview-guide-top">Arriba</span>
+        <span class="preview-guide preview-guide-right">Derecha</span>
+        <span class="preview-guide preview-guide-bottom">Abajo</span>
+        <span class="preview-guide preview-guide-left">Izquierda</span>
+        <div id="previewFrame" class="preview-frame">
+          <span>Generando preview nítido…</span>
+        </div>
+      </div>
+    </section>
+  </div>
