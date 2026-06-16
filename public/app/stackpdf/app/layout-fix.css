@@ -1,0 +1,80 @@
+/* Ajustes finales del shell web para que coincida con el HTML local estable */
+html,
+body {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+body {
+  padding: 0 !important;
+  display: block !important;
+  place-items: initial !important;
+}
+
+.topbar {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+.brand-stackpdf {
+  flex: 0 0 auto !important;
+  min-width: 430px !important;
+  max-width: none !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+.brand-logo-img {
+  display: block !important;
+  flex: 0 0 258px !important;
+  width: 258px !important;
+  max-width: 258px !important;
+  height: 64px !important;
+  max-height: 64px !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+}
+
+.brand-copy-stackpdf {
+  flex: 0 0 auto !important;
+  min-width: 210px !important;
+  overflow: visible !important;
+}
+
+.app-shell {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.workspace {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 980px) {
+  .brand-stackpdf {
+    min-width: 280px !important;
+  }
+
+  .brand-logo-img {
+    flex-basis: 210px !important;
+    width: 210px !important;
+    max-width: 210px !important;
+    height: 54px !important;
+  }
+
+  .brand-copy-stackpdf {
+    display: none !important;
+  }
+}
