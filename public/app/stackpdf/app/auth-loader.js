@@ -87,6 +87,44 @@ async function applyEmbeddedLogo() {
   }
 }
 
+function pinLogoLayout() {
+  const brand = document.querySelector('.brand-stackpdf');
+  const logo = document.querySelector('.brand-logo-img');
+  const copy = document.querySelector('.brand-copy-stackpdf');
+
+  if (copy) copy.style.setProperty('display', 'none', 'important');
+
+  if (brand) {
+    brand.style.setProperty('width', '340px', 'important');
+    brand.style.setProperty('min-width', '340px', 'important');
+    brand.style.setProperty('max-width', '340px', 'important');
+    brand.style.setProperty('height', '76px', 'important');
+    brand.style.setProperty('min-height', '76px', 'important');
+    brand.style.setProperty('overflow', 'visible', 'important');
+    brand.style.setProperty('display', 'flex', 'important');
+    brand.style.setProperty('align-items', 'center', 'important');
+    brand.style.setProperty('padding', '0', 'important');
+    brand.style.setProperty('gap', '0', 'important');
+  }
+
+  if (logo) {
+    logo.style.setProperty('display', 'block', 'important');
+    logo.style.setProperty('width', '320px', 'important');
+    logo.style.setProperty('min-width', '320px', 'important');
+    logo.style.setProperty('max-width', '320px', 'important');
+    logo.style.setProperty('height', '74px', 'important');
+    logo.style.setProperty('min-height', '74px', 'important');
+    logo.style.setProperty('max-height', '74px', 'important');
+    logo.style.setProperty('object-fit', 'contain', 'important');
+    logo.style.setProperty('object-position', 'left center', 'important');
+    logo.style.setProperty('overflow', 'visible', 'important');
+    logo.style.setProperty('clip-path', 'none', 'important');
+    logo.style.setProperty('background', 'transparent', 'important');
+    logo.style.setProperty('border', '0', 'important');
+    logo.style.setProperty('box-shadow', 'none', 'important');
+  }
+}
+
 async function bootStackPdf() {
   const allowed = await validateAccess();
   if (!allowed) return;
@@ -97,13 +135,13 @@ async function bootStackPdf() {
   style.textContent = css + `
 html,body{overflow-x:hidden!important}
 body{padding:0!important;display:block!important;place-items:initial!important}
-.topbar{width:100%!important;max-width:none!important;margin:0!important;border-radius:0!important;box-sizing:border-box!important;overflow:visible!important;min-height:86px!important;height:auto!important;align-items:center!important;padding-top:10px!important;padding-bottom:10px!important}
-.brand-stackpdf,.brand.brand-stackpdf{display:flex!important;align-items:center!important;gap:14px!important;flex:0 0 auto!important;min-width:470px!important;width:470px!important;max-width:none!important;height:66px!important;min-height:66px!important;max-height:none!important;overflow:visible!important;padding:0!important}
-.brand-logo-img{display:block!important;flex:0 0 250px!important;width:250px!important;min-width:250px!important;max-width:250px!important;height:62px!important;min-height:62px!important;max-height:62px!important;object-fit:contain!important;object-position:left center!important;overflow:visible!important;clip-path:none!important;border:0!important;background:transparent!important;box-shadow:none!important}
-.brand-copy-stackpdf{display:block!important;flex:0 0 auto!important;min-width:205px!important;max-width:none!important;overflow:visible!important}
+.topbar{width:100%!important;max-width:none!important;margin:0!important;border-radius:0!important;box-sizing:border-box!important;overflow:visible!important;min-height:92px!important;height:auto!important;align-items:center!important;padding-top:8px!important;padding-bottom:8px!important}
+.brand-stackpdf,.brand.brand-stackpdf{display:flex!important;align-items:center!important;gap:0!important;flex:0 0 340px!important;min-width:340px!important;width:340px!important;max-width:340px!important;height:76px!important;min-height:76px!important;max-height:76px!important;overflow:visible!important;padding:0!important}
+.brand-logo-img{display:block!important;flex:0 0 320px!important;width:320px!important;min-width:320px!important;max-width:320px!important;height:74px!important;min-height:74px!important;max-height:74px!important;object-fit:contain!important;object-position:left center!important;overflow:visible!important;clip-path:none!important;border:0!important;background:transparent!important;box-shadow:none!important}
+.brand-copy-stackpdf{display:none!important}
 .app-shell,.workspace{width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box!important}
 .brand-logo-fallback{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:150px!important;width:auto!important;height:34px!important;padding:0 18px!important;border-radius:999px!important;font-size:14px!important;font-weight:900!important;letter-spacing:.02em!important;background:#fff8f4!important;color:#8b5d6f!important;border:1px solid rgba(139,93,111,.20)!important;box-shadow:none!important}
-@media (max-width:980px){.brand-stackpdf,.brand.brand-stackpdf{min-width:250px!important;width:250px!important}.brand-logo-img{flex-basis:225px!important;width:225px!important;min-width:225px!important;max-width:225px!important;height:56px!important;min-height:56px!important;max-height:56px!important}.brand-copy-stackpdf{display:none!important}}
+@media (max-width:980px){.brand-stackpdf,.brand.brand-stackpdf{flex-basis:260px!important;min-width:260px!important;width:260px!important;max-width:260px!important}.brand-logo-img{flex-basis:245px!important;width:245px!important;min-width:245px!important;max-width:245px!important;height:58px!important;min-height:58px!important;max-height:58px!important}.brand-copy-stackpdf{display:none!important}}
 `;
   document.head.appendChild(style);
 
@@ -111,11 +149,15 @@ body{padding:0!important;display:block!important;place-items:initial!important}
   document.body.removeAttribute('style');
   document.body.innerHTML = ui;
   await applyEmbeddedLogo();
+  pinLogoLayout();
 
   await loadScript('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js');
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
   const js = await decodeGzipBase64(['./app.js.gz.b64.00.txt', './app.js.gz.b64.01.txt', './app.js.gz.b64.02.txt']);
   new Function(js)();
+  pinLogoLayout();
+  window.setTimeout(pinLogoLayout, 50);
+  window.setTimeout(pinLogoLayout, 250);
 }
 
 bootStackPdf().catch((error) => {
