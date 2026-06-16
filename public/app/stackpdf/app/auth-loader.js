@@ -79,7 +79,7 @@ async function bootStackPdf() {
   const css = await decodeGzipBase64('./styles.css.gz.b64.txt');
   const style = document.createElement('style');
   style.setAttribute('data-stackpdf', 'styles');
-  style.textContent = css + '\n.brand-logo-fallback{display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;letter-spacing:.04em;background:#fff8f4;color:#8b5d6f;border:1px solid rgba(139,93,111,.20)}';
+  style.textContent = css + '\n.brand-logo-fallback{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:150px!important;width:auto!important;height:34px!important;padding:0 18px!important;border-radius:999px!important;font-size:14px!important;font-weight:900!important;letter-spacing:.02em!important;background:#fff8f4!important;color:#8b5d6f!important;border:1px solid rgba(139,93,111,.20)!important;box-shadow:none!important}';
   document.head.appendChild(style);
 
   const ui = await fetchText('./ui.html');
