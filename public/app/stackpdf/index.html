@@ -8,6 +8,30 @@
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/app/stackpdf/shell.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      .stackpdf-home-link {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 9999;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        border: 1px solid rgba(153, 105, 113, 0.28);
+        background: rgba(255, 250, 248, 0.96);
+        color: #815a5b;
+        padding: 10px 14px;
+        text-decoration: none;
+        font: 800 12px/1 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        box-shadow: 0 10px 25px rgba(86, 58, 65, 0.12);
+      }
+
+      .stackpdf-home-link:hover {
+        background: #fff4f1;
+        border-color: rgba(153, 105, 113, 0.45);
+      }
+    </style>
   </head>
   <body>
     <main class="section section-soft app-shell">
@@ -27,6 +51,7 @@
       </div>
     </main>
     <iframe id="app-frame" class="app-frame" hidden title="StackPDF" src="/app/stackpdf/app/index.html"></iframe>
+    <a class="stackpdf-home-link" href="/">Inicio</a>
     <script src="/app/stackpdf/gate.js"></script>
   </body>
 </html>
