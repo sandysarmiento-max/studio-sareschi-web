@@ -109,12 +109,17 @@ async function bootStackPdf() {
   style.textContent = css + `
 html,body{overflow-x:hidden!important}
 body{padding:0!important;display:block!important;place-items:initial!important}
-.topbar{position:relative!important;width:100%!important;max-width:none!important;margin:0!important;border-radius:0!important;box-sizing:border-box!important;overflow:visible!important;min-height:94px!important;height:auto!important;align-items:center!important;padding-top:8px!important;padding-bottom:8px!important;padding-left:470px!important}
+.topbar{position:relative!important;display:flex!important;align-items:center!important;width:100%!important;max-width:none!important;margin:0!important;border-radius:0!important;box-sizing:border-box!important;overflow:visible!important;min-height:91px!important;height:91px!important;padding:16px 24px 16px 580px!important;gap:22px!important}
 .brand-stackpdf,.brand.brand-stackpdf{display:none!important}
 .brand-logo-img,.brand-copy-stackpdf{display:none!important}
-.stackpdf-header-logo{position:absolute!important;left:24px!important;top:50%!important;transform:translateY(-50%)!important;width:390px!important;height:82px!important;background-repeat:no-repeat!important;background-position:left center!important;background-size:contain!important;z-index:50!important;pointer-events:none!important;overflow:visible!important}
+.stackpdf-header-logo{position:absolute!important;left:32px!important;top:50%!important;transform:translateY(-50%)!important;width:240px!important;height:70px!important;background-repeat:no-repeat!important;background-position:left center!important;background-size:contain!important;z-index:50!important;pointer-events:none!important;overflow:visible!important}
+.tabs{flex:0 0 auto!important;display:flex!important;align-items:center!important;gap:8px!important;width:auto!important;min-width:330px!important;white-space:nowrap!important}
+.tab{white-space:nowrap!important;min-width:0!important;width:auto!important;padding-left:24px!important;padding-right:24px!important}
+.top-actions{margin-left:auto!important;display:flex!important;align-items:center!important;gap:14px!important;flex:0 0 auto!important;white-space:nowrap!important}
+.top-actions .ghost-btn,.top-actions .primary-btn{white-space:nowrap!important;flex:0 0 auto!important}
 .app-shell,.workspace{width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box!important}
-@media (max-width:980px){.topbar{padding-left:285px!important;min-height:80px!important}.stackpdf-header-logo{left:18px!important;width:245px!important;height:62px!important}}
+@media (max-width:1100px){.topbar{padding-left:300px!important;gap:12px!important}.stackpdf-header-logo{left:24px!important;width:235px!important;height:66px!important}.tabs{min-width:auto!important}.tab{padding-left:16px!important;padding-right:16px!important}}
+@media (max-width:820px){.topbar{height:auto!important;min-height:132px!important;padding:78px 14px 12px 14px!important;flex-wrap:wrap!important}.stackpdf-header-logo{left:16px!important;top:38px!important;width:220px!important;height:58px!important}.tabs{width:100%!important}.top-actions{width:100%!important;margin-left:0!important}}
 `;
   document.head.appendChild(style);
 
