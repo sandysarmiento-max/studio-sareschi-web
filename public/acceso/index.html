@@ -78,6 +78,14 @@
     </p>
     <a class="btn btn-primary" href="/acceso/?app=folia">Entrar a Folia</a>
   </div>
+
+  <div class="card" style="padding:16px">
+    <h2 style="margin:0 0 8px;font-size:1.1rem">Folia Planner</h2>
+    <p class="tiny-note" style="margin:0 0 12px">
+      Generador de planners, calendarios y separadores para suscriptoras.
+    </p>
+    <a class="btn btn-primary" href="/acceso/?app=folia_planner">Entrar a Folia Planner</a>
+  </div>
 </div>
 
 <form id="login-form" style="display: grid; gap: 12px">
@@ -174,8 +182,15 @@ const APP_CONFIG = {
   folia: {
     name: 'Folia',
     next: '/app/folia',
-    alternateLabel: 'Aral Calc',
-    alternateHref: '/acceso/?app=aral_calc',
+    alternateLabel: 'Folia Planner',
+    alternateHref: '/acceso/?app=folia_planner',
+  },
+  folia_planner: {
+    name: 'Folia Planner',
+    next: '/app/folia-planner/',
+    accessKey: 'folia',
+    alternateLabel: 'Folia',
+    alternateHref: '/acceso/?app=folia',
   },
 };
 
@@ -202,7 +217,7 @@ const noAccessAppNameEl = document.getElementById('no-access-app-name');
 if (!currentApp) {
   document.title = 'Acceso a apps | Studio Sareschi';
   titleEl.textContent = 'Elige la app que quieres abrir';
-  descriptionEl.textContent = 'Selecciona Aral Calc, Aral Costos, StackPDF o Folia para continuar con tu acceso protegido.';
+  descriptionEl.textContent = 'Selecciona Aral Calc, Aral Costos, StackPDF, Folia o Folia Planner para continuar con tu acceso protegido.';
   appSelector.hidden = false;
   appSelector.style.display = 'grid';
   form.hidden = true;
@@ -234,10 +249,11 @@ let supabaseClient = null;
           return false;
         }
 
+        const accessKey = APP_CONFIG[appKey]?.accessKey || appKey;
         const { data, error } = await supabaseClient
           .from('app_access')
           .select('id')
-          .eq('app_key', appKey)
+          .eq('app_key', accessKey)
           .eq('status', 'active')
           .limit(1)
           .maybeSingle();
