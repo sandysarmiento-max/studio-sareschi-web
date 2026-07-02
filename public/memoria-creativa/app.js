@@ -986,9 +986,9 @@
       const blob = await response.blob();
       if (!blob || blob.size <= 1024) return null;
 
-      const headerBuffer = await blob.slice(0, 5).arrayBuffer();
-      const header = new TextDecoder().decode(headerBuffer);
-      if (!header.startsWith("%PDF-")) return null;
+      const headerBuffer = await blob.slice(0, 4).arrayBuffer();
+const header = new TextDecoder().decode(headerBuffer);
+if (!header.startsWith("PK")) return null;
 
       return blob;
     } catch (error) {
@@ -1034,9 +1034,9 @@
     const rewardBlob = await fetchRewardBlob(getRewardAssetUrl());
     if (!rewardBlob) {
       showSingleButtonModal(
-        "PDF no válido",
-        "La recompensa está desbloqueada, pero el archivo en assets/rewards/recompensa-demo.pdf no parece ser un PDF real o todavía está vacío. Sube nuevamente el PDF real con ese nombre. Tu barra no se descontó."
-      );
+  "Archivo no válido",
+  "La recompensa está desbloqueada, pero el archivo en assets/rewards/recompensa-julio-memoria-creativa.zip no parece estar disponible o todavía está vacío. Sube nuevamente el ZIP de recompensa."
+);
       return;
     }
 
