@@ -970,12 +970,12 @@
   }
 
   function getRewardAssetUrl() {
-    const rewardAssetFileName = "recompensa-demo.pdf";
+    const rewardAssetFileName = "recompensa-julio-memoria-creativa.zip";
     return new URL(`assets/rewards/${rewardAssetFileName}?month=${state.currentRewardMonth || monthKey()}&v=${Date.now()}`, getAppBaseUrl()).href;
   }
 
   function getRewardDownloadFileName() {
-    return `recompensa-${getSpanishMonthName()}-studio-sareschi.pdf`;
+    return `recompensa-${getSpanishMonthName()}-studio-sareschi.zip`;
   }
 
   async function fetchRewardBlob(rewardUrl) {
