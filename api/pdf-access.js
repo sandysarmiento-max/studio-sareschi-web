@@ -6,11 +6,12 @@ const FALLBACK_PRODUCTS = [
     id: 'seed-paid-product',
     code: 'agenda-semanal-rosa',
     title: 'Agenda semanal Rosa (Demo)',
-    description: 'Producto de prueba para validar catálogo y flujo de compra por WhatsApp.',
+    description: 'Producto de prueba para validar el catálogo.',
     price_pdf_pe: 4,
     price_pdf_int: 1.5,
     price_canva_pe: 8,
     price_canva_int: 3,
+    hotmart_url: '',
     main_image_url: '/freebies/previews/fb_001_preview.jpg',
     preview_01_url: '/freebies/previews/fb_002_preview.jpg',
     preview_02_url: '/freebies/previews/fb_003_preview.jpg',
@@ -92,9 +93,33 @@ function toAbsolutePublicImageUrl(value) {
   return raw;
 }
 
+function normalizeHotmartUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  try {
+    const url = new URL(raw);
+    const hostname = url.hostname.toLowerCase();
+    const isHotmartHost =
+      hostname === 'hotmart.com' ||
+      hostname.endsWith('.hotmart.com') ||
+      hostname === 'hotm.art' ||
+      hostname.endsWith('.hotm.art');
+
+    if (url.protocol !== 'https:' || !isHotmartHost) {
+      return '';
+    }
+
+    return url.toString();
+  } catch (_error) {
+    return '';
+  }
+}
+
 function normalizeStorefrontProduct(product) {
   return {
     ...product,
+    hotmart_url: normalizeHotmartUrl(product?.hotmart_url),
     main_image_url: toAbsolutePublicImageUrl(product?.main_image_url),
     preview_01_url: toAbsolutePublicImageUrl(product?.preview_01_url),
     preview_02_url: toAbsolutePublicImageUrl(product?.preview_02_url),
@@ -105,7 +130,7 @@ function normalizeStorefrontProduct(product) {
 async function handleStorefront(req, res) {
   try {
     const products = await callSupabase(
-      '/rest/v1/paid_products?select=id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order&active=eq.true&order=sort_order.asc,created_at.asc',
+      '/rest/v1/paid_products?select=id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order&active=eq.true&order=sort_order.asc,created_at.asc',
       {
         method: 'GET',
       }
