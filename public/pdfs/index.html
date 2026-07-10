@@ -15,6 +15,40 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .featured-preview-grid {
+        align-items: stretch;
+        grid-auto-rows: 1fr;
+      }
+
+      .product-card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .product-card h3 {
+        min-height: 2.4em;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        overflow: hidden;
+      }
+
+      .product-card > p {
+        min-height: 5.4em;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 4;
+        line-clamp: 4;
+        overflow: hidden;
+      }
+
+      .product-card .card-actions {
+        margin-top: auto;
+      }
+    </style>
   </head>
   <body>
     <header class="site-header">
