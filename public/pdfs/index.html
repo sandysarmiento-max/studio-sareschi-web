@@ -56,7 +56,7 @@
               <p class="eyebrow">Catálogo</p>
               <h2>Elige tu plantilla favorita</h2>
               <p class="hero-copy" style="margin: 0">
-                Dale clic a la imagen para ver su contenido y compra en el formato que prefieras.
+                Dale clic a la imagen para ver su contenido y compra directamente en Hotmart.
               </p>
             </div>
             <div class="featured-preview-grid" id="featured-preview-grid"></div>
@@ -156,6 +156,7 @@
           price_pdf_int: Number(product?.price_pdf_int || 0),
           price_canva_pe: Number(product?.price_canva_pe || 0),
           price_canva_int: Number(product?.price_canva_int || 0),
+          hotmart_url: String(product?.hotmart_url || ''),
           main_image_url: String(product?.main_image_url || ''),
           preview_01_url: String(product?.preview_01_url || ''),
           preview_02_url: String(product?.preview_02_url || ''),
@@ -313,11 +314,23 @@
           <div class="price-row__item"><strong>Editable en Canva</strong><span>Perú: S/ ${product.price_canva_pe.toFixed(2)} · Internacional: US$ ${product.price_canva_int.toFixed(2)}</span></div>`;
       }
 
-      function openWhatsAppOrder(product, format) {
-        const message =
-          format === 'buy-pdf'
-            ? `Hola, me interesa ${product.title} en versión PDF HQ.`
-            : `Hola, me interesa ${product.title} en versión Editable en Canva.`;
+      function getHotmartButton(product) {
+        if (!product.hotmart_url) {
+          return '<button class="btn btn-secondary" type="button" disabled title="Agrega el enlace desde el panel de productos">Hotmart próximamente</button>';
+        }
+        return `<button class="btn btn-secondary" data-action="buy-hotmart" data-product-id="${escapeHtml(product.id)}">Comprar en Hotmart</button>`;
+      }
+
+      function openHotmartCheckout(product) {
+        if (!product?.hotmart_url) {
+          alert('Este producto todavía no tiene configurado su enlace de Hotmart.');
+          return;
+        }
+        window.open(product.hotmart_url, '_blank', 'noopener,noreferrer');
+      }
+
+      function openWhatsAppOrder(product) {
+        const message = `Hola, me interesa ${product.title} en versión Editable en Canva.`;
         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
       }
 
@@ -334,7 +347,7 @@
             <p>${escapeHtml(product.description || '')}</p>
             <div class="price-row">${getPriceMarkup(product)}</div>
             <div class="card-actions">
-              <button class="btn btn-secondary" data-action="buy-pdf" data-product-id="${escapeHtml(product.id)}">Comprar PDF HQ</button>
+              ${getHotmartButton(product)}
               <button class="btn btn-primary" data-action="buy-canva" data-product-id="${escapeHtml(product.id)}">Comprar Canva</button>
             </div>
           </article>`;
@@ -361,7 +374,7 @@
               <p>${escapeHtml(product.description || '')}</p>
               <div class="price-row price-row--detail">${getPriceMarkup(product)}</div>
               <div class="card-actions card-actions--detail">
-                <button class="btn btn-secondary" data-action="buy-pdf" data-product-id="${escapeHtml(product.id)}">Comprar PDF HQ</button>
+                ${getHotmartButton(product)}
                 <button class="btn btn-primary" data-action="buy-canva" data-product-id="${escapeHtml(product.id)}">Comprar Canva</button>
               </div>
             </div>
@@ -429,7 +442,10 @@
         if (actionButton) {
           const productId = actionButton.dataset.productId;
           const product = storeProducts.find((item) => String(item.id) === String(productId));
-          if (product) openWhatsAppOrder(product, actionButton.dataset.action);
+          if (product) {
+            if (actionButton.dataset.action === 'buy-hotmart') openHotmartCheckout(product);
+            else openWhatsAppOrder(product);
+          }
           return;
         }
         const productCardTrigger = event.target.closest('[data-open-product-id]');
