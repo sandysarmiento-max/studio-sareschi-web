@@ -8,7 +8,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
 
 const BUCKET = 'paid-previews';
 const PRODUCT_COLUMNS =
-  'id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order,created_at,updated_at';
+  'id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order,created_at,updated_at';
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -57,7 +57,6 @@ function createSupabaseAdminClient() {
             data: options.data,
             redirect_to: options.redirectTo,
           };
-
           const response = await callSupabase('/auth/v1/invite', {
             method: 'POST',
             headers: {
@@ -131,6 +130,32 @@ function canManageProducts(user) {
   return false;
 }
 
+function sanitizeHotmartUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  try {
+    const url = new URL(raw);
+    const hostname = url.hostname.toLowerCase();
+    const isHotmartHost =
+      hostname === 'hotmart.com' ||
+      hostname.endsWith('.hotmart.com') ||
+      hostname === 'hotm.art' ||
+      hostname.endsWith('.hotm.art');
+
+    if (url.protocol !== 'https:' || !isHotmartHost) {
+      throw new Error('El enlace debe ser una URL HTTPS de Hotmart.');
+    }
+
+    return url.toString();
+  } catch (error) {
+    if (error?.message === 'El enlace debe ser una URL HTTPS de Hotmart.') {
+      throw error;
+    }
+    throw new Error('El enlace de Hotmart no es válido.');
+  }
+}
+
 function sanitizePayload(payload) {
   const record = {
     code: String(payload.code || '')
@@ -145,6 +170,7 @@ function sanitizePayload(payload) {
     price_pdf_int: Number(payload.price_pdf_int || 0),
     price_canva_pe: Number(payload.price_canva_pe || 0),
     price_canva_int: Number(payload.price_canva_int || 0),
+    hotmart_url: sanitizeHotmartUrl(payload.hotmart_url),
     main_image_url: String(payload.main_image_url || '').trim(),
     preview_01_url: String(payload.preview_01_url || '').trim(),
     preview_02_url: String(payload.preview_02_url || '').trim(),
