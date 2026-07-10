@@ -9,6 +9,8 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
 const BUCKET = 'paid-previews';
 const PRODUCT_COLUMNS =
   'id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order,created_at,updated_at';
+const LEGACY_PRODUCT_COLUMNS =
+  'id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order,created_at,updated_at';
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -130,6 +132,12 @@ function canManageProducts(user) {
   return false;
 }
 
+function isMissingHotmartColumn(error) {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes('hotmart_url') &&
+    (message.includes('does not exist') || message.includes('schema cache') || message.includes('column'));
+}
+
 function sanitizeHotmartUrl(value) {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -209,8 +217,19 @@ async function listProducts(res) {
     const products = await callSupabase(
       `/rest/v1/paid_products?select=${encodeURIComponent(PRODUCT_COLUMNS)}&order=sort_order.asc,created_at.asc`
     );
-    return json(res, 200, { products });
+    return json(res, 200, { products, hotmartMigrationPending: false });
   } catch (error) {
+    if (isMissingHotmartColumn(error)) {
+      const products = await callSupabase(
+        `/rest/v1/paid_products?select=${encodeURIComponent(LEGACY_PRODUCT_COLUMNS)}&order=sort_order.asc,created_at.asc`
+      );
+      return json(res, 200, {
+        products: Array.isArray(products)
+          ? products.map((product) => ({ ...product, hotmart_url: '' }))
+          : products,
+        hotmartMigrationPending: true,
+      });
+    }
     if (String(error.message || '').includes("Could not find the table 'public.paid_products'")) {
       return json(res, 503, {
         code: 'missing_paid_products_table',
@@ -219,6 +238,13 @@ async function listProducts(res) {
     }
     throw error;
   }
+}
+
+function migrationRequired(res) {
+  return json(res, 503, {
+    code: 'missing_hotmart_url_column',
+    error: 'Primero debes ejecutar la migración de Hotmart en Supabase para guardar este enlace.',
+  });
 }
 
 async function createProduct(res, payload) {
@@ -234,6 +260,9 @@ async function createProduct(res, payload) {
       body: JSON.stringify(record),
     });
   } catch (error) {
+    if (isMissingHotmartColumn(error)) {
+      return migrationRequired(res);
+    }
     if (String(error.message || '').includes("Could not find the table 'public.paid_products'")) {
       return json(res, 503, {
         code: 'missing_paid_products_table',
@@ -267,6 +296,9 @@ async function updateProduct(res, payload) {
       }
     );
   } catch (error) {
+    if (isMissingHotmartColumn(error)) {
+      return migrationRequired(res);
+    }
     if (String(error.message || '').includes("Could not find the table 'public.paid_products'")) {
       return json(res, 503, {
         code: 'missing_paid_products_table',
