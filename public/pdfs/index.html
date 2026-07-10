@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tienda de PDFs | Studio Sareschi</title>
+    <title>Plantillas digitales | Studio Sareschi</title>
     <meta
       name="description"
-      content="Tienda de PDFs Studio Sareschi con descargable gratis diario y catálogo premium en HQ y Canva editable."
+      content="Plantillas y packs digitales de Studio Sareschi con archivos editables en Canva, PowerPoint y PDF."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,7 +23,7 @@
         <nav aria-label="Principal">
           <ul class="nav-links">
             <li><a href="/#home">Home</a></li>
-            <li><a href="/pdfs/#tienda">Tienda PDF</a></li>
+            <li><a href="/pdfs/#tienda">Plantillas</a></li>
             <li><a href="/pdfs/#catalogo-pagos">Catálogo</a></li>
             <li><a href="/acceso/">Acceso</a></li>
           </ul>
@@ -37,9 +37,9 @@
           <div class="pdf-store-top">
             <div>
               <p class="eyebrow">Colección premium</p>
-              <h1>Plantillas para agendas, planners y más</h1>
-              <p class="hero-copy" style="margin: 0">
-                Disponible en versión PDF y opción editable en Canva.
+              <h1>Plantillas, agendas, planners y packs digitales</h1>
+              <p class="hero-copy" style="margin:0;">
+                Recibe los archivos editables en Canva y PowerPoint, además de los PDF incluidos en cada producto.
               </p>
             </div>
             <aside class="pdf-freebie-compact" id="freebie" aria-label="Zona gratuita del día">
@@ -54,14 +54,14 @@
           <section id="catalogo-pagos" class="pdf-main-catalog" aria-label="Catálogo principal de productos">
             <div class="section-heading pdf-main-catalog__header">
               <p class="eyebrow">Catálogo</p>
-              <h2>Elige tu plantilla favorita</h2>
-              <p class="hero-copy" style="margin: 0">
-                Dale clic a la imagen para ver su contenido y compra en el formato que prefieras.
+              <h2>Elige el diseño que deseas comprar</h2>
+              <p class="hero-copy" style="margin:0;">
+                Compra cada producto directamente en Hotmart o solicita el pago por WhatsApp con Yape o PayPal.
               </p>
             </div>
             <div class="featured-preview-grid" id="featured-preview-grid"></div>
             <p class="tiny-note" id="catalog-note">
-              Si falla conexión, mostramos productos de muestra para mantener la tienda operativa visualmente.
+              Los precios mostrados corresponden a la compra directa por WhatsApp.
             </p>
           </section>
         </div>
@@ -152,10 +152,9 @@
           code: String(product?.code || ''),
           title: String(product?.title || 'Producto sin título'),
           description: String(product?.description || ''),
-          price_pdf_pe: Number(product?.price_pdf_pe || 0),
-          price_pdf_int: Number(product?.price_pdf_int || 0),
-          price_canva_pe: Number(product?.price_canva_pe || 0),
-          price_canva_int: Number(product?.price_canva_int || 0),
+          price_yape_pe: Number(product?.price_yape_pe || 0),
+          price_paypal_usd: Number(product?.price_paypal_usd || 0),
+          hotmart_url: String(product?.hotmart_url || ''),
           main_image_url: String(product?.main_image_url || ''),
           preview_01_url: String(product?.preview_01_url || ''),
           preview_02_url: String(product?.preview_02_url || ''),
@@ -309,16 +308,29 @@
 
       function getPriceMarkup(product) {
         return `
-          <div class="price-row__item"><strong>PDF HQ</strong><span>Perú: S/ ${product.price_pdf_pe.toFixed(2)} · Internacional: US$ ${product.price_pdf_int.toFixed(2)}</span></div>
-          <div class="price-row__item"><strong>Editable en Canva</strong><span>Perú: S/ ${product.price_canva_pe.toFixed(2)} · Internacional: US$ ${product.price_canva_int.toFixed(2)}</span></div>`;
+          <div class="price-row__item"><strong>Compra directa con Yape</strong><span>S/ ${product.price_yape_pe.toFixed(2)}</span></div>
+          <div class="price-row__item"><strong>Compra directa con PayPal</strong><span>US$ ${product.price_paypal_usd.toFixed(2)}</span></div>
+          <p class="tiny-note" style="grid-column:1/-1;margin:2px 0 0;">En Hotmart el importe puede ser diferente por los cargos de la plataforma.</p>`;
       }
 
-      function openWhatsAppOrder(product, format) {
-        const message =
-          format === 'buy-pdf'
-            ? `Hola, me interesa ${product.title} en versión PDF HQ.`
-            : `Hola, me interesa ${product.title} en versión Editable en Canva.`;
-        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
+      function getHotmartButton(product) {
+        if (!product.hotmart_url) {
+          return '<button class="btn btn-secondary" type="button" disabled title="Agrega el enlace desde el panel de productos">Hotmart próximamente</button>';
+        }
+        return `<button class="btn btn-secondary" data-action="buy-hotmart" data-product-id="${escapeHtml(product.id)}">Comprar en Hotmart</button>`;
+      }
+
+      function openHotmartCheckout(product) {
+        if (!product?.hotmart_url) {
+          alert('Este producto todavía no tiene configurado su enlace de Hotmart.');
+          return;
+        }
+        window.open(product.hotmart_url, '_blank', 'noopener,noreferrer');
+      }
+
+      function openWhatsAppOrder(product) {
+        const message = `Hola, quiero comprar “${product.title}” por WhatsApp. Deseo pagar por Yape o PayPal. ¿Me compartes los datos de pago?`;
+        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
       }
 
       function productCard(product) {
@@ -334,17 +346,17 @@
             <p>${escapeHtml(product.description || '')}</p>
             <div class="price-row">${getPriceMarkup(product)}</div>
             <div class="card-actions">
-              <button class="btn btn-secondary" data-action="buy-pdf" data-product-id="${escapeHtml(product.id)}">Comprar PDF HQ</button>
-              <button class="btn btn-primary" data-action="buy-canva" data-product-id="${escapeHtml(product.id)}">Comprar Canva</button>
+              ${getHotmartButton(product)}
+              <button class="btn btn-primary" data-action="buy-whatsapp" data-product-id="${escapeHtml(product.id)}">Comprar por WhatsApp</button>
             </div>
           </article>`;
       }
 
       function detailPreview(imageUrl, index) {
         if (!imageUrl) {
-          return `<figure class="interior-thumb interior-thumb--placeholder"><div class="interior-thumb__placeholder">Vista interior ${index}</div><figcaption>Sube esta preview desde el panel admin.</figcaption></figure>`;
+          return `<figure class="interior-thumb interior-thumb--placeholder"><div class="interior-thumb__placeholder">Vista ${index} no disponible</div><figcaption>Vista ${index}</figcaption></figure>`;
         }
-        return `<figure class="interior-thumb"><img src="${escapeHtml(imageUrl)}" alt="Vista interior ${index}" loading="lazy" onerror="this.style.display='none';this.closest('figure').classList.add('interior-thumb--placeholder');this.insertAdjacentHTML('afterend','<div class=&quot;interior-thumb__placeholder&quot;>Preview ${index} no disponible</div>');" /><figcaption>Vista interior ${index}</figcaption></figure>`;
+        return `<figure class="interior-thumb"><img src="${escapeHtml(imageUrl)}" alt="Vista ${index}" loading="lazy" onerror="this.style.display='none';this.closest('figure').classList.add('interior-thumb--placeholder');this.insertAdjacentHTML('afterend','<div class=&quot;interior-thumb__placeholder&quot;>Vista ${index} no disponible</div>');" /><figcaption>Vista ${index}</figcaption></figure>`;
       }
 
       function renderDetail(product) {
@@ -361,13 +373,13 @@
               <p>${escapeHtml(product.description || '')}</p>
               <div class="price-row price-row--detail">${getPriceMarkup(product)}</div>
               <div class="card-actions card-actions--detail">
-                <button class="btn btn-secondary" data-action="buy-pdf" data-product-id="${escapeHtml(product.id)}">Comprar PDF HQ</button>
-                <button class="btn btn-primary" data-action="buy-canva" data-product-id="${escapeHtml(product.id)}">Comprar Canva</button>
+                ${getHotmartButton(product)}
+                <button class="btn btn-primary" data-action="buy-whatsapp" data-product-id="${escapeHtml(product.id)}">Comprar por WhatsApp</button>
               </div>
             </div>
           </div>
-          <section class="detail-interiors" aria-label="Vistas interiores del producto">
-            <h4>Vista previa de hojas interiores</h4>
+          <section class="detail-interiors" aria-label="Vistas del producto">
+            <h4>Vista previa del contenido</h4>
             <div class="interior-grid">
               ${detailPreview(product.preview_01_url, 1)}
               ${detailPreview(product.preview_02_url, 2)}
@@ -392,7 +404,10 @@
       }
 
       function renderProducts(products) {
-        storeProducts = products.map(normalizeProduct).filter((item) => item.active).sort((a,b)=>a.sort_order-b.sort_order);
+        storeProducts = products
+          .map(normalizeProduct)
+          .filter((item) => item.active)
+          .sort((a, b) => a.sort_order - b.sort_order);
         if (!storeProducts.length) {
           featuredPreviewGrid.innerHTML = '<p class="tiny-note">No hay productos de paga activos por ahora.</p>';
           return;
@@ -402,7 +417,7 @@
 
       async function fetchStorefrontData() {
         const response = await fetch('/api/pdf-access?action=storefront', { headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error('No fue posible cargar el catálogo desde backend seguro.');
+        if (!response.ok) throw new Error('No fue posible cargar el catálogo desde el servidor.');
         return response.json();
       }
 
@@ -411,7 +426,7 @@
           const data = await fetchStorefrontData();
           const products = Array.isArray(data.products) ? data.products : FALLBACK_PRODUCTS;
           renderProducts(products);
-          catalogNote.textContent = 'Catálogo de paga administrado desde Supabase.';
+          catalogNote.textContent = 'Los precios mostrados son para compra directa por WhatsApp. Hotmart puede mostrar otro importe por los cargos de la plataforma.';
         } catch (_error) {
           renderProducts(FALLBACK_PRODUCTS);
           catalogNote.textContent = 'No se pudo conectar con el catálogo de paga en este momento.';
@@ -429,7 +444,10 @@
         if (actionButton) {
           const productId = actionButton.dataset.productId;
           const product = storeProducts.find((item) => String(item.id) === String(productId));
-          if (product) openWhatsAppOrder(product, actionButton.dataset.action);
+          if (product) {
+            if (actionButton.dataset.action === 'buy-hotmart') openHotmartCheckout(product);
+            if (actionButton.dataset.action === 'buy-whatsapp') openWhatsAppOrder(product);
+          }
           return;
         }
         const productCardTrigger = event.target.closest('[data-open-product-id]');

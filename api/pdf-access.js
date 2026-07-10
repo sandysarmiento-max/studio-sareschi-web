@@ -1,16 +1,20 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+const STOREFRONT_COLUMNS =
+  'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
+const LEGACY_STOREFRONT_COLUMNS =
+  'id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
+
 const FALLBACK_PRODUCTS = [
   {
     id: 'seed-paid-product',
     code: 'agenda-semanal-rosa',
     title: 'Agenda semanal Rosa (Demo)',
-    description: 'Producto de prueba para validar catálogo y flujo de compra por WhatsApp.',
-    price_pdf_pe: 4,
-    price_pdf_int: 1.5,
-    price_canva_pe: 8,
-    price_canva_int: 3,
+    description: 'Producto de prueba para validar el catálogo.',
+    price_yape_pe: 8,
+    price_paypal_usd: 3,
+    hotmart_url: '',
     main_image_url: '/freebies/previews/fb_001_preview.jpg',
     preview_01_url: '/freebies/previews/fb_002_preview.jpg',
     preview_02_url: '/freebies/previews/fb_003_preview.jpg',
@@ -66,6 +70,57 @@ async function callSupabase(path, options = {}) {
   return response.json();
 }
 
+function isMissingPurchaseColumns(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const mentionsNewColumn =
+    message.includes('hotmart_url') ||
+    message.includes('price_yape_pe') ||
+    message.includes('price_paypal_usd');
+
+  return mentionsNewColumn &&
+    (message.includes('does not exist') || message.includes('schema cache') || message.includes('column'));
+}
+
+function normalizeLegacyProduct(product) {
+  return {
+    id: product?.id,
+    code: product?.code,
+    title: product?.title,
+    description: product?.description,
+    price_yape_pe: Number(product?.price_canva_pe || 0),
+    price_paypal_usd: Number(product?.price_canva_int || 0),
+    hotmart_url: '',
+    main_image_url: product?.main_image_url || '',
+    preview_01_url: product?.preview_01_url || '',
+    preview_02_url: product?.preview_02_url || '',
+    preview_03_url: product?.preview_03_url || '',
+    active: Boolean(product?.active),
+    sort_order: Number(product?.sort_order || 0),
+  };
+}
+
+async function fetchActiveProducts() {
+  const order = '&active=eq.true&order=sort_order.asc,created_at.asc';
+
+  try {
+    return await callSupabase(
+      `/rest/v1/paid_products?select=${STOREFRONT_COLUMNS}${order}`,
+      { method: 'GET' }
+    );
+  } catch (error) {
+    if (!isMissingPurchaseColumns(error)) throw error;
+
+    const legacyProducts = await callSupabase(
+      `/rest/v1/paid_products?select=${LEGACY_STOREFRONT_COLUMNS}${order}`,
+      { method: 'GET' }
+    );
+
+    return Array.isArray(legacyProducts)
+      ? legacyProducts.map(normalizeLegacyProduct)
+      : legacyProducts;
+  }
+}
+
 function toAbsolutePublicImageUrl(value) {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -92,9 +147,35 @@ function toAbsolutePublicImageUrl(value) {
   return raw;
 }
 
+function normalizeHotmartUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  try {
+    const url = new URL(raw);
+    const hostname = url.hostname.toLowerCase();
+    const isHotmartHost =
+      hostname === 'hotmart.com' ||
+      hostname.endsWith('.hotmart.com') ||
+      hostname === 'hotm.art' ||
+      hostname.endsWith('.hotm.art');
+
+    if (url.protocol !== 'https:' || !isHotmartHost) {
+      return '';
+    }
+
+    return url.toString();
+  } catch (_error) {
+    return '';
+  }
+}
+
 function normalizeStorefrontProduct(product) {
   return {
     ...product,
+    price_yape_pe: Number(product?.price_yape_pe || 0),
+    price_paypal_usd: Number(product?.price_paypal_usd || 0),
+    hotmart_url: normalizeHotmartUrl(product?.hotmart_url),
     main_image_url: toAbsolutePublicImageUrl(product?.main_image_url),
     preview_01_url: toAbsolutePublicImageUrl(product?.preview_01_url),
     preview_02_url: toAbsolutePublicImageUrl(product?.preview_02_url),
@@ -104,12 +185,7 @@ function normalizeStorefrontProduct(product) {
 
 async function handleStorefront(req, res) {
   try {
-    const products = await callSupabase(
-      '/rest/v1/paid_products?select=id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order&active=eq.true&order=sort_order.asc,created_at.asc',
-      {
-        method: 'GET',
-      }
-    );
+    const products = await fetchActiveProducts();
 
     let daily = null;
     try {
