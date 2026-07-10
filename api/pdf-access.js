@@ -1,6 +1,11 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+const STOREFRONT_COLUMNS =
+  'id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
+const LEGACY_STOREFRONT_COLUMNS =
+  'id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
+
 const FALLBACK_PRODUCTS = [
   {
     id: 'seed-paid-product',
@@ -67,6 +72,34 @@ async function callSupabase(path, options = {}) {
   return response.json();
 }
 
+function isMissingHotmartColumn(error) {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes('hotmart_url') &&
+    (message.includes('does not exist') || message.includes('schema cache') || message.includes('column'));
+}
+
+async function fetchActiveProducts() {
+  const order = '&active=eq.true&order=sort_order.asc,created_at.asc';
+
+  try {
+    return await callSupabase(
+      `/rest/v1/paid_products?select=${STOREFRONT_COLUMNS}${order}`,
+      { method: 'GET' }
+    );
+  } catch (error) {
+    if (!isMissingHotmartColumn(error)) throw error;
+
+    const legacyProducts = await callSupabase(
+      `/rest/v1/paid_products?select=${LEGACY_STOREFRONT_COLUMNS}${order}`,
+      { method: 'GET' }
+    );
+
+    return Array.isArray(legacyProducts)
+      ? legacyProducts.map((product) => ({ ...product, hotmart_url: '' }))
+      : legacyProducts;
+  }
+}
+
 function toAbsolutePublicImageUrl(value) {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -129,12 +162,7 @@ function normalizeStorefrontProduct(product) {
 
 async function handleStorefront(req, res) {
   try {
-    const products = await callSupabase(
-      '/rest/v1/paid_products?select=id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order&active=eq.true&order=sort_order.asc,created_at.asc',
-      {
-        method: 'GET',
-      }
-    );
+    const products = await fetchActiveProducts();
 
     let daily = null;
     try {
