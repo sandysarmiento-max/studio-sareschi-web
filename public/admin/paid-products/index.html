@@ -15,9 +15,10 @@
     <style>
       .admin-grid { display:grid; gap:14px; }
       .admin-card { border:1px solid #f0dbe6; border-radius:16px; padding:16px; background:#fff; display:grid; gap:12px; }
-      .admin-row { display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); }
+      .admin-row { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); }
       .admin-field label { font-size:13px; display:block; margin-bottom:6px; color:#6f6471; }
       .admin-field input, .admin-field textarea { width:100%; }
+      .admin-help { grid-column:1/-1; margin:0; font-size:12px; line-height:1.45; color:#6f6471; }
       .preview-grid { display:grid; grid-template-columns:repeat(4,minmax(120px,1fr)); gap:10px; }
       .preview-box { border:1px dashed #e6cdd9; border-radius:12px; padding:8px; display:grid; gap:8px; }
       .preview-box img { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; background:#faf3f7; }
@@ -32,7 +33,7 @@
         <a class="brand" href="/">Studio Sareschi</a>
         <nav aria-label="Principal">
           <ul class="nav-links">
-            <li><a href="/pdfs/">Tienda PDF</a></li>
+            <li><a href="/pdfs/">Plantillas</a></li>
             <li><a href="/acceso/">Acceso</a></li>
           </ul>
         </nav>
@@ -44,7 +45,9 @@
         <div class="section-heading" style="margin:0;">
           <p class="eyebrow">Panel privado</p>
           <h1>Gestor de productos de paga</h1>
-          <p class="hero-copy" style="margin:0;">Crea, edita y oculta tarjetas sin tocar código.</p>
+          <p class="hero-copy" style="margin:0;">
+            Administra cada diseño, sus precios directos y su enlace individual de Hotmart.
+          </p>
         </div>
 
         <article class="card" id="auth-card" style="max-width:560px;">
@@ -102,6 +105,15 @@
         statusEl.style.color = isError ? '#8f1d4f' : '#6f6471';
       }
 
+      function escapeHtml(value) {
+        return String(value == null ? '' : value)
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
       async function getConfig() {
         const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
         return response.json();
@@ -116,6 +128,15 @@
           .replace(/^-|-$/g, '');
       }
 
+      function normalizeEditorProduct(product = {}) {
+        return {
+          ...product,
+          price_yape_pe: Number(product.price_yape_pe ?? product.price_canva_pe ?? 0),
+          price_paypal_usd: Number(product.price_paypal_usd ?? product.price_canva_int ?? 0),
+          hotmart_url: String(product.hotmart_url || ''),
+        };
+      }
+
       function createEmptyProduct() {
         return {
           _clientKey: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -123,10 +144,8 @@
           code: `producto-${Date.now()}`,
           title: '',
           description: '',
-          price_pdf_pe: 0,
-          price_pdf_int: 0,
-          price_canva_pe: 0,
-          price_canva_int: 0,
+          price_yape_pe: 0,
+          price_paypal_usd: 0,
           hotmart_url: '',
           main_image_url: '',
           preview_01_url: '',
@@ -153,11 +172,12 @@
       }
 
       function attachClientKey(product) {
-        if (product && product._clientKey) return product;
+        const normalized = normalizeEditorProduct(product);
+        if (normalized._clientKey) return normalized;
         return {
-          ...product,
-          _clientKey: product?.id
-            ? `id-${product.id}`
+          ...normalized,
+          _clientKey: normalized.id
+            ? `id-${normalized.id}`
             : `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         };
       }
@@ -211,8 +231,7 @@
           const reader = new FileReader();
           reader.onload = () => {
             const result = String(reader.result || '');
-            const base64 = result.includes(',') ? result.split(',')[1] : result;
-            resolve(base64);
+            resolve(result.includes(',') ? result.split(',')[1] : result);
           };
           reader.onerror = reject;
           reader.readAsDataURL(file);
@@ -220,12 +239,14 @@
       }
 
       function field(name, label, value, type = 'text') {
-        const safeValue = value == null ? '' : String(value);
+        const safeValue = escapeHtml(value);
         if (name === 'description') {
-          return `<div class="admin-field" style="grid-column:1/-1;"><label>${label}</label><textarea data-field="${name}" rows="3">${safeValue.replaceAll('<','&lt;')}</textarea></div>`;
+          return `<div class="admin-field" style="grid-column:1/-1;"><label>${label}</label><textarea data-field="${name}" rows="3">${safeValue}</textarea></div>`;
         }
         const fullWidth = name === 'hotmart_url' ? ' style="grid-column:1/-1;"' : '';
-        return `<div class="admin-field"${fullWidth}><label>${label}</label><input data-field="${name}" type="${type}" value="${safeValue.replaceAll('"','&quot;')}" /></div>`;
+        const priceAttrs = name.startsWith('price_') ? ' min="0" step="0.01" inputmode="decimal"' : '';
+        const placeholder = name === 'hotmart_url' ? ' placeholder="https://pay.hotmart.com/..."' : '';
+        return `<div class="admin-field"${fullWidth}><label>${label}</label><input data-field="${name}" type="${type}" value="${safeValue}"${priceAttrs}${placeholder} /></div>`;
       }
 
       function renderProducts() {
@@ -248,21 +269,22 @@
                 ${field('hotmart_url', 'Enlace directo de pago en Hotmart', product.hotmart_url, 'url')}
               </div>
               <div class="admin-row">
-                ${field('price_pdf_pe', 'Precio PDF Perú (S/)', product.price_pdf_pe, 'number')}
-                ${field('price_pdf_int', 'Precio PDF Int (USD)', product.price_pdf_int, 'number')}
-                ${field('price_canva_pe', 'Precio Canva Perú (S/)', product.price_canva_pe, 'number')}
-                ${field('price_canva_int', 'Precio Canva Int (USD)', product.price_canva_int, 'number')}
+                ${field('price_yape_pe', 'Precio directo con Yape (S/)', product.price_yape_pe, 'number')}
+                ${field('price_paypal_usd', 'Precio directo con PayPal (USD)', product.price_paypal_usd, 'number')}
+                <p class="admin-help">
+                  Estos son los precios para comprar por WhatsApp. El precio de Hotmart se administra en Hotmart y puede ser diferente por los cargos de la plataforma.
+                </p>
               </div>
               <div class="preview-grid">
                 ${IMAGE_SLOTS.map((slot) => `
                   <div class="preview-box" data-slot="${slot.key}">
                     <strong style="font-size:13px;">${slot.label}</strong>
-                    <img src="${product[slot.key] || ''}" alt="${slot.label}" />
+                    <img src="${escapeHtml(product[slot.key] || '')}" alt="${slot.label}" />
                     <input type="file" data-upload="${slot.key}" accept="image/*" />
                     <input
                       data-field="${slot.key}"
                       type="text"
-                      value="${String(product[slot.key] || '').replaceAll('"', '&quot;')}"
+                      value="${escapeHtml(product[slot.key] || '')}"
                       readonly
                       style="font-size:11px;opacity:.8"
                     />
@@ -315,12 +337,15 @@
           const payload = await apiRequest('GET');
           products = (Array.isArray(payload.products) ? payload.products : []).map(attachClientKey);
           renderProducts();
+          if (payload.purchaseMigrationPending) {
+            setStatus('Los productos se muestran con los precios anteriores como referencia. Ejecuta la migración de compra directa antes de guardar cambios.', true);
+          }
         } catch (error) {
           if (error.code === 'missing_paid_products_table') {
             useLocalMode = true;
             products = loadLocalProducts().map(attachClientKey);
             renderProducts();
-            setStatus('La tabla de catálogo aún no existe en Supabase. Activamos modo local para que puedas crear/editar sin errores.', true);
+            setStatus('La tabla de catálogo aún no existe en Supabase. Activamos modo local para que puedas crear o editar sin errores.', true);
             return;
           }
           throw error;
@@ -381,16 +406,14 @@
       refreshBtn.addEventListener('click', async () => {
         try {
           await loadProducts();
-          setStatus('Lista actualizada.');
+          if (!statusEl.textContent.includes('migración')) setStatus('Lista actualizada.');
         } catch (error) {
           setStatus(error.message, true);
         }
       });
 
       logoutBtn.addEventListener('click', async () => {
-        if (supabaseClient) {
-          await supabaseClient.auth.signOut();
-        }
+        if (supabaseClient) await supabaseClient.auth.signOut();
         window.location.reload();
       });
 
@@ -402,9 +425,7 @@
 
       productsGrid.addEventListener('change', async (event) => {
         const uploadInput = event.target.closest('[data-upload]');
-        if (!uploadInput || !uploadInput.files?.[0]) {
-          return;
-        }
+        if (!uploadInput || !uploadInput.files?.[0]) return;
 
         const card = uploadInput.closest('.admin-card');
         const clientKey = card.dataset.clientKey;
@@ -417,7 +438,7 @@
         const product = collectProduct(card, baseProduct);
 
         if (!product.id && !useLocalMode) {
-          setStatus('Guarda primero el producto para habilitar subida de imágenes.', true);
+          setStatus('Guarda primero el producto para habilitar la subida de imágenes.', true);
           uploadInput.value = '';
           return;
         }
@@ -448,7 +469,7 @@
           replaceProductByClientKey(product);
           if (useLocalMode) saveLocalProducts(products);
           renderProducts();
-          setStatus(useLocalMode ? 'Imagen cargada en modo local. Guarda para mantener cambios en este navegador.' : 'Imagen subida. Recuerda guardar para confirmar cambios.');
+          setStatus(useLocalMode ? 'Imagen cargada en modo local. Guarda para mantener los cambios en este navegador.' : 'Imagen subida. Recuerda guardar para confirmar los cambios.');
         } catch (error) {
           setStatus(error.message, true);
         } finally {
@@ -458,9 +479,7 @@
 
       productsGrid.addEventListener('click', async (event) => {
         const saveBtn = event.target.closest('[data-save]');
-        if (!saveBtn) {
-          return;
-        }
+        if (!saveBtn) return;
 
         const card = saveBtn.closest('.admin-card');
         const clientKey = card.dataset.clientKey;
@@ -477,9 +496,7 @@
         try {
           if (useLocalMode) {
             const next = { ...product };
-            if (!next.id) {
-              next.id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-            }
+            if (!next.id) next.id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
             replaceProductByClientKey(next);
             saveLocalProducts(products);
           } else {
@@ -490,7 +507,7 @@
             await loadProducts();
           }
           renderProducts();
-          setStatus(useLocalMode ? 'Producto guardado en modo local (sin error de tabla).' : 'Producto guardado correctamente.');
+          setStatus(useLocalMode ? 'Producto guardado en modo local.' : 'Producto guardado correctamente.');
         } catch (error) {
           if (error.code === 'missing_paid_products_table') {
             useLocalMode = true;
