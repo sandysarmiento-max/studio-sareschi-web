@@ -8,7 +8,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
 
 const BUCKET = 'paid-previews';
 const PRODUCT_COLUMNS =
-  'id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order,created_at,updated_at';
+  'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order,created_at,updated_at';
 const LEGACY_PRODUCT_COLUMNS =
   'id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order,created_at,updated_at';
 
@@ -132,9 +132,14 @@ function canManageProducts(user) {
   return false;
 }
 
-function isMissingHotmartColumn(error) {
+function isMissingPurchaseColumns(error) {
   const message = String(error?.message || '').toLowerCase();
-  return message.includes('hotmart_url') &&
+  const mentionsNewColumn =
+    message.includes('hotmart_url') ||
+    message.includes('price_yape_pe') ||
+    message.includes('price_paypal_usd');
+
+  return mentionsNewColumn &&
     (message.includes('does not exist') || message.includes('schema cache') || message.includes('column'));
 }
 
@@ -164,6 +169,14 @@ function sanitizeHotmartUrl(value) {
   }
 }
 
+function sanitizePrice(value, label) {
+  const price = Number(value || 0);
+  if (!Number.isFinite(price) || price < 0) {
+    throw new Error(`${label} debe ser un número igual o mayor que cero.`);
+  }
+  return price;
+}
+
 function sanitizePayload(payload) {
   const record = {
     code: String(payload.code || '')
@@ -174,10 +187,8 @@ function sanitizePayload(payload) {
       .replace(/^-|-$/g, ''),
     title: String(payload.title || '').trim(),
     description: String(payload.description || '').trim(),
-    price_pdf_pe: Number(payload.price_pdf_pe || 0),
-    price_pdf_int: Number(payload.price_pdf_int || 0),
-    price_canva_pe: Number(payload.price_canva_pe || 0),
-    price_canva_int: Number(payload.price_canva_int || 0),
+    price_yape_pe: sanitizePrice(payload.price_yape_pe, 'El precio con Yape'),
+    price_paypal_usd: sanitizePrice(payload.price_paypal_usd, 'El precio directo con PayPal'),
     hotmart_url: sanitizeHotmartUrl(payload.hotmart_url),
     main_image_url: String(payload.main_image_url || '').trim(),
     preview_01_url: String(payload.preview_01_url || '').trim(),
@@ -196,6 +207,26 @@ function sanitizePayload(payload) {
   }
 
   return record;
+}
+
+function normalizeLegacyProduct(product) {
+  return {
+    id: product?.id,
+    code: product?.code,
+    title: product?.title,
+    description: product?.description,
+    price_yape_pe: Number(product?.price_canva_pe || 0),
+    price_paypal_usd: Number(product?.price_canva_int || 0),
+    hotmart_url: '',
+    main_image_url: product?.main_image_url || '',
+    preview_01_url: product?.preview_01_url || '',
+    preview_02_url: product?.preview_02_url || '',
+    preview_03_url: product?.preview_03_url || '',
+    active: Boolean(product?.active),
+    sort_order: Number(product?.sort_order || 0),
+    created_at: product?.created_at,
+    updated_at: product?.updated_at,
+  };
 }
 
 function inferExtension(contentType, fileName) {
@@ -217,17 +248,15 @@ async function listProducts(res) {
     const products = await callSupabase(
       `/rest/v1/paid_products?select=${encodeURIComponent(PRODUCT_COLUMNS)}&order=sort_order.asc,created_at.asc`
     );
-    return json(res, 200, { products, hotmartMigrationPending: false });
+    return json(res, 200, { products, purchaseMigrationPending: false });
   } catch (error) {
-    if (isMissingHotmartColumn(error)) {
+    if (isMissingPurchaseColumns(error)) {
       const products = await callSupabase(
         `/rest/v1/paid_products?select=${encodeURIComponent(LEGACY_PRODUCT_COLUMNS)}&order=sort_order.asc,created_at.asc`
       );
       return json(res, 200, {
-        products: Array.isArray(products)
-          ? products.map((product) => ({ ...product, hotmart_url: '' }))
-          : products,
-        hotmartMigrationPending: true,
+        products: Array.isArray(products) ? products.map(normalizeLegacyProduct) : products,
+        purchaseMigrationPending: true,
       });
     }
     if (String(error.message || '').includes("Could not find the table 'public.paid_products'")) {
@@ -242,8 +271,8 @@ async function listProducts(res) {
 
 function migrationRequired(res) {
   return json(res, 503, {
-    code: 'missing_hotmart_url_column',
-    error: 'Primero debes ejecutar la migración de Hotmart en Supabase para guardar este enlace.',
+    code: 'missing_purchase_columns',
+    error: 'Primero debes ejecutar la migración de precios directos y Hotmart en Supabase.',
   });
 }
 
@@ -260,7 +289,7 @@ async function createProduct(res, payload) {
       body: JSON.stringify(record),
     });
   } catch (error) {
-    if (isMissingHotmartColumn(error)) {
+    if (isMissingPurchaseColumns(error)) {
       return migrationRequired(res);
     }
     if (String(error.message || '').includes("Could not find the table 'public.paid_products'")) {
@@ -296,7 +325,7 @@ async function updateProduct(res, payload) {
       }
     );
   } catch (error) {
-    if (isMissingHotmartColumn(error)) {
+    if (isMissingPurchaseColumns(error)) {
       return migrationRequired(res);
     }
     if (String(error.message || '').includes("Could not find the table 'public.paid_products'")) {
