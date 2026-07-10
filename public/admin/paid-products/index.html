@@ -127,6 +127,7 @@
           price_pdf_int: 0,
           price_canva_pe: 0,
           price_canva_int: 0,
+          hotmart_url: '',
           main_image_url: '',
           preview_01_url: '',
           preview_02_url: '',
@@ -223,7 +224,8 @@
         if (name === 'description') {
           return `<div class="admin-field" style="grid-column:1/-1;"><label>${label}</label><textarea data-field="${name}" rows="3">${safeValue.replaceAll('<','&lt;')}</textarea></div>`;
         }
-        return `<div class="admin-field"><label>${label}</label><input data-field="${name}" type="${type}" value="${safeValue.replaceAll('"','&quot;')}" /></div>`;
+        const fullWidth = name === 'hotmart_url' ? ' style="grid-column:1/-1;"' : '';
+        return `<div class="admin-field"${fullWidth}><label>${label}</label><input data-field="${name}" type="${type}" value="${safeValue.replaceAll('"','&quot;')}" /></div>`;
       }
 
       function renderProducts() {
@@ -242,6 +244,9 @@
                 ${field('sort_order', 'Orden', product.sort_order, 'number')}
               </div>
               <div class="admin-row">${field('description', 'Descripción', product.description)}</div>
+              <div class="admin-row">
+                ${field('hotmart_url', 'Enlace directo de pago en Hotmart', product.hotmart_url, 'url')}
+              </div>
               <div class="admin-row">
                 ${field('price_pdf_pe', 'Precio PDF Perú (S/)', product.price_pdf_pe, 'number')}
                 ${field('price_pdf_int', 'Precio PDF Int (USD)', product.price_pdf_int, 'number')}
