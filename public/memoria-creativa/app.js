@@ -1031,23 +1031,13 @@ if (!header.startsWith("PK")) return null;
 
     els.modalMessage.textContent = "Preparando el recurso creativo...";
 
-    const rewardBlob = await fetchRewardBlob(getRewardAssetUrl());
-    if (!rewardBlob) {
-      showSingleButtonModal(
-  "Archivo no válido",
-  "La recompensa está desbloqueada, pero el archivo en assets/rewards/recompensa-julio-memoria-creativa.zip no parece estar disponible o todavía está vacío. Sube nuevamente el ZIP de recompensa."
-);
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(rewardBlob);
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = getRewardDownloadFileName();
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
+   const link = document.createElement("a");
+link.href = getRewardAssetUrl();
+link.download = getRewardDownloadFileName();
+link.rel = "noopener";
+document.body.appendChild(link);
+link.click();
+link.remove();
 
     state.monthlyRewardClaimed = true;
     state.monthlyRewardUnlocked = false;
