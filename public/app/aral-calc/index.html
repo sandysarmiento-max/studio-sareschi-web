@@ -108,7 +108,7 @@
     .wrap-warning{color:#7f5970;font-weight:700}
     .hidden{display:none}
     .auth-pending{opacity:0;pointer-events:none}
-    .title-row{display:flex;align-items:center;gap:12px}.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a7a84}.eyebrow::before{content:'';width:22px;height:1px;background:#c8b4c0}.app-mark{width:44px;height:44px;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(135deg,#7f5970,#b5879f);color:#fff;box-shadow:0 12px 22px rgba(127,89,112,.18)}.brand{font-weight:800;color:#40373f;text-decoration:none;letter-spacing:.1px;font-size:15px}.output-block>.section-title,.input-block>.section-title{margin-bottom:10px}.note{color:#7a6c74}.workbench{align-items:stretch}.project-tabs{gap:10px}
+    .title-row{display:flex;align-items:center;gap:12px}.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a7a84}.eyebrow::before{content:'';width:22px;height:1px;background:#c8b4c0}.app-logo{width:44px;height:44px;object-fit:contain;flex:0 0 44px}.brand{font-weight:800;color:#40373f;text-decoration:none;letter-spacing:.1px;font-size:15px}.output-block>.section-title,.input-block>.section-title{margin-bottom:10px}.note{color:#7a6c74}.workbench{align-items:stretch}.project-tabs{gap:10px}
 
     @media (max-width:1120px){
       .workbench{grid-template-columns:460px minmax(0,1fr)}
@@ -129,7 +129,50 @@
     }
 
   </style>
-  <script>document.addEventListener("DOMContentLoaded",()=>document.body.classList.remove("auth-pending"));</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (async function enforceProtectedAccess() {
+      const loginUrl = '/acceso/?app=aral_calc&next=' + encodeURIComponent('/app/aral-calc/');
+
+      try {
+        const response = await fetch('/api/auth-config', { headers: { Accept: 'application/json' } });
+        const config = await response.json();
+
+        if (!config.enabled) {
+          window.location.href = loginUrl;
+          return;
+        }
+
+        const supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+        window.__aralSupabaseClient = supabaseClient;
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+
+        if (!session) {
+          window.location.href = loginUrl;
+          return;
+        }
+
+        const { data: accessData, error: accessError } = await supabaseClient
+          .from('app_access')
+          .select('id')
+          .eq('app_key', 'aral_calc')
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle();
+
+        if (accessError || !accessData) {
+          window.location.href = loginUrl;
+          return;
+        }
+
+        document.body.classList.remove('auth-pending');
+      } catch (error) {
+        window.location.href = loginUrl;
+      }
+    })();
+  </script>
 </head>
 <body class="auth-pending">
 <header class="site-header">
@@ -152,7 +195,7 @@
   <section class="panel top-strip">
     <div class="top-strip-left">
       <div class="eyebrow">Herramienta de Studio Sareschi</div>
-      <div class="title-row"><span class="app-mark">🧮</span><div><div class="title">Aral Calc</div><div class="subtitle">Calculadora de encuadernación con acabado visual más profesional.</div></div></div>
+      <div class="title-row"><img class="app-logo" src="/assets/aral-calc/logo-aral-calc.png" alt="Aral Calc"><div><div class="title">Aral Calc</div><div class="subtitle">Calculadora de encuadernación con acabado visual más profesional.</div></div></div>
     </div>
     <div class="project-tabs">
       <button class="project-btn active" data-project="anillado">Cuaderno anillado</button>
@@ -233,7 +276,7 @@ const PROJECTS = {
     defaults: {
       paperWidth:148,paperHeight:210,sheetCount:80,gsm:90,
       overhangWidth:3,overhangHeight:5,
-      coverThickness:1.5,liningExtra:1,dividerCount:0,dividerGsm:180,guardaGsm:0,spineSlack:0.5,
+      coverThickness:1.5,liningExtra:1.5,dividerCount:0,dividerGsm:180,guardaGsm:0,spineSlack:0.5,
       wrapFold:18,wrapJoint:7,wrapPaperWidth:210,wrapPaperHeight:297,wrapOverlap:0,wrapSource:'auto',manualCoverWidth:150,manualCoverHeight:220,manualCoverCount:2,manualSpineWidth:15,manualSpine1Width:15,manualSpine2Width:15,manualFlapWidth:60,manualCover1Width:108,manualCover2Width:106,manualCover3Width:107
     }
   },
@@ -243,7 +286,7 @@ const PROJECTS = {
     defaults: {
       paperWidth:148,paperHeight:210,sheetCount:80,gsm:90,
       overhangWidth:3,overhangHeight:5,
-      coverThickness:1.5,liningExtra:1,dividerCount:0,dividerGsm:180,guardaGsm:0,
+      coverThickness:1.5,liningExtra:1.5,dividerCount:0,dividerGsm:180,guardaGsm:0,
       flapWidth:60,spineSlack:0.5,
       wrapFold:18,wrapJoint:7,wrapPaperWidth:210,wrapPaperHeight:297,wrapOverlap:0,wrapSource:'auto',manualCoverWidth:150,manualCoverHeight:220,manualCoverCount:2,manualSpineWidth:15,manualSpine1Width:15,manualSpine2Width:15,manualFlapWidth:60,manualCover1Width:108,manualCover2Width:106,manualCover3Width:107
     }
@@ -595,6 +638,16 @@ function fieldHTML({key,label,type="number",suffix="",step=1,options=null,note="
   </div>`;
 }
 
+function liningTypeField(){
+  return fieldHTML({
+    key:"liningExtra", label:"Tipo de forro", options:[
+      {value:1.5, label:"Papel fotográfico + laminado"},
+      {value:2.5, label:"Cartulina tipo scrapbook"}
+    ],
+    note:"El material utilizado para forrar agrega grosor al proyecto. Aral Calc considera automáticamente un extra según el tipo de forro elegido."
+  });
+}
+
 function groupHTML(title, content){
   return `<div class="form-group">${title ? `<div class="group-title">${title}</div>` : ""}<div class="compact-grid">${content}</div></div>`;
 }
@@ -715,13 +768,10 @@ function renderForm(){
 
     groups.push(groupHTML("Tapas y extras", [
       fieldHTML({key:"coverThickness", label:"Espesor del cartón", suffix:"mm", step:0.1}),
+      liningTypeField(),
       fieldHTML({
-        key:"liningExtra", label:"Extra por forro", suffix:"mm", step:0.1,
-        note:"En anillado no se agrega guarda aparte; ese papel va dentro del forro."
-      }),
-      fieldHTML({
-        key:"extraThickness", label:"Grosor extra opcional", suffix:"mm", step:0.1,
-        note:"Úsalo solo si agregas acetato, bolsillos, varias láminas o materiales especiales."
+        key:"extraThickness", label:"Otros materiales", suffix:"mm", step:0.1,
+        note:"Úsalo si agregas materiales que aumentan el grosor del proyecto, como acetato, bolsillos, varias láminas decorativas u otros elementos especiales. Si no agregaste nada, déjalo en 0."
       })
     ].join("")));
   } else {
@@ -763,16 +813,18 @@ function renderForm(){
     }
 
     if (mode === "compound") {
-      groups.push(groupHTML("Excedentes", [
-        fieldHTML({key:"overhangHeight", label:"Excedente sup./inf.", suffix:"mm", step:0.5})
+      groups.push(groupHTML("Cuánto sobresale la tapa", [
+        `<div class="grid-span-2 group-note">Estas medidas indican cuánto sobresaldrá la tapa con respecto a las hojas interiores.</div>`,
+        fieldHTML({key:"overhangHeight", label:"Arriba y abajo", suffix:"mm", step:0.5, note:"Este valor se agrega tanto arriba como abajo de las hojas interiores."})
       ].join("")));
     } else {
       const sizePieces = [
-        fieldHTML({key:"overhangWidth", label:"Excedente lateral", suffix:"mm", step:0.5}),
-        fieldHTML({key:"overhangHeight", label:"Excedente sup./inf.", suffix:"mm", step:0.5})
+        `<div class="grid-span-2 group-note">Estas medidas indican cuánto sobresaldrá la tapa con respecto a las hojas interiores.</div>`,
+        fieldHTML({key:"overhangWidth", label:"Borde exterior", suffix:"mm", step:0.5, note:"Indica cuánto sobresaldrá la tapa por el borde exterior con respecto a las hojas interiores."}),
+        fieldHTML({key:"overhangHeight", label:"Arriba y abajo", suffix:"mm", step:0.5, note:"Este valor se agrega tanto arriba como abajo de las hojas interiores."})
       ];
       if(mode === "flap") sizePieces.push(fieldHTML({key:"flapWidth", label:"Ancho de solapa", suffix:"mm", step:0.5}));
-      groups.push(groupHTML(mode === "flap" ? "Excedentes y solapa" : "Excedentes", sizePieces.join("")));
+      groups.push(groupHTML("Cuánto sobresale la tapa", sizePieces.join("")));
     }
 
     const structurePieces = [
@@ -780,21 +832,18 @@ function renderForm(){
     ];
 
     if(mode !== "compound"){
-      structurePieces.push(fieldHTML({
-        key:"liningExtra", label:"Extra por forro", suffix:"mm", step:0.1,
-        note:"Basado en papel de 135 gr laminado + contratapa de 90 gr."
-      }));
+      structurePieces.push(liningTypeField());
     } else {
       structurePieces.push(`<div class="grid-span-2 inline-tip" title="En porta notas doble lomo, el extra por forro ya está fijo dentro de la fórmula: 2 mm en lomo 1 y 1 mm en lomo 2.">ⓘ Forro incluido en la fórmula</div>`);
     }
 
     if(mode !== "ring"){
       structurePieces.push(fieldHTML({
-        key:"spineSlack", label:"Holgura del lomo", suffix:"mm", step:0.1,
-        note:"Se considera 0.5 mm de holgura; podrás modificarlo de acuerdo a tu forma de trabajo."
+        key:"spineSlack", label:"Holgura extra del lomo", suffix:"mm", step:0.1,
+        note:"Pequeño espacio adicional para evitar que el lomo quede demasiado ajustado. Puedes modificarlo según tu forma de trabajo."
       }));
     }
-    groups.push(groupHTML("Estructura", structurePieces.join("")));
+    groups.push(groupHTML("Materiales y lomo", structurePieces.join("")));
 
     if(["conLomo", "conSolapa", "compuesto"].includes(projectKey)){
       groups.push(groupHTML("Tip de armado", `<div class="grid-span-2 inline-tip" title="Si vas a forrar con papel adhesivo de 135 g, laminado al frío o materiales más rígidos, deja una junta/canal un poco mayor entre tapa y lomo. Referencia: forro delgado 5–6 mm; papel adhesivo + laminado 7–8 mm; materiales más gruesos 8–10 mm.">ⓘ Recomendación de junta/canal</div>`));
