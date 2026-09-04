@@ -899,6 +899,22 @@ function card(title, value, hint="", accent=false){
   </div>`;
 }
 
+function getWrapInsufficientMessage(w){
+  const fold = Math.max(0, Number(w.fold || 0));
+  const noFoldWidth = Math.max(0, Number(w.designWidth || 0) - fold * 2);
+  const noFoldHeight = Math.max(0, Number(w.designHeight || 0) - fold * 2);
+  const withoutFold = evaluateWrapPaper(noFoldWidth, noFoldHeight, w.paperWidth, w.paperHeight, w.overlap);
+  const reducingFoldCanHelp = fold > 0 && ["single", "multi"].includes(withoutFold.status);
+
+  if(reducingFoldCanHelp){
+    return "Usa un papel más grande o reduce el doblez perimetral.";
+  }
+  if(fold > 0){
+    return "El diseño no entra en este papel ni eliminando el doblez. Usa un papel más grande.";
+  }
+  return "El diseño no entra en este papel sin doblez. Usa un papel más grande.";
+}
+
 function renderCards(data){
   const el = document.getElementById("cards");
   if(ringSubmode === "wrap"){
@@ -909,7 +925,7 @@ function renderCards(data){
     const foldJointValue = data.mode === "ring" ? `${mm(w.fold)}` : `${mm(w.fold)} / ${mm(w.joint)}`;
     el.innerHTML = [
       card("Forro necesario", `${mm(w.designWidth)} × ${mm(w.designHeight)}`, w.note, true),
-      card("Resultado", paperText, !["single", "multi"].includes(w.paper.status) ? `El forro necesita ${mm(w.designWidth)} × ${mm(w.designHeight)}. Tu papel disponible es ${mm(w.paperWidth)} × ${mm(w.paperHeight)}. Usa un papel más grande o reduce el doblez perimetral.` : `${w.paper.message} · ${paperHint}`, true),
+      card("Resultado", paperText, !["single", "multi"].includes(w.paper.status) ? `El forro necesita ${mm(w.designWidth)} × ${mm(w.designHeight)}. Tu papel disponible es ${mm(w.paperWidth)} × ${mm(w.paperHeight)}. ${getWrapInsufficientMessage(w)}` : `${w.paper.message} · ${paperHint}`, true),
       card("Papel disponible", `${mm(w.paperWidth)} × ${mm(w.paperHeight)}`, paperHint),
       card(foldJointTitle, foldJointValue, `Traslape ${mm(w.overlap)}`)
     ].join("");
@@ -1087,12 +1103,12 @@ function renderWrapSchematic(data){
 
   const layoutW = Math.max(w.designWidth, paperCoverageW);
   const layoutH = Math.max(w.designHeight, paperCoverageH);
-  const maxW = 670;
-  const maxH = 205;
+  const maxW = 690;
+  const maxH = 220;
   const scale = Math.min(maxW / Math.max(layoutW, 1), maxH / Math.max(layoutH, 1));
 
-  const canvasX = 45;
-  const canvasY = 70;
+  const canvasX = 42;
+  const canvasY = 104;
   const paperStartX = canvasX + ((layoutW - paperCoverageW) * scale) / 2;
   const paperStartY = canvasY + ((layoutH - paperCoverageH) * scale) / 2;
   const startX = canvasX + ((layoutW - w.designWidth) * scale) / 2;
@@ -1104,7 +1120,10 @@ function renderWrapSchematic(data){
   const innerY = startY + w.fold * scale;
   const innerH = Math.max(1, (w.designHeight - w.fold * 2) * scale);
 
-  let paperOverlay = "";
+  let paperBaseOverlay = "";
+  let paperJoinOverlay = "";
+  let paperJoinCallouts = "";
+
   if(selectedPaper){
     const paperW = selectedPaper.paperW * scale;
     const paperH = selectedPaper.paperH * scale;
@@ -1113,31 +1132,48 @@ function renderWrapSchematic(data){
 
     for(let i=0;i<paperCount;i++){
       const sheetX = paperStartX + i * step;
-      paperOverlay += `
+      const isLeftLabel = i % 2 === 0;
+      const labelX = isLeftLabel ? sheetX + 9 : sheetX + paperW - 9;
+      const labelAnchor = isLeftLabel ? "start" : "end";
+      paperBaseOverlay += `
         <rect x="${sheetX}" y="${paperStartY}" width="${paperW}" height="${paperH}"
-          fill="#edf7fb" fill-opacity=".22" stroke="#174c73" stroke-width="1.5" stroke-dasharray="7 5"/>
-        <text x="${sheetX + 8}" y="${paperStartY + 18}"
-          style="font-size:13px;font-weight:750;fill:#174c73">Hoja ${i + 1}</text>`;
+          fill="#edf7fb" fill-opacity=".18" stroke="#174c73" stroke-width="1.6" stroke-dasharray="7 5"/>
+        <rect x="${isLeftLabel ? sheetX + 4 : sheetX + paperW - 60}" y="${paperStartY + 5}" width="56" height="20" rx="7"
+          fill="#ffffff" fill-opacity=".90"/>
+        <text x="${labelX}" y="${paperStartY + 20}" text-anchor="${labelAnchor}"
+          style="font-size:13px;font-weight:800;fill:#174c73">Hoja ${i + 1}</text>`;
     }
 
     if(paperCount > 1){
       for(let i=1;i<paperCount;i++){
         const joinX = paperStartX + i * step;
+        const joinCenterX = joinX + overlapW / 2;
+        const calloutY = 372 + ((i - 1) % 2) * 28;
+        const calloutText = w.overlap > 0 ? `Traslape ${w.overlap.toFixed(1)} mm` : "Unión sin traslape";
+        const badgeW = w.overlap > 0 ? 132 : 142;
+        const badgeX = Math.max(12, Math.min(760 - badgeW - 12, joinCenterX - badgeW / 2));
+
         if(w.overlap > 0){
-          paperOverlay += `
-            <rect x="${joinX}" y="${paperStartY}" width="${Math.max(overlapW, 5)}" height="${paperH}"
-              fill="#f3c84b" opacity=".42"/>
-            <text x="${joinX + Math.max(overlapW,5)/2}" y="${paperStartY + paperH + 20}"
-              text-anchor="middle" style="font-size:12px;font-weight:700;fill:#174c73">
-              Traslape ${w.overlap.toFixed(1)} mm
-            </text>`;
+          const visualW = Math.max(overlapW, 8);
+          const visualX = joinX - Math.max(0, (visualW - overlapW) / 2);
+          paperJoinOverlay += `
+            <rect x="${visualX}" y="${paperStartY}" width="${visualW}" height="${paperH}"
+              fill="#ffd400" fill-opacity=".28" stroke="#d6a400" stroke-width="1.4"/>
+            <line x1="${joinCenterX}" y1="${paperStartY + paperH}" x2="${joinCenterX}" y2="${calloutY - 11}"
+              stroke="#b78700" stroke-width="1.4"/>`;
         } else {
-          paperOverlay += `
+          paperJoinOverlay += `
             <line x1="${joinX}" y1="${paperStartY}" x2="${joinX}" y2="${paperStartY + paperH}"
-              stroke="#174c73" stroke-width="2"/>
-            <text x="${joinX}" y="${paperStartY + paperH + 20}"
-              text-anchor="middle" style="font-size:12px;font-weight:700;fill:#174c73">Unión</text>`;
+              stroke="#e0ad00" stroke-width="3"/>
+            <line x1="${joinX}" y1="${paperStartY + paperH}" x2="${joinX}" y2="${calloutY - 11}"
+              stroke="#b78700" stroke-width="1.4"/>`;
         }
+
+        paperJoinCallouts += `
+          <rect x="${badgeX}" y="${calloutY - 17}" width="${badgeW}" height="24" rx="9"
+            fill="#fff4b8" stroke="#d6a400" stroke-width="1"/>
+          <text x="${badgeX + badgeW/2}" y="${calloutY}" text-anchor="middle"
+            style="font-size:12px;font-weight:800;fill:#765900">${calloutText}</text>`;
       }
     }
   }
@@ -1146,55 +1182,62 @@ function renderWrapSchematic(data){
   const pieceRects = [];
   w.pieces.forEach((piece, index) => {
     const pw = piece.width * scale;
-    const narrow = pw < 44;
+    const narrow = pw < 48;
     pieceRects.push(`<rect x="${x}" y="${innerY}" width="${pw}" height="${innerH}" fill="${index % 2 ? '#f1ebe5' : '#e6eee4'}" stroke="#8c8378" stroke-width="1"/>`);
 
     if(narrow){
-      const labelY = innerY - (index % 2 === 0 ? 15 : 31);
+      const labelY = innerY - (index % 2 === 0 ? 17 : 34);
       pieceRects.push(`
+        <rect x="${x + pw/2 - 28}" y="${labelY - 14}" width="56" height="18" rx="6" fill="#ffffff" fill-opacity=".92"/>
         <line x1="${x + pw/2}" y1="${labelY + 4}" x2="${x + pw/2}" y2="${innerY}"
           stroke="#597080" stroke-width="1"/>
         <text x="${x + pw/2}" y="${labelY}" text-anchor="middle"
-          style="font-size:11px;font-weight:750;fill:#12354d">${piece.label}</text>`);
+          style="font-size:11.5px;font-weight:800;fill:#12354d">${piece.label}</text>`);
     } else {
-      pieceRects.push(`<text x="${x + pw/2}" y="${innerY + innerH/2 + 5}" text-anchor="middle" style="font-size:12px;font-weight:750;fill:#12354d">${piece.label}</text>`);
+      pieceRects.push(`<text x="${x + pw/2}" y="${innerY + innerH/2 + 5}" text-anchor="middle" style="font-size:12.5px;font-weight:800;fill:#12354d">${piece.label}</text>`);
     }
 
     x += pw;
     if(index < w.pieces.length - 1){
       const jw = w.joint * scale;
       pieceRects.push(`<rect x="${x}" y="${innerY}" width="${jw}" height="${innerH}" fill="#fff7e8" stroke="#c9a96a" stroke-width="1" stroke-dasharray="3 3"/>`);
-      const jointY = innerY + innerH + (index % 2 === 0 ? 18 : 34);
+      const jointY = innerY + innerH + (index % 2 === 0 ? 20 : 38);
       pieceRects.push(`
         <line x1="${x + jw/2}" y1="${innerY + innerH}" x2="${x + jw/2}" y2="${jointY - 10}"
           stroke="#9a7850" stroke-width="1"/>
         <text x="${x + jw/2}" y="${jointY}" text-anchor="middle"
-          style="font-size:11px;font-weight:700;fill:#9a7850">junta</text>`);
+          style="font-size:11.5px;font-weight:750;fill:#9a7850">Junta</text>`);
       x += jw;
     }
   });
 
   const orientationText = selectedPaper?.label || `${w.paperWidth.toFixed(0)} × ${w.paperHeight.toFixed(0)} mm`;
-  const statusLine = w.paper.status === "single"
+  const paperLine = w.paper.status === "single"
     ? `Papel: 1 hoja · ${orientationText}`
     : w.paper.status === "multi"
-    ? `Papel: ${w.paper.pieces} hojas · ${orientationText} · Traslape: ${w.overlap.toFixed(1)} mm`
+    ? `Papel: ${w.paper.pieces} hojas · ${orientationText}`
     : "⚠ El papel seleccionado no cubre esta medida";
+  const joinLine = w.paper.status === "multi"
+    ? (w.overlap > 0 ? `Unión entre hojas: traslape de ${w.overlap.toFixed(1)} mm` : "Unión entre hojas: sin traslape")
+    : "";
 
   const statusColor = ["single","multi"].includes(w.paper.status) ? "#597080" : "#c65b57";
   const warningLine = !["single","multi"].includes(w.paper.status)
-    ? `<text x="24" y="60" style="font-size:13px;font-weight:750;fill:#c65b57">Usa un papel más grande o reduce el doblez perimetral.</text>`
+    ? `<text x="24" y="72" style="font-size:13px;font-weight:800;fill:#c65b57">${getWrapInsufficientMessage(w)}</text>`
     : "";
 
-  const svg = `<svg id="schematic-svg" viewBox="0 0 760 330" style="width:100%;border:1px solid #d6e4e4;border-radius:8px;background:#fff">
-    <text x="24" y="26" style="font-size:16px;font-weight:800;fill:#174c73">Forro total: ${w.designWidth.toFixed(1)} × ${w.designHeight.toFixed(1)} mm</text>
-    <text x="24" y="47" style="font-size:13px;font-weight:650;fill:${statusColor}">${statusLine}</text>
+  const svg = `<svg id="schematic-svg" viewBox="0 0 780 450" style="width:100%;max-height:390px;border:1px solid #d6e4e4;border-radius:8px;background:#fff">
+    <text x="24" y="27" style="font-size:16px;font-weight:850;fill:#174c73">Forro total: ${w.designWidth.toFixed(1)} × ${w.designHeight.toFixed(1)} mm</text>
+    <text x="24" y="49" style="font-size:13px;font-weight:700;fill:${statusColor}">${paperLine}</text>
+    ${joinLine ? `<text x="24" y="70" style="font-size:12.5px;font-weight:700;fill:#765900">${joinLine}</text>` : ""}
     ${warningLine}
-    ${paperOverlay}
-    <rect x="${startX}" y="${startY}" width="${drawW}" height="${drawH}" fill="#f5f9f8" fill-opacity=".55" stroke="#078b90" stroke-width="2.4"/>
+    ${paperBaseOverlay}
+    <rect x="${startX}" y="${startY}" width="${drawW}" height="${drawH}" fill="#f5f9f8" fill-opacity=".52" stroke="#078b90" stroke-width="2.5"/>
     <rect x="${innerX}" y="${innerY}" width="${w.innerWidth * scale}" height="${innerH}" fill="none" stroke="#2f2830" stroke-width="1.2"/>
     ${pieceRects.join("")}
-    <text x="${startX + drawW/2}" y="${Math.min(318, startY + drawH + 24)}" text-anchor="middle" style="font-size:13px;font-weight:800;fill:#12354d">${w.title} · ${w.quantity > 1 ? 'hacer ' + w.quantity + ' unidades' : '1 unidad'}</text>
+    ${paperJoinOverlay}
+    ${paperJoinCallouts}
+    <text x="${startX + drawW/2}" y="438" text-anchor="middle" style="font-size:13px;font-weight:850;fill:#12354d">${w.title} · ${w.quantity > 1 ? 'hacer ' + w.quantity + ' unidades' : '1 unidad'}</text>
   </svg>`;
   document.getElementById("schematic").innerHTML = svg;
   document.querySelector(".guide-box")?.classList.remove("ring-profile-box");
