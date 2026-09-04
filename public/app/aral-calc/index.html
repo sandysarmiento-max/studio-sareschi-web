@@ -6,9 +6,9 @@
   <style>
 
     :root{
-      --bg:#fbf9f7; --panel:#ffffff; --panel2:#fcf9f7; --border:#e4d9d2;
-      --text:#2f2830; --muted:#6f666d; --accent:#7f5970; --accent-soft:#f1e5ec; --soft2:#f7f0f4;
-      --accent-2:#7e8a74;
+      --bg:#f7faf9; --panel:#ffffff; --panel2:#f5f9f8; --border:#d6e4e4;
+      --text:#12354d; --muted:#597080; --accent:#078b90; --accent-soft:#dff4f2; --soft2:#eef6f5;
+      --accent-2:#174c73; --yellow:#f3c84b; --danger:#c65b57;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:'Inter',ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#f9f5f2 0%,#fcfaf8 180px,#fbf9f7 100%);color:var(--text);font-size:13px}
@@ -22,10 +22,10 @@
     .logout-btn{border:1px solid var(--border);background:var(--panel);color:#625861;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:650;cursor:pointer;transition:all .2s ease}
     .logout-btn:hover,.logout-btn:focus-visible{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 
-    .wrap{max-width:1360px;margin:0 auto;padding:8px 14px 12px;display:block}
+    .wrap{max-width:1360px;margin:0 auto;padding:6px 14px 86px;display:block}
     .panel{background:rgba(255,255,255,.94);border:1px solid rgba(228,217,210,.95);border-radius:16px;padding:10px 12px;box-shadow:0 8px 24px rgba(56,37,48,.05)}
     .main{display:flex;flex-direction:column;gap:10px}
-    .top-strip{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px;padding:16px 18px;background:linear-gradient(135deg,#fffdfa 0%,#f8eef4 70%,#f5f0ec 100%);border:1px solid rgba(127,89,112,.14)}
+    .top-strip{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;padding:10px 14px;background:linear-gradient(135deg,#fff 0%,#edf8f7 70%,#f8fbfa 100%);border:1px solid rgba(7,139,144,.16)}
     .top-strip-left{display:flex;flex-direction:column;gap:6px}
     .project-tabs{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
     .title{font-size:22px;font-weight:800;color:#4f4048;letter-spacing:-.02em}
@@ -37,7 +37,8 @@
     .chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
     .chip{border:1px solid rgba(228,217,210,.95);background:rgba(255,255,255,.92);color:#625850;border-radius:999px;padding:5px 10px;font-size:11px;line-height:1.1;cursor:pointer;box-shadow:0 2px 8px rgba(58,35,45,.03)}
     .chip:hover{border-color:var(--accent);color:var(--accent)}
-    .chip.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+    .chip.active{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:700}
+    .preset-status{font-size:11px;color:var(--accent-2);font-weight:650;margin-top:2px}.preset-status:empty{display:none}.field-readonly input{background:#edf2f2;color:#71818a;cursor:not-allowed}
 
     .grid{display:grid;gap:7px 9px;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
     .form-stack{display:flex;flex-direction:column;gap:10px}
@@ -108,7 +109,7 @@
     .wrap-warning{color:#7f5970;font-weight:700}
     .hidden{display:none}
     .auth-pending{opacity:0;pointer-events:none}
-    .title-row{display:flex;align-items:center;gap:12px}.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a7a84}.eyebrow::before{content:'';width:22px;height:1px;background:#c8b4c0}.app-logo{width:44px;height:44px;object-fit:contain;flex:0 0 44px}.brand{font-weight:800;color:#40373f;text-decoration:none;letter-spacing:.1px;font-size:15px}.output-block>.section-title,.input-block>.section-title{margin-bottom:10px}.note{color:#7a6c74}.workbench{align-items:stretch}.project-tabs{gap:10px}
+    .title-row{display:flex;align-items:center;gap:12px}.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#597080}.eyebrow::before{content:'';width:22px;height:1px;background:#78bbb9}.app-logo{width:52px;height:52px;object-fit:contain;flex:0 0 52px}.brand{font-weight:800;color:#12354d;text-decoration:none;letter-spacing:.1px;font-size:15px}.output-block>.section-title,.input-block>.section-title{margin-bottom:10px}.note{color:#597080}.workbench{align-items:stretch}.project-tabs{gap:10px}.pdf-fab{position:fixed;right:18px;bottom:18px;z-index:25;border-color:var(--accent);background:var(--accent);box-shadow:0 10px 24px rgba(7,139,144,.24)}
 
     @media (max-width:1120px){
       .workbench{grid-template-columns:460px minmax(0,1fr)}
@@ -126,6 +127,7 @@
       .input-block{padding:12px}
       .rings-split{grid-template-columns:1fr}
       .project-sheet-copy{align-items:flex-start;flex-direction:column;gap:3px}
+      .pdf-fab{left:12px;right:12px;bottom:12px;width:calc(100% - 24px)}
     }
 
   </style>
@@ -206,16 +208,7 @@
   </section>
 
   <main class="main">
-    <section class="panel project-sheet-bar">
-      <div class="project-sheet-row">
-        <div class="project-sheet-copy">
-          <div class="section-title">Ficha del proyecto</div>
-          <div class="subtitle">Abrir para imprimir o guardar como PDF.</div>
-        </div>
-        <button class="button project-sheet-btn" id="pdf-btn">Abrir ficha PDF</button>
-      </div>
-    </section>
-
+    <button class="button pdf-fab" id="pdf-btn">Abrir ficha PDF</button>
     <section class="panel workbench">
       <div class="input-block">
         <div class="section-title" id="input-title">Medidas y materiales</div>
@@ -235,8 +228,9 @@
             <button class="chip" data-preset="B5">B5</button>
             <button class="chip" data-preset="CARTA">Carta</button>
             <button class="chip" data-preset="A4">A4</button>
+            <button class="chip" data-preset="CUSTOM">Personalizado</button>
           </div>
-          <div class="note" style="margin-bottom:8px">Elige un formato base o personaliza el ancho y alto manualmente.</div>
+          <div class="preset-status" id="preset-status"></div>
         </div>
         <div id="form-grid" class="grid"></div>
       </div>
@@ -593,6 +587,10 @@ function estimatePunchCount2to1(heightMm, presetKey){
 }
 
 function applyPresetToForm(presetKey){
+  if(presetKey === "CUSTOM"){
+    selectedPreset = null;
+    return;
+  }
   const preset = PRESETS[presetKey];
   if(!preset) return;
   selectedPreset = presetKey;
@@ -616,7 +614,7 @@ function escapeAttr(value){
     .replace(/>/g, "&gt;");
 }
 
-function fieldHTML({key,label,type="number",suffix="",step=1,options=null,note=""}){
+function fieldHTML({key,label,type="number",suffix="",step=1,options=null,note="",readOnly=false,span=false}){
   const help = note ? `<span class="help-tip" title="${escapeAttr(note)}">?</span>` : "";
   if(options){
     return `<div>
@@ -629,10 +627,10 @@ function fieldHTML({key,label,type="number",suffix="",step=1,options=null,note="
       </select>
     </div>`;
   }
-  return `<div>
+  return `<div class="${readOnly ? 'field-readonly' : ''} ${span ? 'grid-span-2' : ''}">
     <div class="label">${label}${help}</div>
     <div class="field-row">
-      <input data-key="${key}" type="${type}" value="${form[key] ?? ""}" step="${step}">
+      <input data-key="${key}" type="${type}" value="${form[key] ?? ""}" step="${step}" ${readOnly ? 'readonly aria-readonly="true"' : ''}>
       ${suffix ? `<span class="suffix">${suffix}</span>` : ""}
     </div>
   </div>`;
@@ -660,6 +658,8 @@ function renderForm(){
   const inputTitle = document.getElementById("input-title");
   const submodeTabs = document.getElementById("ring-submode-tabs");
   const presetBlock = document.getElementById("preset-block");
+  const presetStatus = document.getElementById("preset-status");
+  const presetLocked = Boolean(selectedPreset);
 
   if(ringSubmode === "ring" && mode !== "ring") ringSubmode = "covers";
   if(inputTitle){
@@ -682,7 +682,11 @@ function renderForm(){
     });
   }
   if(presetBlock){
-    presetBlock.style.display = mode === "ring" && ringSubmode === "ring" ? "none" : "block";
+    presetBlock.style.display = (mode === "ring" && ringSubmode === "ring") || (ringSubmode === "wrap" && form.wrapSource === "manual") ? "none" : "block";
+  }
+  if(presetStatus){
+    const preset = selectedPreset && PRESETS[selectedPreset];
+    presetStatus.textContent = preset ? `${preset.label} seleccionado · ${preset.paperWidth} × ${preset.paperHeight} mm` : "Personalizado · edita ancho y alto";
   }
 
   if(ringSubmode === "wrap"){
@@ -746,8 +750,8 @@ function renderForm(){
   } else if(mode === "ring" && ringSubmode === "covers"){
 
     groups.push(groupHTML("Tamaño de hoja", [
-      fieldHTML({key:"paperWidth", label:"Ancho de hoja", suffix:"mm"}),
-      fieldHTML({key:"paperHeight", label:"Alto de hoja", suffix:"mm"})
+      fieldHTML({key:"paperWidth", label:"Ancho de hoja", suffix:"mm", readOnly:presetLocked}),
+      fieldHTML({key:"paperHeight", label:"Alto de hoja", suffix:"mm", readOnly:presetLocked})
     ].join("")));
 
     groups.push(groupHTML("Márgenes para tapa", [
@@ -768,16 +772,16 @@ function renderForm(){
 
     groups.push(groupHTML("Tapas y extras", [
       fieldHTML({key:"coverThickness", label:"Espesor del cartón", suffix:"mm", step:0.1}),
-      liningTypeField(),
+      fieldHTML({key:"liningExtra", label:"Tipo de forro", options:[{value:1.5,label:"Papel fotográfico + laminado"},{value:2.5,label:"Cartulina tipo scrapbook"}], note:"El material utilizado para forrar agrega grosor al proyecto.", span:true}),
       fieldHTML({
         key:"extraThickness", label:"Otros materiales", suffix:"mm", step:0.1,
-        note:"Úsalo si agregas materiales que aumentan el grosor del proyecto, como acetato, bolsillos, varias láminas decorativas u otros elementos especiales. Si no agregaste nada, déjalo en 0."
+        note:"Úsalo si agregas materiales que aumentan el grosor del proyecto, como acetato, bolsillos, varias láminas decorativas u otros elementos especiales. Si no agregaste nada, déjalo en 0.", span:true
       })
     ].join("")));
   } else {
     groups.push(groupHTML("Tamaño de hoja", [
-      fieldHTML({key:"paperWidth", label:"Ancho de hoja", suffix:"mm"}),
-      fieldHTML({key:"paperHeight", label:"Alto de hoja", suffix:"mm"})
+      fieldHTML({key:"paperWidth", label:"Ancho de hoja", suffix:"mm", readOnly:presetLocked}),
+      fieldHTML({key:"paperHeight", label:"Alto de hoja", suffix:"mm", readOnly:presetLocked})
     ].join("")));
 
     if(mode !== "compound"){
@@ -862,7 +866,7 @@ function renderForm(){
       node.addEventListener("input", e => {
         if(["paperWidth","paperHeight"].includes(e.target.dataset.key)) selectedPreset = null;
         form[e.target.dataset.key] = e.target.value;
-        renderOutputs();
+        if(["paperWidth","paperHeight"].includes(e.target.dataset.key)) render(); else renderOutputs();
       });
       node.addEventListener("change", e => {
         form[e.target.dataset.key] = e.target.value;
@@ -943,14 +947,14 @@ function renderCards(data){
   const el = document.getElementById("cards");
   if(ringSubmode === "wrap"){
     const w = data.wrap;
-    const paperText = w.paper.status === "single" ? "1 hoja" : w.paper.status === "multi" ? `${w.paper.pieces} hojas` : "Revisar papel";
+    const paperText = w.paper.status === "single" ? "✓ Entra en 1 hoja" : w.paper.status === "multi" ? `⚠ Requiere ${w.paper.pieces} hojas` : "✕ Papel demasiado pequeño";
     const paperHint = w.paper.paperUse ? `${w.paper.paperUse.label}` : `${w.paperWidth.toFixed(0)} × ${w.paperHeight.toFixed(0)} mm`;
     const foldJointTitle = data.mode === "ring" ? "Doblez" : "Doblez / junta";
     const foldJointValue = data.mode === "ring" ? `${mm(w.fold)}` : `${mm(w.fold)} / ${mm(w.joint)}`;
     el.innerHTML = [
-      card(w.title, `${mm(w.designWidth)} × ${mm(w.designHeight)}`, w.note, true),
+      card("Forro necesario", `${mm(w.designWidth)} × ${mm(w.designHeight)}`, w.note, true),
+      card("Resultado", paperText, !["single", "multi"].includes(w.paper.status) ? `El forro necesita ${mm(w.designWidth)} × ${mm(w.designHeight)}. Tu papel disponible es ${mm(w.paperWidth)} × ${mm(w.paperHeight)}. Usa un papel más grande o reduce el doblez perimetral.` : `${w.paper.message} · ${paperHint}`, true),
       card("Papel disponible", `${mm(w.paperWidth)} × ${mm(w.paperHeight)}`, paperHint),
-      card("Resultado", paperText, w.paper.message),
       card(foldJointTitle, foldJointValue, `Traslape ${mm(w.overlap)}`)
     ].join("");
     return;
@@ -1113,8 +1117,8 @@ function renderRingProfile(data){
 
 function renderWrapSchematic(data){
   const w = data.wrap;
-  const maxW = 600;
-  const maxH = 142;
+  const maxW = 620;
+  const maxH = 165;
   const scale = Math.min(maxW / Math.max(w.designWidth, 1), maxH / Math.max(w.designHeight, 1));
   const startX = 48;
   const startY = 50;
@@ -1139,26 +1143,33 @@ function renderWrapSchematic(data){
   });
 
   let paperOverlay = "";
+  if(w.paper.paperUse){
+    const paperW = w.paper.paperUse.paperW * scale;
+    const paperH = w.paper.paperUse.paperH * scale;
+    const step = paperW - w.overlap * scale;
+    const count = w.paper.status === "single" ? 1 : (w.paper.pieces || 1);
+    for(let i=0;i<count;i++) paperOverlay += `<rect x="${startX + i * step}" y="${startY}" width="${paperW}" height="${paperH}" fill="none" stroke="#174c73" stroke-width="1.2" stroke-dasharray="6 4"/><text x="${startX + i * step + 6}" y="${startY + 14}" style="font-size:10px;fill:#174c73">Hoja ${i + 1}</text>`;
+  }
   if(w.paper.status === "multi" && w.paper.paperUse){
     const pieceW = w.paper.paperUse.paperW * scale;
     const overlapW = w.overlap * scale;
     let px = startX;
     for(let i=1;i<w.paper.pieces;i++){
       const joinX = px + pieceW - overlapW;
-      paperOverlay += `<rect x="${joinX}" y="${startY - 10}" width="${Math.max(overlapW, 4)}" height="${drawH + 20}" fill="#f1e5ec" stroke="#7f5970" stroke-width="1" stroke-dasharray="4 3" opacity=".82"/>`;
-      paperOverlay += `<text x="${joinX + Math.max(overlapW,4)/2}" y="${startY + drawH + 27}" text-anchor="middle" style="font-size:10px;fill:#7f5970">traslape</text>`;
+      paperOverlay += `<rect x="${joinX}" y="${startY}" width="${Math.max(overlapW, 4)}" height="${drawH}" fill="#f3c84b" opacity=".42"/>`;
+      paperOverlay += `<text x="${joinX + Math.max(overlapW,4)/2}" y="${startY + drawH + 24}" text-anchor="middle" style="font-size:10px;fill:#174c73">Traslape ${w.overlap.toFixed(1)} mm</text>`;
       px += pieceW - overlapW;
     }
   }
 
-  const statusText = w.paper.status === "single" ? "Entra en 1 hoja" : w.paper.status === "multi" ? `Usa ${w.paper.pieces} hojas · traslape ${w.overlap.toFixed(1)} mm` : "Revisar alto del papel";
-  const svg = `<svg id="schematic-svg" viewBox="0 0 700 250" style="width:100%;border:1px solid #e4d9d2;border-radius:14px;background:#fffdfb">
-    <text x="22" y="24" style="font-size:13px;font-weight:700;fill:#5d564d">Vista de forro</text>
-    <text x="22" y="40" style="font-size:10.5px;fill:#8c8378">Diseño total: ${w.designWidth.toFixed(1)} × ${w.designHeight.toFixed(1)} mm · ${statusText}</text>
-    <rect x="${startX}" y="${startY}" width="${drawW}" height="${drawH}" rx="8" fill="#fcf9f7" stroke="#7f5970" stroke-width="1.4"/>
+  const statusText = w.paper.status === "single" ? "Papel: 1 hoja" : w.paper.status === "multi" ? `Papel: ${w.paper.pieces} hojas · orientación ${w.paper.paperUse?.label || ''}` : "⚠ El papel seleccionado no cubre esta medida";
+  const svg = `<svg id="schematic-svg" viewBox="0 0 700 280" style="width:100%;border:1px solid #d6e4e4;border-radius:8px;background:#fff">
+    <text x="22" y="24" style="font-size:13px;font-weight:700;fill:#174c73">Forro total: ${w.designWidth.toFixed(1)} × ${w.designHeight.toFixed(1)} mm</text>
+    <text x="22" y="41" style="font-size:10.5px;fill:#597080">${statusText}${w.paper.status === 'multi' ? ` · Traslape: ${w.overlap.toFixed(1)} mm` : ''}</text>
+    <rect x="${startX}" y="${startY}" width="${drawW}" height="${drawH}" fill="#f5f9f8" stroke="#078b90" stroke-width="2"/>
     <rect x="${innerX}" y="${innerY}" width="${w.innerWidth * scale}" height="${innerH}" fill="none" stroke="#2f2830" stroke-width="1"/>
-    ${pieceRects.join("")}
     ${paperOverlay}
+    ${pieceRects.join("")}
     <text x="${startX + drawW/2}" y="${startY + drawH + 18}" text-anchor="middle" style="font-size:11px;font-weight:700;fill:#5d564d">${w.title} · ${w.quantity > 1 ? 'hacer ' + w.quantity + ' unidades' : '1 unidad'}</text>
   </svg>`;
   document.getElementById("schematic").innerHTML = svg;
@@ -1338,11 +1349,11 @@ function openPdfSheet(){
   <title>Aral Calc - Ficha</title>
   <style>
     *{box-sizing:border-box}
-    body{margin:0;background:#fbf9f7;color:#2f2830;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:13px}
+    body{margin:0;background:#f7faf9;color:#12354d;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:13px}
     .page{max-width:960px;margin:0 auto;padding:26px}
-    .sheet{background:#fff;border:1px solid #e4d9d2;border-radius:18px;padding:24px;box-shadow:0 8px 24px rgba(37,27,34,.08)}
-    .brand{font-size:24px;font-weight:800;color:#574e48;letter-spacing:.01em}
-    .sub{margin-top:4px;color:#6f666d;font-size:13px}
+    .sheet{background:#fff;border:1px solid #d6e4e4;border-radius:18px;padding:24px;box-shadow:0 8px 24px rgba(7,139,144,.08)}
+    .pdf-brand{display:flex;align-items:center;gap:12px}.pdf-logo{width:54px;height:54px;object-fit:contain}.brand{font-size:24px;font-weight:800;color:#174c73;letter-spacing:.01em}
+    .sub{margin-top:4px;color:#597080;font-size:13px}
     .meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
     .meta-card,.box{border:1px solid #e4d9d2;background:#fcf9f7;border-radius:14px;padding:13px}
     .meta-k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#7a7068;font-weight:800}
@@ -1372,8 +1383,7 @@ function openPdfSheet(){
 <body>
   <div class="page">
     <div class="sheet">
-      <div class="brand">Aral Calc</div>
-      <div class="sub">Calculadora de encuadernación</div>
+      <div class="pdf-brand"><img class="pdf-logo" src="/assets/aral-calc/logo-aral-calc.png" alt="Aral Calc"><div><div class="brand">Aral Calc</div><div class="sub">Calculadora de encuadernación</div></div></div>
       <div class="meta">
         <div class="meta-card"><div class="meta-k">Proyecto</div><div class="meta-v">${projectLabel}</div></div>
         <div class="meta-card"><div class="meta-k">Fecha</div><div class="meta-v">${dateLabel}</div></div>
