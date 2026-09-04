@@ -97,7 +97,7 @@
     .rings-subtable .table-head{margin-bottom:4px}
     .rings-subtable .table-row{margin-top:4px}
     .rings-subtable .table-row.active{box-shadow:0 6px 14px rgba(127,89,112,.14)}
-    .rings-subtable .table-head,.rings-subtable .table-row{grid-template-columns:.78fr .95fr .95fr;padding:6px 8px}
+    .rings-subtable .table-head,.rings-subtable .table-row{grid-template-columns:.72fr 1fr .9fr 1fr;padding:6px 8px}
     .guide-box #schematic-svg{background:#fffdfb}
 
     .submode-tabs{display:none;gap:6px;flex-wrap:wrap;margin:0 0 10px}
@@ -309,17 +309,17 @@ const CALIPERS = [
 ];
 
 const RINGS = [
-  { label:'3/8"', diameter:9.5, capacity:7.5 },
-  { label:'7/16"', diameter:11.1, capacity:9.0 },
-  { label:'1/2"', diameter:12.7, capacity:10.5 },
-  { label:'9/16"', diameter:14.3, capacity:12.0 },
-  { label:'5/8"', diameter:15.9, capacity:13.5 },
-  { label:'3/4"', diameter:19.0, capacity:16.0 },
-  { label:'7/8"', diameter:22.2, capacity:19.0 },
-  { label:'1"', diameter:25.4, capacity:22.0 },
-  { label:'1 1/8"', diameter:28.6, capacity:25.0 },
-  { label:'1 1/4"', diameter:31.8, capacity:28.0 },
-  { label:'1 1/2"', diameter:38.1, capacity:34.0 }
+  { label:'3/8"', diameter:9.5, capacity:7.5, closingReserve:1.5 },
+  { label:'7/16"', diameter:11.1, capacity:9.0, closingReserve:1.5 },
+  { label:'1/2"', diameter:12.7, capacity:10.5, closingReserve:1.5 },
+  { label:'9/16"', diameter:14.3, capacity:12.0, closingReserve:2.0 },
+  { label:'5/8"', diameter:15.9, capacity:13.5, closingReserve:2.0 },
+  { label:'3/4"', diameter:19.0, capacity:16.0, closingReserve:2.0 },
+  { label:'7/8"', diameter:22.2, capacity:19.0, closingReserve:2.0 },
+  { label:'1"', diameter:25.4, capacity:22.0, closingReserve:2.5 },
+  { label:'1 1/8"', diameter:28.6, capacity:25.0, closingReserve:2.5 },
+  { label:'1 1/4"', diameter:31.8, capacity:28.0, closingReserve:3.0 },
+  { label:'1 1/2"', diameter:38.1, capacity:34.0, closingReserve:null }
 ];
 
 const PRESETS = {
@@ -370,12 +370,20 @@ function estimateCaliper(gsm){
 function getRecommendedRing(t){
   const thickness = Number(t || 0);
   const EPS = 0.0001;
-  return RINGS.find(r => thickness <= r.capacity + EPS) || RINGS[RINGS.length-1];
+  return RINGS.find(r => r.closingReserve != null && thickness <= (r.capacity - r.closingReserve) + EPS) || RINGS[RINGS.length-1];
 }
+function getUsefulCapacity(ring){ return ring.closingReserve == null ? null : ring.capacity - ring.closingReserve; }
 function getRingRangeText(ring){
   const index = RINGS.findIndex(r => r.label === ring.label);
-  const prev = index > 0 ? RINGS[index - 1].capacity : 0;
-  return index <= 0 ? `hasta ${ring.capacity.toFixed(1)} mm` : `más de ${prev.toFixed(1)} a ${ring.capacity.toFixed(1)} mm`;
+  const useful = getUsefulCapacity(ring);
+  if(useful == null){
+    const prevUseful = index > 0 ? getUsefulCapacity(RINGS[index - 1]) : null;
+    return `${prevUseful != null ? `más de ${prevUseful.toFixed(1)} mm` : "rango final"} · verificar físicamente`;
+  }
+  const prevUseful = index > 0 ? getUsefulCapacity(RINGS[index - 1]) : 0;
+  return index <= 0
+    ? `hasta ${useful.toFixed(1)} mm útiles`
+    : `más de ${(prevUseful ?? 0).toFixed(1)} a ${useful.toFixed(1)} mm útiles`;
 }
 function mm(v){ return `${Number(v || 0).toFixed(1)} mm`; }
 
@@ -387,66 +395,17 @@ function getRingMarginDefaults(presetKey){
 
 function getWrapPieces(data){
   const mode = data.mode;
-  const source = form.wrapSource || "auto";
+  const source = mode === "ring" ? (form.wrapSource || "auto") : "auto";
   const manualCoverHeight = Number(form.manualCoverHeight || data.coverHeight || 0);
   const manualCoverWidth = Number(form.manualCoverWidth || data.coverWidth || 0);
 
-  if(source === "manual"){
-    if(mode === "ring"){
-      return {
-        title:"Forro por tapa",
-        note:"Medidas ingresadas manualmente. Hacer la cantidad de unidades que corresponda.",
-        quantity:Number(form.manualCoverCount || 2),
-        pieces:[{label:"Tapa", width:manualCoverWidth}],
-        joints:0,
-        coverHeight:manualCoverHeight,
-        source:"manual"
-      };
-    }
-    if(mode === "spine"){
-      return {
-        title:"Forro completo",
-        note:"Medidas manuales: tapa + lomo + tapa.",
-        quantity:1,
-        pieces:[
-          {label:"Tapa 1", width:manualCoverWidth},
-          {label:"Lomo", width:Number(form.manualSpineWidth || 0)},
-          {label:"Tapa 2", width:manualCoverWidth}
-        ],
-        joints:2,
-        coverHeight:manualCoverHeight,
-        source:"manual"
-      };
-    }
-    if(mode === "flap"){
-      return {
-        title:"Forro con solapa",
-        note:"Medidas manuales: tapa + lomo 1 + tapa + lomo 2 + solapa.",
-        quantity:1,
-        pieces:[
-          {label:"Tapa 1", width:manualCoverWidth},
-          {label:"Lomo 1", width:Number(form.manualSpine1Width || 0)},
-          {label:"Tapa 2", width:manualCoverWidth},
-          {label:"Lomo 2", width:Number(form.manualSpine2Width || 0)},
-          {label:"Solapa", width:Number(form.manualFlapWidth || 0)}
-        ],
-        joints:4,
-        coverHeight:manualCoverHeight,
-        source:"manual"
-      };
-    }
+  if(source === "manual" && mode === "ring"){
     return {
-      title:"Forro porta notas",
-      note:"Medidas manuales: tapa 1 + lomo 1 + tapa 2 + lomo 2 + tapa 3.",
-      quantity:1,
-      pieces:[
-        {label:"Tapa 1", width:Number(form.manualCover1Width || 0)},
-        {label:"Lomo 1", width:Number(form.manualSpine1Width || 0)},
-        {label:"Tapa 2", width:Number(form.manualCover2Width || 0)},
-        {label:"Lomo 2", width:Number(form.manualSpine2Width || 0)},
-        {label:"Tapa 3", width:Number(form.manualCover3Width || 0)}
-      ],
-      joints:4,
+      title:"Forro por tapa",
+      note:"Usa la medida de cartón ingresada. Hacer 2 unidades: tapa y contratapa.",
+      quantity:2,
+      pieces:[{label:"Tapa", width:manualCoverWidth}],
+      joints:0,
       coverHeight:manualCoverHeight,
       source:"manual"
     };
@@ -513,31 +472,46 @@ function getWrapPieces(data){
 }
 
 function evaluateWrapPaper(designW, designH, paperW, paperH, overlap){
-  const safeOverlap = Math.max(0, Math.min(Number(overlap || 0), Math.max(paperW, paperH) - 1));
+  const rawW = Number(paperW || 0);
+  const rawH = Number(paperH || 0);
+  const longSide = Math.max(rawW, rawH);
+  const shortSide = Math.min(rawW, rawH);
+  const safeOverlap = Math.max(0, Math.min(Number(overlap || 0), longSide - 1));
+
+  // La opción natural es usar el papel horizontal: lado largo a lo ancho
+  // y unir hojas por el lado corto. Solo se prefiere vertical si reduce
+  // realmente la cantidad de hojas o si horizontal no admite el alto.
   const options = [
-    {orientation:"normal", paperW, paperH, label:`${paperW.toFixed(0)} × ${paperH.toFixed(0)} mm`},
-    {orientation:"rotado", paperW:paperH, paperH:paperW, label:`${paperH.toFixed(0)} × ${paperW.toFixed(0)} mm rotado`}
+    {orientation:"horizontal", paperW:longSide, paperH:shortSide, label:`Horizontal · ${longSide.toFixed(0)} × ${shortSide.toFixed(0)} mm`, priority:0},
+    {orientation:"vertical", paperW:shortSide, paperH:longSide, label:`Vertical · ${shortSide.toFixed(0)} × ${longSide.toFixed(0)} mm`, priority:1}
   ];
+
   const evaluated = options.map(opt => {
     if(designH > opt.paperH){
-      return {...opt, fitsHeight:false, single:false, pieces:null, coveredWidth:0};
+      return {...opt, fitsHeight:false, single:false, pieces:null, coveredWidth:0, remainingWidth:null};
     }
     if(designW <= opt.paperW){
-      return {...opt, fitsHeight:true, single:true, pieces:1, coveredWidth:opt.paperW};
+      return {...opt, fitsHeight:true, single:true, pieces:1, coveredWidth:opt.paperW, remainingWidth:0};
     }
     const usableStep = Math.max(1, opt.paperW - safeOverlap);
     const pieces = Math.max(2, Math.ceil((designW - safeOverlap) / usableStep));
-    return {...opt, fitsHeight:true, single:false, pieces, coveredWidth:pieces * opt.paperW - (pieces - 1) * safeOverlap};
+    const coveredWidth = pieces * opt.paperW - (pieces - 1) * safeOverlap;
+    return {...opt, fitsHeight:true, single:false, pieces, coveredWidth, remainingWidth:Math.max(designW - opt.paperW, 0)};
   });
+
   const valid = evaluated.filter(x => x.fitsHeight && x.pieces);
   if(!valid.length){
-    return {status:"height", message:"El alto del diseño no entra en ese papel.", pieces:null, orientation:null, paperUse:null, evaluated};
+    return {status:"height", message:"El alto del forro no entra en ninguna orientación de este papel.", pieces:null, orientation:null, paperUse:null, evaluated};
   }
-  valid.sort((a,b) => (a.pieces - b.pieces) || (a.orientation === "normal" ? -1 : 1));
+
+  valid.sort((a,b) => (a.pieces - b.pieces) || (a.priority - b.priority));
   const best = valid[0];
+  const joinText = safeOverlap > 0 ? `con traslape de ${safeOverlap.toFixed(1)} mm` : "unidas por el borde";
   return {
     status:best.single ? "single" : "multi",
-    message:best.single ? "Entra en 1 hoja." : `Usa ${best.pieces} hojas con traslape.`,
+    message:best.single
+      ? `Entra en 1 hoja · ${best.label}.`
+      : `Usa ${best.pieces} hojas en ${best.orientation} ${joinText}.`,
     pieces:best.pieces,
     orientation:best.orientation,
     paperUse:best,
@@ -617,7 +591,7 @@ function escapeAttr(value){
 function fieldHTML({key,label,type="number",suffix="",step=1,options=null,note="",readOnly=false,span=false}){
   const help = note ? `<span class="help-tip" title="${escapeAttr(note)}">?</span>` : "";
   if(options){
-    return `<div>
+    return `<div class="${span ? 'grid-span-2' : ''}">
       <div class="label">${label}${help}</div>
       <select data-key="${key}">
         ${options.map(o => {
@@ -636,13 +610,14 @@ function fieldHTML({key,label,type="number",suffix="",step=1,options=null,note="
   </div>`;
 }
 
-function liningTypeField(){
+function liningTypeField(span=false){
   return fieldHTML({
     key:"liningExtra", label:"Tipo de forro", options:[
       {value:1.5, label:"Papel fotográfico + laminado"},
       {value:2.5, label:"Cartulina tipo scrapbook"}
     ],
-    note:"El material utilizado para forrar agrega grosor al proyecto. Aral Calc considera automáticamente un extra según el tipo de forro elegido."
+    note:"El material utilizado para forrar agrega grosor al proyecto. Aral Calc considera automáticamente un extra según el tipo de forro elegido.",
+    span
   });
 }
 
@@ -682,7 +657,7 @@ function renderForm(){
     });
   }
   if(presetBlock){
-    presetBlock.style.display = (mode === "ring" && ringSubmode === "ring") || (ringSubmode === "wrap" && form.wrapSource === "manual") ? "none" : "block";
+    presetBlock.style.display = ringSubmode === "wrap" || (mode === "ring" && ringSubmode === "ring") ? "none" : "block";
   }
   if(presetStatus){
     const preset = selectedPreset && PRESETS[selectedPreset];
@@ -690,49 +665,30 @@ function renderForm(){
   }
 
   if(ringSubmode === "wrap"){
-    groups.push(groupHTML("Medidas de cartones", `
-      <div class="grid-span-2">
-        <div class="label">Origen de medidas</div>
-        <select data-key="wrapSource">
-          <option value="auto" ${(form.wrapSource || "auto") === "auto" ? "selected" : ""}>Jalar medidas calculadas en la app</option>
-          <option value="manual" ${(form.wrapSource || "auto") === "manual" ? "selected" : ""}>Ingresar medidas manualmente</option>
-        </select>
-      </div>
-    `));
+    if(mode === "ring"){
+      groups.push(groupHTML("Medida del cartón", `
+        <div class="grid-span-2">
+          <div class="label">Origen del cartón</div>
+          <select data-key="wrapSource">
+            <option value="auto" ${(form.wrapSource || "auto") === "auto" ? "selected" : ""}>Usar tapa calculada</option>
+            <option value="manual" ${(form.wrapSource || "auto") === "manual" ? "selected" : ""}>Ingresar medida del cartón</option>
+          </select>
+        </div>
+      `));
 
-    if((form.wrapSource || "auto") === "manual"){
-      if(mode === "ring"){
-        groups.push(groupHTML("Cartón manual", [
-          fieldHTML({key:"manualCoverWidth", label:"Ancho de tapa", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualCoverHeight", label:"Alto de tapa", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualCoverCount", label:"Cantidad de tapas", suffix:"u", step:1})
-        ].join("")));
-      } else if(mode === "spine"){
-        groups.push(groupHTML("Cartones manuales", [
-          fieldHTML({key:"manualCoverWidth", label:"Ancho de tapa", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualCoverHeight", label:"Alto de cartones", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualSpineWidth", label:"Ancho de lomo", suffix:"mm", step:0.5})
-        ].join("")));
-      } else if(mode === "flap"){
-        groups.push(groupHTML("Cartones manuales", [
-          fieldHTML({key:"manualCoverWidth", label:"Ancho de tapa", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualCoverHeight", label:"Alto de cartones", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualSpine1Width", label:"Ancho lomo 1", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualSpine2Width", label:"Ancho lomo 2", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualFlapWidth", label:"Ancho de solapa", suffix:"mm", step:0.5})
+      if((form.wrapSource || "auto") === "manual"){
+        groups.push(groupHTML("Medida del cartón", [
+          fieldHTML({key:"manualCoverWidth", label:"Ancho del cartón", suffix:"mm", step:0.5}),
+          fieldHTML({key:"manualCoverHeight", label:"Alto del cartón", suffix:"mm", step:0.5})
         ].join("")));
       } else {
-        groups.push(groupHTML("Cartones manuales", [
-          fieldHTML({key:"manualCover1Width", label:"Ancho tapa 1", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualCover2Width", label:"Ancho tapa 2", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualCover3Width", label:"Ancho tapa 3", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualCoverHeight", label:"Alto de cartones", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualSpine1Width", label:"Ancho lomo 1", suffix:"mm", step:0.5}),
-          fieldHTML({key:"manualSpine2Width", label:"Ancho lomo 2", suffix:"mm", step:0.5})
-        ].join("")));
+        const autoCoverWidth = Number(form.paperWidth || 0) + Number(form.oppositeMargin || 0);
+        const autoCoverHeight = Number(form.paperHeight || 0) + Number(form.topMargin || 0) + Number(form.bottomMargin || 0);
+        groups.push(groupHTML("Tapa calculada", `<div class="grid-span-2 group-note"><strong>Tapa calculada:</strong> ${autoCoverWidth.toFixed(1)} × ${autoCoverHeight.toFixed(1)} mm · Se calcularán 2 forros: tapa y contratapa.</div>`));
       }
     } else {
-      groups.push(groupHTML("Cartones calculados", `<div class="grid-span-2 group-note">Se usarán las medidas de cartón/lomos calculadas en la pestaña principal de este tipo de encuadernado.</div>`));
+      form.wrapSource = "auto";
+      groups.push(groupHTML("Cartones calculados", `<div class="grid-span-2 group-note">Se usarán automáticamente las medidas calculadas en <strong>Medidas base</strong> para este tipo de encuadernado.</div>`));
     }
 
     const wrapSettings = [
@@ -772,7 +728,7 @@ function renderForm(){
 
     groups.push(groupHTML("Tapas y extras", [
       fieldHTML({key:"coverThickness", label:"Espesor del cartón", suffix:"mm", step:0.1}),
-      fieldHTML({key:"liningExtra", label:"Tipo de forro", options:[{value:1.5,label:"Papel fotográfico + laminado"},{value:2.5,label:"Cartulina tipo scrapbook"}], note:"El material utilizado para forrar agrega grosor al proyecto.", span:true}),
+      liningTypeField(true),
       fieldHTML({
         key:"extraThickness", label:"Otros materiales", suffix:"mm", step:0.1,
         note:"Úsalo si agregas materiales que aumentan el grosor del proyecto, como acetato, bolsillos, varias láminas decorativas u otros elementos especiales. Si no agregaste nada, déjalo en 0.", span:true
@@ -836,7 +792,7 @@ function renderForm(){
     ];
 
     if(mode !== "compound"){
-      structurePieces.push(liningTypeField());
+      structurePieces.push(liningTypeField(true));
     } else {
       structurePieces.push(`<div class="grid-span-2 inline-tip" title="En porta notas doble lomo, el extra por forro ya está fijo dentro de la fórmula: 2 mm en lomo 1 y 1 mm en lomo 2.">ⓘ Forro incluido en la fórmula</div>`);
     }
@@ -970,11 +926,15 @@ function renderCards(data){
   }
 
   if(data.mode === "ring" && ringSubmode === "ring"){
+    const usefulCapacity = getUsefulCapacity(data.ring);
+    const usefulHint = usefulCapacity == null
+      ? "Reserva de cierre pendiente de medición · verificar físicamente."
+      : `Reserva por cierre: ${data.ring.closingReserve.toFixed(1)} mm · Disponible: ${Math.max(usefulCapacity - data.ringThickness, 0).toFixed(1)} mm`;
     el.innerHTML = [
-      card("Anillo sugerido", data.ring.label, `Ø ${data.ring.diameter.toFixed(1)} mm · ${getRingRangeText(data.ring)}`, true),
+      card("Anillo sugerido", data.ring.label, `Ø exterior ${data.ring.diameter.toFixed(1)} mm · ${getRingRangeText(data.ring)}`, true),
       card("Grosor proyecto", mm(data.ringThickness), "Hojas + tapas + separadores + forro"),
-      card("Capacidad del anillo", mm(data.ring.capacity), "Máximo recomendado"),
-      card("Disponible", `${Math.max(data.ring.capacity - data.ringThickness, 0).toFixed(1)} mm`, "Margen de seguridad aproximado")
+      card("Capacidad interior", mm(data.ring.capacity), "Capacidad aproximada descontando el grosor del alambre"),
+      card("Capacidad útil", usefulCapacity == null ? "Por confirmar" : mm(usefulCapacity), usefulHint)
     ].join("");
     return;
   }
@@ -1089,7 +1049,7 @@ function renderRingProfile(data){
 
   const topLineY = frameY + 18;
   const bottomLineY = frameY + frameH - 18;
-  const svg = `<svg id="schematic-svg" viewBox="0 0 700 230" style="width:100%;border:1px solid #e4d9d2;border-radius:14px;background:#fffdfb">
+  const svg = `<svg id="schematic-svg" viewBox="0 0 700 270" style="width:100%;border:1px solid #e4d9d2;border-radius:14px;background:#fffdfb">
     <text x="22" y="20" style="font-size:13px;font-weight:700;fill:#5d564d">Perfil del cuaderno · Wire-O paso 2:1</text>
     <rect x="${frameX}" y="${frameY}" width="${frameW}" height="${frameH}" fill="none" stroke="#1f1b1f" stroke-width="1.2"/>
     <line x1="${frameX + 8}" y1="${topLineY}" x2="${frameX + frameW - 8}" y2="${topLineY}" stroke="#1f1b1f" stroke-width="1.2"/>
@@ -1108,7 +1068,8 @@ function renderRingProfile(data){
     <text x="${ringCx}" y="${ringCy + 7}" text-anchor="middle" style="font-size:20px;font-weight:700;fill:#1f2432">${data.ring.label}</text>
 
     <text x="${ringCx + ringR + 32}" y="${ringCy + 5}" style="font-size:18px;font-weight:700;fill:#1f2432">Ø ${ringDiameter.toFixed(1)} mm</text>
-    <text x="${ringCx}" y="${ringCy + ringR + 24}" text-anchor="middle" style="font-size:11px;fill:#8c8378">capacidad ${data.ring.capacity.toFixed(1)} mm</text>
+    <text x="${ringCx}" y="${ringCy + ringR + 22}" text-anchor="middle" style="font-size:11px;fill:#597080">cap. interior ${data.ring.capacity.toFixed(1)} mm</text>
+    <text x="${ringCx}" y="${ringCy + ringR + 38}" text-anchor="middle" style="font-size:11px;font-weight:700;fill:#078b90">${getUsefulCapacity(data.ring) == null ? "reserva de cierre pendiente" : `cap. útil ${getUsefulCapacity(data.ring).toFixed(1)} mm · reserva ${data.ring.closingReserve.toFixed(1)} mm`}</text>
   </svg>`;
   document.getElementById("schematic").innerHTML = svg;
   document.querySelector(".guide-box")?.classList.add("ring-profile-box");
@@ -1117,60 +1078,123 @@ function renderRingProfile(data){
 
 function renderWrapSchematic(data){
   const w = data.wrap;
-  const maxW = 620;
-  const maxH = 165;
-  const scale = Math.min(maxW / Math.max(w.designWidth, 1), maxH / Math.max(w.designHeight, 1));
-  const startX = 48;
-  const startY = 50;
+  const selectedPaper = w.paper.paperUse || w.paper.evaluated?.[0] || null;
+  const paperCount = w.paper.status === "multi" ? (w.paper.pieces || 1) : 1;
+  const paperCoverageW = selectedPaper
+    ? (w.paper.paperUse?.coveredWidth || selectedPaper.paperW)
+    : w.designWidth;
+  const paperCoverageH = selectedPaper ? selectedPaper.paperH : w.designHeight;
+
+  const layoutW = Math.max(w.designWidth, paperCoverageW);
+  const layoutH = Math.max(w.designHeight, paperCoverageH);
+  const maxW = 670;
+  const maxH = 205;
+  const scale = Math.min(maxW / Math.max(layoutW, 1), maxH / Math.max(layoutH, 1));
+
+  const canvasX = 45;
+  const canvasY = 70;
+  const paperStartX = canvasX + ((layoutW - paperCoverageW) * scale) / 2;
+  const paperStartY = canvasY + ((layoutH - paperCoverageH) * scale) / 2;
+  const startX = canvasX + ((layoutW - w.designWidth) * scale) / 2;
+  const startY = canvasY + ((layoutH - w.designHeight) * scale) / 2;
+
   const drawW = w.designWidth * scale;
   const drawH = w.designHeight * scale;
   const innerX = startX + w.fold * scale;
   const innerY = startY + w.fold * scale;
-  const innerH = (w.designHeight - w.fold * 2) * scale;
+  const innerH = Math.max(1, (w.designHeight - w.fold * 2) * scale);
+
+  let paperOverlay = "";
+  if(selectedPaper){
+    const paperW = selectedPaper.paperW * scale;
+    const paperH = selectedPaper.paperH * scale;
+    const overlapW = w.overlap * scale;
+    const step = paperW - overlapW;
+
+    for(let i=0;i<paperCount;i++){
+      const sheetX = paperStartX + i * step;
+      paperOverlay += `
+        <rect x="${sheetX}" y="${paperStartY}" width="${paperW}" height="${paperH}"
+          fill="#edf7fb" fill-opacity=".22" stroke="#174c73" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="${sheetX + 8}" y="${paperStartY + 18}"
+          style="font-size:13px;font-weight:750;fill:#174c73">Hoja ${i + 1}</text>`;
+    }
+
+    if(paperCount > 1){
+      for(let i=1;i<paperCount;i++){
+        const joinX = paperStartX + i * step;
+        if(w.overlap > 0){
+          paperOverlay += `
+            <rect x="${joinX}" y="${paperStartY}" width="${Math.max(overlapW, 5)}" height="${paperH}"
+              fill="#f3c84b" opacity=".42"/>
+            <text x="${joinX + Math.max(overlapW,5)/2}" y="${paperStartY + paperH + 20}"
+              text-anchor="middle" style="font-size:12px;font-weight:700;fill:#174c73">
+              Traslape ${w.overlap.toFixed(1)} mm
+            </text>`;
+        } else {
+          paperOverlay += `
+            <line x1="${joinX}" y1="${paperStartY}" x2="${joinX}" y2="${paperStartY + paperH}"
+              stroke="#174c73" stroke-width="2"/>
+            <text x="${joinX}" y="${paperStartY + paperH + 20}"
+              text-anchor="middle" style="font-size:12px;font-weight:700;fill:#174c73">Unión</text>`;
+        }
+      }
+    }
+  }
+
   let x = innerX;
   const pieceRects = [];
   w.pieces.forEach((piece, index) => {
     const pw = piece.width * scale;
-    pieceRects.push(`<rect x="${x}" y="${innerY}" width="${pw}" height="${innerH}" fill="${index % 2 ? '#efe7e1' : '#e6eee4'}" stroke="#8c8378" stroke-width="1"/>`);
-    pieceRects.push(`<text x="${x + pw/2}" y="${innerY + innerH/2 + 4}" text-anchor="middle" style="font-size:10px;font-weight:650;fill:#5d564d">${piece.label}</text>`);
+    const narrow = pw < 44;
+    pieceRects.push(`<rect x="${x}" y="${innerY}" width="${pw}" height="${innerH}" fill="${index % 2 ? '#f1ebe5' : '#e6eee4'}" stroke="#8c8378" stroke-width="1"/>`);
+
+    if(narrow){
+      const labelY = innerY - (index % 2 === 0 ? 15 : 31);
+      pieceRects.push(`
+        <line x1="${x + pw/2}" y1="${labelY + 4}" x2="${x + pw/2}" y2="${innerY}"
+          stroke="#597080" stroke-width="1"/>
+        <text x="${x + pw/2}" y="${labelY}" text-anchor="middle"
+          style="font-size:11px;font-weight:750;fill:#12354d">${piece.label}</text>`);
+    } else {
+      pieceRects.push(`<text x="${x + pw/2}" y="${innerY + innerH/2 + 5}" text-anchor="middle" style="font-size:12px;font-weight:750;fill:#12354d">${piece.label}</text>`);
+    }
+
     x += pw;
     if(index < w.pieces.length - 1){
       const jw = w.joint * scale;
       pieceRects.push(`<rect x="${x}" y="${innerY}" width="${jw}" height="${innerH}" fill="#fff7e8" stroke="#c9a96a" stroke-width="1" stroke-dasharray="3 3"/>`);
-      pieceRects.push(`<text x="${x + jw/2}" y="${innerY - 7}" text-anchor="middle" style="font-size:9px;fill:#9a7850">junta</text>`);
+      const jointY = innerY + innerH + (index % 2 === 0 ? 18 : 34);
+      pieceRects.push(`
+        <line x1="${x + jw/2}" y1="${innerY + innerH}" x2="${x + jw/2}" y2="${jointY - 10}"
+          stroke="#9a7850" stroke-width="1"/>
+        <text x="${x + jw/2}" y="${jointY}" text-anchor="middle"
+          style="font-size:11px;font-weight:700;fill:#9a7850">junta</text>`);
       x += jw;
     }
   });
 
-  let paperOverlay = "";
-  if(w.paper.paperUse){
-    const paperW = w.paper.paperUse.paperW * scale;
-    const paperH = w.paper.paperUse.paperH * scale;
-    const step = paperW - w.overlap * scale;
-    const count = w.paper.status === "single" ? 1 : (w.paper.pieces || 1);
-    for(let i=0;i<count;i++) paperOverlay += `<rect x="${startX + i * step}" y="${startY}" width="${paperW}" height="${paperH}" fill="none" stroke="#174c73" stroke-width="1.2" stroke-dasharray="6 4"/><text x="${startX + i * step + 6}" y="${startY + 14}" style="font-size:10px;fill:#174c73">Hoja ${i + 1}</text>`;
-  }
-  if(w.paper.status === "multi" && w.paper.paperUse){
-    const pieceW = w.paper.paperUse.paperW * scale;
-    const overlapW = w.overlap * scale;
-    let px = startX;
-    for(let i=1;i<w.paper.pieces;i++){
-      const joinX = px + pieceW - overlapW;
-      paperOverlay += `<rect x="${joinX}" y="${startY}" width="${Math.max(overlapW, 4)}" height="${drawH}" fill="#f3c84b" opacity=".42"/>`;
-      paperOverlay += `<text x="${joinX + Math.max(overlapW,4)/2}" y="${startY + drawH + 24}" text-anchor="middle" style="font-size:10px;fill:#174c73">Traslape ${w.overlap.toFixed(1)} mm</text>`;
-      px += pieceW - overlapW;
-    }
-  }
+  const orientationText = selectedPaper?.label || `${w.paperWidth.toFixed(0)} × ${w.paperHeight.toFixed(0)} mm`;
+  const statusLine = w.paper.status === "single"
+    ? `Papel: 1 hoja · ${orientationText}`
+    : w.paper.status === "multi"
+    ? `Papel: ${w.paper.pieces} hojas · ${orientationText} · Traslape: ${w.overlap.toFixed(1)} mm`
+    : "⚠ El papel seleccionado no cubre esta medida";
 
-  const statusText = w.paper.status === "single" ? "Papel: 1 hoja" : w.paper.status === "multi" ? `Papel: ${w.paper.pieces} hojas · orientación ${w.paper.paperUse?.label || ''}` : "⚠ El papel seleccionado no cubre esta medida";
-  const svg = `<svg id="schematic-svg" viewBox="0 0 700 280" style="width:100%;border:1px solid #d6e4e4;border-radius:8px;background:#fff">
-    <text x="22" y="24" style="font-size:13px;font-weight:700;fill:#174c73">Forro total: ${w.designWidth.toFixed(1)} × ${w.designHeight.toFixed(1)} mm</text>
-    <text x="22" y="41" style="font-size:10.5px;fill:#597080">${statusText}${w.paper.status === 'multi' ? ` · Traslape: ${w.overlap.toFixed(1)} mm` : ''}</text>
-    <rect x="${startX}" y="${startY}" width="${drawW}" height="${drawH}" fill="#f5f9f8" stroke="#078b90" stroke-width="2"/>
-    <rect x="${innerX}" y="${innerY}" width="${w.innerWidth * scale}" height="${innerH}" fill="none" stroke="#2f2830" stroke-width="1"/>
+  const statusColor = ["single","multi"].includes(w.paper.status) ? "#597080" : "#c65b57";
+  const warningLine = !["single","multi"].includes(w.paper.status)
+    ? `<text x="24" y="60" style="font-size:13px;font-weight:750;fill:#c65b57">Usa un papel más grande o reduce el doblez perimetral.</text>`
+    : "";
+
+  const svg = `<svg id="schematic-svg" viewBox="0 0 760 330" style="width:100%;border:1px solid #d6e4e4;border-radius:8px;background:#fff">
+    <text x="24" y="26" style="font-size:16px;font-weight:800;fill:#174c73">Forro total: ${w.designWidth.toFixed(1)} × ${w.designHeight.toFixed(1)} mm</text>
+    <text x="24" y="47" style="font-size:13px;font-weight:650;fill:${statusColor}">${statusLine}</text>
+    ${warningLine}
     ${paperOverlay}
+    <rect x="${startX}" y="${startY}" width="${drawW}" height="${drawH}" fill="#f5f9f8" fill-opacity=".55" stroke="#078b90" stroke-width="2.4"/>
+    <rect x="${innerX}" y="${innerY}" width="${w.innerWidth * scale}" height="${innerH}" fill="none" stroke="#2f2830" stroke-width="1.2"/>
     ${pieceRects.join("")}
-    <text x="${startX + drawW/2}" y="${startY + drawH + 18}" text-anchor="middle" style="font-size:11px;font-weight:700;fill:#5d564d">${w.title} · ${w.quantity > 1 ? 'hacer ' + w.quantity + ' unidades' : '1 unidad'}</text>
+    <text x="${startX + drawW/2}" y="${Math.min(318, startY + drawH + 24)}" text-anchor="middle" style="font-size:13px;font-weight:800;fill:#12354d">${w.title} · ${w.quantity > 1 ? 'hacer ' + w.quantity + ' unidades' : '1 unidad'}</text>
   </svg>`;
   document.getElementById("schematic").innerHTML = svg;
   document.querySelector(".guide-box")?.classList.remove("ring-profile-box");
@@ -1271,14 +1295,17 @@ function renderRings(data){
 
   document.getElementById("rings-table").innerHTML = groups.map(group => `
     <div class="rings-subtable">
-      <div class="table-head"><div>Medida</div><div>Diámetro</div><div>Capacidad</div></div>
-      ${group.map(r => `
-        <div class="table-row ${data.ring.label === r.label ? 'active' : ''}">
-          <div>${r.label}</div>
-          <div>${r.diameter.toFixed(1)} mm</div>
-          <div>${r.capacity.toFixed(1)} mm</div>
-        </div>
-      `).join("")}
+      <div class="table-head"><div>Medida</div><div>Cap. interior</div><div>Reserva</div><div>Cap. útil</div></div>
+      ${group.map(r => {
+        const useful = getUsefulCapacity(r);
+        return `
+          <div class="table-row ${data.ring.label === r.label ? 'active' : ''}">
+            <div>${r.label}</div>
+            <div>${r.capacity.toFixed(1)} mm</div>
+            <div>${r.closingReserve == null ? 'Pendiente' : `${r.closingReserve.toFixed(1)} mm`}</div>
+            <div>${useful == null ? 'Verificar' : `${useful.toFixed(1)} mm`}</div>
+          </div>`;
+      }).join("")}
     </div>
   `).join("");
 }
@@ -1305,12 +1332,16 @@ function openPdfSheet(){
         ["Perforaciones", `${data.punchCount} aros aprox. · paso 2:1`]
       ]
     : data.mode === "ring" && ringSubmode === "ring"
-    ? [
-        ["Anillo sugerido", `${data.ring.label} · Ø ${data.ring.diameter.toFixed(1)} mm`],
-        ["Capacidad", `${mm(data.ring.capacity)}`],
-        ["Grosor proyecto", `${mm(data.ringThickness)}`],
-        ["Margen disponible", `${Math.max(data.ring.capacity - data.ringThickness, 0).toFixed(1)} mm aprox.`]
-      ]
+    ? (() => {
+        const useful = getUsefulCapacity(data.ring);
+        return [
+          ["Anillo sugerido", `${data.ring.label} · Ø exterior ${data.ring.diameter.toFixed(1)} mm`],
+          ["Grosor proyecto", `${mm(data.ringThickness)}`],
+          ["Capacidad interior", `${mm(data.ring.capacity)}`],
+          ["Reserva por cierre", data.ring.closingReserve == null ? "Pendiente de medición · verificar físicamente" : `${mm(data.ring.closingReserve)}`],
+          ["Capacidad útil", useful == null ? "Por confirmar" : `${mm(useful)}`]
+        ];
+      })()
     : data.mode === "compound"
     ? [
         ["Tapa 1", `${mm(data.compoundCover1Width)} × ${mm(data.coverHeight)}`],
@@ -1339,7 +1370,7 @@ function openPdfSheet(){
     : data.mode === "ring" && ringSubmode === "covers"
     ? "Cálculo rápido de tapa para cuaderno anillado. Las perforaciones son referenciales para Wire-O paso 2:1."
     : data.mode === "ring"
-    ? "Cálculo rápido para elegir anillo Wire-O paso 2:1 según el grosor del proyecto."
+    ? "Cálculo rápido para elegir anillo Wire-O paso 2:1 según el grosor del proyecto. La capacidad útil descuenta la reserva por cierre cuando está medida."
     : "Cálculo basado en hojas, cartón, forro y holgura configurada.";
 
   const fichaHtml = `<!DOCTYPE html>
