@@ -491,7 +491,18 @@
           return;
         }
         const productCardTrigger = event.target.closest('[data-open-product-id]');
-        if (productCardTrigger) openDetail(productCardTrigger.dataset.openProductId);
+        if (productCardTrigger) {
+          const product = storeProducts.find(
+            (item) =>
+              String(item.id) ===
+              String(productCardTrigger.dataset.openProductId)
+          );
+
+          if (product?.slug || product?.code) {
+            window.location.href =
+              `/plantillas/${encodeURIComponent(product.slug || product.code)}/`;
+          }
+        }
       });
 
       document.addEventListener('keydown', (event) => {

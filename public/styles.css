@@ -1932,3 +1932,15 @@ body.modal-open {
     height: 21px;
   }
 }
+/* Catálogo: mantener el mismo color aunque el producto ya haya sido visitado */
+.product-card__product-link,
+.product-card__product-link:visited {
+  color: var(--primary-strong);
+  text-decoration: none;
+}
+
+.product-card__product-link:hover,
+.product-card__product-link:focus-visible {
+  color: var(--primary);
+  text-decoration: underline;
+}
