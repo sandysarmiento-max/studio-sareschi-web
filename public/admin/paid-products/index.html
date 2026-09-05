@@ -128,6 +128,16 @@
           .replace(/^-|-$/g, '');
       }
 
+      function slugifyTitle(value) {
+        return String(value || '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+      }
       function normalizeEditorProduct(product = {}) {
         return {
           ...product,
@@ -141,7 +151,7 @@
         return {
           _clientKey: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           id: '',
-          code: `producto-${Date.now()}`,
+          code: '',
           title: '',
           description: '',
           price_yape_pe: 0,
@@ -319,6 +329,10 @@
             next[key] = value.trim();
           }
         });
+        if (!next.id && !next.code) {
+          next.code = slugifyTitle(next.title);
+        }
+
         next.main_image_url = toAbsolutePublicImageUrl(next.main_image_url);
         next.preview_01_url = toAbsolutePublicImageUrl(next.preview_01_url);
         next.preview_02_url = toAbsolutePublicImageUrl(next.preview_02_url);

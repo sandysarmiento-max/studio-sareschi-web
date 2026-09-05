@@ -1,91 +1,105 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": false,
-  "redirects": [
-    {
-      "source": "/admin/folia-preview",
-      "destination": "/admin/folia-preview/index.html",
-      "permanent": false
-    },
-    {
-      "source": "/admin/folia-preview/",
-      "destination": "/admin/folia-preview/index.html",
-      "permanent": false
-    },
-    {
-      "source": "/admin/paid-products",
-      "destination": "/admin/paid-products/index.html",
-      "permanent": false
-    },
-    {
-      "source": "/admin/paid-products/",
-      "destination": "/admin/paid-products/index.html",
-      "permanent": false
-    },
-    {
-      "source": "/admin/folia-invite",
-      "destination": "/admin/folia-invite/index.html",
-      "permanent": false
-    },
-    {
-      "source": "/admin/folia-invite/",
-      "destination": "/admin/folia-invite/index.html",
-      "permanent": false
-    },
-    {
-      "source": "/admin/stackpdf-invite",
-      "destination": "/admin/stackpdf-invite/index.html",
-      "permanent": false
-    },
-    {
-      "source": "/admin/stackpdf-invite/",
-      "destination": "/admin/stackpdf-invite/index.html",
-      "permanent": false
-    },
-    {
-      "source": "/stackpdf",
-      "destination": "/app/stackpdf/",
-      "permanent": false
-    },
-    {
-      "source": "/stackpdf/",
-      "destination": "/app/stackpdf/",
-      "permanent": false
-    },
-    {
-      "source": "/AralCalc-v1.html",
-      "destination": "/acceso/?next=/aral-calc/",
-      "permanent": false
-    },
-    {
-      "source": "/mini_calculadora_aral_calc_preview_v5.html",
-      "destination": "/acceso/?next=/aral-calc/",
-      "permanent": false
-    },
-    {
-      "source": "/folia_v1.html",
-      "destination": "/folia-bloqueada/",
-      "permanent": false
-    },
-    {
-      "source": "/folia_v1",
-      "destination": "/folia-bloqueada/",
-      "permanent": false
-    },
-    {
-      "source": "/folia",
-      "destination": "/folia-bloqueada/",
-      "permanent": false
-    },
-    {
-      "source": "/folia/",
-      "destination": "/folia-bloqueada/",
-      "permanent": false
-    },
-    {
-      "source": "/folia/(.*)",
-      "destination": "/folia-bloqueada/",
-      "permanent": false
-    }
-  ]
+    "$schema":  "https://openapi.vercel.sh/vercel.json",
+    "cleanUrls":  false,
+    "rewrites":  [
+                     {
+                         "source":  "/sitemap.xml",
+                         "destination":  "/api/sitemap"
+                     },
+                     {
+                         "source":  "/plantillas/:slug",
+                         "destination":  "/api/plantilla?slug=:slug"
+                     },
+                     {
+                         "source":  "/plantillas/:slug/",
+                         "destination":  "/api/plantilla?slug=:slug"
+                     }
+                 ],
+    "redirects":  [
+                      {
+                          "source":  "/admin/folia-preview",
+                          "destination":  "/admin/folia-preview/index.html",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/admin/folia-preview/",
+                          "destination":  "/admin/folia-preview/index.html",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/admin/paid-products",
+                          "destination":  "/admin/paid-products/index.html",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/admin/paid-products/",
+                          "destination":  "/admin/paid-products/index.html",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/admin/folia-invite",
+                          "destination":  "/admin/folia-invite/index.html",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/admin/folia-invite/",
+                          "destination":  "/admin/folia-invite/index.html",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/admin/stackpdf-invite",
+                          "destination":  "/admin/stackpdf-invite/index.html",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/admin/stackpdf-invite/",
+                          "destination":  "/admin/stackpdf-invite/index.html",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/stackpdf",
+                          "destination":  "/app/stackpdf/",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/stackpdf/",
+                          "destination":  "/app/stackpdf/",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/AralCalc-v1.html",
+                          "destination":  "/acceso/?next=/aral-calc/",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/mini_calculadora_aral_calc_preview_v5.html",
+                          "destination":  "/acceso/?next=/aral-calc/",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/folia_v1.html",
+                          "destination":  "/folia-bloqueada/",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/folia_v1",
+                          "destination":  "/folia-bloqueada/",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/folia",
+                          "destination":  "/folia-bloqueada/",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/folia/",
+                          "destination":  "/folia-bloqueada/",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/folia/(.*)",
+                          "destination":  "/folia-bloqueada/",
+                          "permanent":  false
+                      }
+                  ]
 }

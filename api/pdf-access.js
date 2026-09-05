@@ -1,5 +1,6 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const { getProductSlug } = require('./product-slugs');
 
 const STOREFRONT_COLUMNS =
   'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
@@ -173,6 +174,7 @@ function normalizeHotmartUrl(value) {
 function normalizeStorefrontProduct(product) {
   return {
     ...product,
+    slug: getProductSlug(product),
     price_yape_pe: Number(product?.price_yape_pe || 0),
     price_paypal_usd: Number(product?.price_paypal_usd || 0),
     hotmart_url: normalizeHotmartUrl(product?.hotmart_url),
