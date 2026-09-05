@@ -116,6 +116,28 @@ function notFound(res) {
       <a class="btn btn-primary" href="/pdfs/">Ver todas las plantillas</a>
     </div>
   </main>
+
+  <script>
+    (() => {
+      const mainImage = document.getElementById('product-main-image');
+      const thumbs = document.querySelectorAll('[data-gallery-src]');
+
+      thumbs.forEach((thumb) => {
+        thumb.addEventListener('click', () => {
+          if (!mainImage) return;
+
+          mainImage.src = thumb.dataset.gallerySrc;
+          mainImage.alt = thumb.dataset.galleryAlt || '';
+
+          thumbs.forEach((item) => {
+            item.classList.remove('is-active');
+          });
+
+          thumb.classList.add('is-active');
+        });
+      });
+    })();
+  </script>
 </body>
 </html>`);
 }
@@ -214,17 +236,33 @@ module.exports = async function handler(req, res) {
 
     const schemaJson = JSON.stringify(schema).replace(/</g, '\\u003c');
 
-    const previewHtml = previews.length
-      ? previews
+    const galleryImages = [
+      ...(mainImage
+        ? [{ url: mainImage, label: 'Portada' }]
+        : []),
+      ...previews.map((url, index) => ({
+        url,
+        label: `Vista ${index + 1}`,
+      })),
+    ];
+
+    const previewHtml = galleryImages.length
+      ? galleryImages
           .map(
-            (url, index) => `
-              <figure class="product-sale__thumb">
+            (item, index) => `
+              <button
+                class="product-sale__thumb${index === 0 ? ' is-active' : ''}"
+                type="button"
+                data-gallery-src="${escapeHtml(item.url)}"
+                data-gallery-alt="${escapeHtml(`${item.label} de ${title}`)}"
+                aria-label="Ver ${escapeHtml(item.label)}"
+              >
                 <img
-                  src="${escapeHtml(url)}"
-                  alt="Vista ${index + 1} de ${escapeHtml(title)}"
+                  src="${escapeHtml(item.url)}"
+                  alt="${escapeHtml(`${item.label} de ${title}`)}"
                   loading="lazy"
                 >
-              </figure>`
+              </button>`
           )
           .join('')
       : '';
@@ -379,24 +417,37 @@ module.exports = async function handler(req, res) {
 
     .product-sale__thumbs {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
       margin-top: 12px;
     }
 
     .product-sale__thumb {
       margin: 0;
+      padding: 0;
       overflow: hidden;
       border: 1px solid #eedde5;
       border-radius: 14px;
-      background: #faf5f7;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color .18s ease, transform .18s ease;
+    }
+
+    .product-sale__thumb:hover {
+      transform: translateY(-2px);
+      border-color: #d89db8;
+    }
+
+    .product-sale__thumb.is-active {
+      border: 2px solid #c13f75;
     }
 
     .product-sale__thumb img {
       display: block;
       width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: cover;
+      aspect-ratio: 4 / 5;
+      object-fit: contain;
+      background: #fff;
     }
 
     .product-sale__info h1 {
@@ -541,6 +592,7 @@ module.exports = async function handler(req, res) {
               ? `
                 <div class="product-sale__main-image">
                   <img
+                    id="product-main-image"
                     src="${escapeHtml(mainImage)}"
                     alt="${escapeHtml(title)}"
                   >
@@ -654,6 +706,28 @@ module.exports = async function handler(req, res) {
     </div>
   </footer>
 
+
+  <script>
+    (() => {
+      const mainImage = document.getElementById('product-main-image');
+      const thumbs = document.querySelectorAll('[data-gallery-src]');
+
+      thumbs.forEach((thumb) => {
+        thumb.addEventListener('click', () => {
+          if (!mainImage) return;
+
+          mainImage.src = thumb.dataset.gallerySrc;
+          mainImage.alt = thumb.dataset.galleryAlt || '';
+
+          thumbs.forEach((item) => {
+            item.classList.remove('is-active');
+          });
+
+          thumb.classList.add('is-active');
+        });
+      });
+    })();
+  </script>
 </body>
 </html>`);
   } catch (error) {
