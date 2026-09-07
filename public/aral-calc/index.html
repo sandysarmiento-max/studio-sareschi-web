@@ -14,36 +14,36 @@
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:'Inter',ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    .wrap{max-width:1280px;margin:0 auto;padding:16px;display:grid;gap:24px;grid-template-columns:280px 1fr}
-    .panel{background:var(--panel);border:1px solid var(--border);border-radius:28px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .wrap{max-width:1280px;margin:0 auto;padding:12px 16px 24px;display:grid;gap:18px;grid-template-columns:260px 1fr}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:22px;padding:16px 18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
     .title{font-size:20px;font-weight:700;color:#61584f}
     .subtitle{margin-top:4px;font-size:14px;color:var(--muted)}
-    .project-btn{width:100%;border-radius:24px;border:1px solid var(--border);background:var(--panel2);color:#61584f;padding:16px;text-align:left;font-size:15px;cursor:pointer;margin-bottom:12px}
+    .project-btn{width:100%;border-radius:14px;border:1px solid var(--border);background:var(--panel2);color:#61584f;padding:11px 12px;text-align:left;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:8px}
     .project-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
-    .section-title{font-size:20px;font-weight:700;color:#61584f;margin-bottom:14px}
-    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
-    .chip{border:1px solid var(--border);background:var(--panel2);color:#6b6259;border-radius:999px;padding:8px 12px;font-size:14px;cursor:pointer}
-    .grid{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+    .section-title{font-size:18px;font-weight:700;color:#61584f;margin-bottom:10px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+    .chip{border:1px solid var(--border);background:var(--panel2);color:#6b6259;border-radius:999px;padding:6px 11px;font-size:13px;cursor:pointer}
+    .grid{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
     .label{font-size:14px;color:#6b6259;margin-bottom:6px}
     .field-row{display:flex;align-items:center;gap:8px}
-    input,select{width:100%;border:1px solid var(--border);background:var(--panel2);border-radius:18px;padding:12px 14px;font-size:15px;color:var(--text);outline:none}
+    input,select{width:100%;border:1px solid var(--border);background:var(--panel2);border-radius:14px;padding:10px 12px;font-size:14px;color:var(--text);outline:none}
     input:focus,select:focus{border-color:#9cab96;box-shadow:0 0 0 3px var(--accent-soft)}
     .suffix{flex:0 0 auto;border:1px solid var(--border);background:var(--soft2);color:var(--muted);border-radius:14px;padding:10px 12px;font-size:14px}
     .note{margin-top:8px;font-size:13px;color:var(--muted);line-height:1.45}
-    .cards{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
-    .card{border:1px solid var(--border);background:var(--panel2);border-radius:24px;padding:16px}
+    .cards{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+    .card{border:1px solid var(--border);background:var(--panel2);border-radius:18px;padding:13px 14px}
     .card.accent{border-color:var(--accent);background:var(--accent);color:#fff}
     .card .k{font-size:14px;color:var(--muted)}
     .card.accent .k{color:#eef3ec}
-    .card .v{margin-top:6px;font-size:30px;font-weight:700}
+    .card .v{margin-top:4px;font-size:26px;font-weight:700}
     .card .h{margin-top:8px;font-size:13px;color:var(--muted);line-height:1.4}
     .card.accent .h{color:#eef3ec}
-    .main{display:flex;flex-direction:column;gap:24px}
-    .table-head,.table-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;border-radius:18px;padding:12px 16px;align-items:center}
+    .main{display:flex;flex-direction:column;gap:16px}
+    .table-head,.table-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;border-radius:14px;padding:10px 12px;align-items:center}
     .table-head{border:1px solid var(--border);background:var(--soft2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7b7166}
     .table-row{border:1px solid var(--border);background:var(--panel2);color:#61584f;font-size:14px;margin-top:8px}
     .table-row.active{border-color:var(--accent);background:var(--accent);color:#fff}
-    .button{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:16px;padding:12px 16px;font-size:14px;font-weight:600;cursor:pointer}
+    .button{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer}
     .hidden{display:none}
     @media (max-width:980px){.wrap{grid-template-columns:1fr}}
     @media (max-width:720px){.grid,.cards{grid-template-columns:1fr}}
@@ -70,12 +70,16 @@
       color:var(--accent);
       background:var(--accent-soft);
     }
-    .hero-intro{max-width:1280px;margin:0 auto;padding:24px 16px 0}
-    .hero-panel{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:18px 20px}
-    .hero-panel h1{margin:0 0 8px;font-size:clamp(1.4rem,2.2vw,2rem);line-height:1.2;color:#3a2f3a}
-    .hero-panel p{margin:0;color:var(--muted)}
+    .hero-intro{max-width:1280px;margin:0 auto;padding:18px 16px 0}
+    .hero-panel{background:linear-gradient(135deg,#fff 0%,#fff7fb 100%);border:1px solid var(--border);border-radius:20px;padding:20px}
+    .hero-panel h1{margin:0 0 6px;font-size:clamp(1.45rem,2.3vw,1.95rem);line-height:1.15;color:#3a2f3a}
+    .hero-panel p{margin:0;color:var(--muted);max-width:76ch;line-height:1.55}
     @media (max-width:720px){.nav-wrap{flex-direction:column}.header-actions{flex-direction:column}.nav-links{flex-wrap:wrap;justify-content:center}}
     .auth-pending{opacity:0;pointer-events:none}
+
+    .hero-benefits{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+    .hero-benefits span{border:1px solid var(--border);background:var(--panel);border-radius:999px;padding:6px 10px;font-size:12px;color:#6b6259}
+    .hero-cta{display:inline-block;margin-top:14px;text-decoration:none}
 
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -140,8 +144,12 @@
 
 <section class="hero-intro">
   <div class="hero-panel">
-    <h1>Aral Calc · Studio Sareschi</h1>
-    <p>Calculadora para encuadernación: medidas, grosores y anillos en un solo lugar.</p>
+    <h1>Aral Calc</h1>
+    <p><strong>Calculadora práctica para encuadernación creativa.</strong> Calcula medidas, espesores y recomendaciones de armado con más claridad antes de cortar o producir. Ideal para agendas, libretas, portanotas y proyectos anillados o con lomo.</p>
+    <div class="hero-benefits" aria-label="Beneficios de Aral Calc">
+      <span>Medidas más claras</span><span>Menos errores de producción</span><span>Ahorro de tiempo</span><span>Recomendaciones para anillos y armado</span><span>Pensada para emprendedoras de encuadernación</span>
+    </div>
+    <a class="button hero-cta" href="#form-grid">Abrir Aral Calc</a>
   </div>
 </section>
 
