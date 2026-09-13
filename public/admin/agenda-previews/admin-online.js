@@ -374,7 +374,7 @@
       const blank = page.generated || page.type === 'blank' || page.isBlank;
       if (blank && !page.remotePageId) {
         if (!page.pendingRemotePageId) {
-          page.pendingRemotePageId = manager.uid();
+          page.pendingRemotePageId = window.crypto.randomUUID();
           await checkpoint();
         }
         setProgress(`Creando página blanca ${position}/${total}…`);
