@@ -13,9 +13,52 @@ const {
   storagePath,
 } = require('../lib/agenda-previews-admin-core');
 const {
+  addBlankPage,
   insertAtPosition,
   persistNewUploadedPage,
 } = require('../lib/agenda-previews-admin-handler')._test;
+
+function blankAdmin({ previewId, existingPage = null }) {
+  const preview = { id: previewId, status: 'draft', revision: 1 };
+  return {
+    from(table) {
+      if (table === 'agenda_previews') {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  eq() { return { maybeSingle: async () => ({ data: preview, error: null }) }; },
+                  maybeSingle: async () => ({ data: preview, error: null }),
+                };
+              },
+            };
+          },
+        };
+      }
+      if (table === 'agenda_preview_pages') {
+        return {
+          select() {
+            return {
+              eq(field) {
+                if (field === 'id') return { maybeSingle: async () => ({ data: existingPage, error: null }) };
+                return { order: async () => ({ data: [], error: null }) };
+              },
+            };
+          },
+          insert(record) {
+            return {
+              select() {
+                return { single: async () => ({ data: { ...record, preview_id: previewId }, error: null }) };
+              },
+            };
+          },
+        };
+      }
+      throw new Error(`Tabla inesperada: ${table}`);
+    },
+  };
+}
 const {
   createAdminDispatcher,
   getHandlerName,
@@ -178,6 +221,35 @@ test('nunca limpia el objeto cuando la página ya quedó persistida', async () =
 
   assert.equal(result, persisted);
   assert.equal(cleanupCalls, 0);
+});
+
+test('add-blank repetido con el mismo UUID devuelve una sola página idempotente', async () => {
+  const previewId = '550e8400-e29b-41d4-a716-446655440000';
+  const pageId = '3fb761e9-8c77-4933-a172-0bfa12d05484';
+  const existing = { id: pageId, preview_id: previewId, page_type: 'blank', position: 1 };
+  const result = await addBlankPage(blankAdmin({ previewId, existingPage: existing }), 'actor', {
+    preview_id: previewId,
+    page_id: pageId,
+    position: 1,
+  });
+  assert.equal(result.page, existing);
+});
+
+test('add-blank rechaza el mismo UUID usado en otra preview o tipo', async () => {
+  const previewId = '550e8400-e29b-41d4-a716-446655440000';
+  const pageId = '3fb761e9-8c77-4933-a172-0bfa12d05484';
+  for (const existing of [
+    { id: pageId, preview_id: '8ad210ae-581f-4b31-a354-8826ec3a5517', page_type: 'blank' },
+    { id: pageId, preview_id: previewId, page_type: 'image' },
+  ]) {
+    await assert.rejects(
+      addBlankPage(blankAdmin({ previewId, existingPage: existing }), 'actor', {
+        preview_id: previewId,
+        page_id: pageId,
+      }),
+      (error) => error instanceof ApiError && error.code === 'page_id_conflict'
+    );
+  }
 });
 
 function responseRecorder() {
