@@ -11,11 +11,15 @@ const {
   sanitizeImageMetadata,
   sanitizePreviewPayload,
   storagePath,
-} = require('../api/_agenda-previews-admin-core');
+} = require('../lib/agenda-previews-admin-core');
 const {
   insertAtPosition,
   persistNewUploadedPage,
-} = require('../api/agenda-previews-admin')._test;
+} = require('../lib/agenda-previews-admin-handler')._test;
+const {
+  createAdminDispatcher,
+  getHandlerName,
+} = require('../api/admin/[handler]')._test;
 
 test('ADMIN_EMAILS se normaliza y la comparación es exacta', () => {
   const allowlist = parseAdminEmails(' Admin@Example.com, otra@example.com ');
@@ -77,11 +81,11 @@ test('metadatos de imagen respetan MIME y máximo de 15 MB', () => {
 
 test('el endpoint no contiene fallback abierto ni autorización por user_metadata', () => {
   const endpoint = fs.readFileSync(
-    path.join(__dirname, '..', 'api', 'agenda-previews-admin.js'),
+    path.join(__dirname, '..', 'lib', 'agenda-previews-admin-handler.js'),
     'utf8'
   );
   const core = fs.readFileSync(
-    path.join(__dirname, '..', 'api', '_agenda-previews-admin-core.js'),
+    path.join(__dirname, '..', 'lib', 'agenda-previews-admin-core.js'),
     'utf8'
   );
   assert.equal(endpoint.includes('SUPABASE_SERVICE_ROLE_KEY'), true);
@@ -174,4 +178,64 @@ test('nunca limpia el objeto cuando la página ya quedó persistida', async () =
 
   assert.equal(result, persisted);
   assert.equal(cleanupCalls, 0);
+});
+
+function responseRecorder() {
+  return {
+    headers: {},
+    setHeader(name, value) {
+      this.headers[name] = value;
+    },
+    end(body) {
+      this.body = body;
+      return body;
+    },
+  };
+}
+
+test('dispatcher dirige paid-products al handler de productos', async () => {
+  const calls = [];
+  const dispatcher = createAdminDispatcher({
+    'paid-products': async () => calls.push('paid-products'),
+    'agenda-previews': async () => calls.push('agenda-previews'),
+  });
+
+  await dispatcher({ query: { handler: 'paid-products' }, body: {} }, responseRecorder());
+  assert.deepEqual(calls, ['paid-products']);
+});
+
+test('dispatcher dirige agenda-previews a su handler aislado', async () => {
+  const calls = [];
+  const dispatcher = createAdminDispatcher({
+    'paid-products': async () => calls.push('paid-products'),
+    'agenda-previews': async () => calls.push('agenda-previews'),
+  });
+
+  await dispatcher({ query: { handler: 'agenda-previews' }, body: {} }, responseRecorder());
+  assert.deepEqual(calls, ['agenda-previews']);
+});
+
+test('dispatcher rechaza de forma segura un handler desconocido', async () => {
+  const res = responseRecorder();
+  const dispatcher = createAdminDispatcher({});
+
+  await dispatcher({ query: { handler: 'desconocido' }, body: {} }, res);
+  assert.equal(res.statusCode, 404);
+  assert.equal(JSON.parse(res.body).error, 'Ruta administrativa no encontrada.');
+});
+
+test('el payload no puede seleccionar ni cambiar el handler', async () => {
+  const calls = [];
+  const dispatcher = createAdminDispatcher({
+    'paid-products': async () => calls.push('paid-products'),
+    'agenda-previews': async () => calls.push('agenda-previews'),
+  });
+  const req = {
+    query: { handler: 'agenda-previews' },
+    body: { handler: 'paid-products', route: 'paid-products', action: 'paid-products' },
+  };
+
+  assert.equal(getHandlerName(req), 'agenda-previews');
+  await dispatcher(req, responseRecorder());
+  assert.deepEqual(calls, ['agenda-previews']);
 });
