@@ -5,11 +5,56 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
 
 const root = path.join(__dirname, '..');
 const managerRoot = path.join(root, 'public', 'admin', 'agenda-previews');
 const read = (file) => fs.readFileSync(path.join(managerRoot, file), 'utf8');
 const hash = (file) => crypto.createHash('sha256').update(fs.readFileSync(path.join(managerRoot, file))).digest('hex');
+
+function loadOnlineManager(fetchImpl, uploadImpl) {
+  const elements = new Map();
+  const element = () => ({
+    hidden: false, disabled: false, textContent: '', innerHTML: '', value: '',
+    classList: { toggle() {}, remove() {} },
+  });
+  const checkpoints = [];
+  const manager = {
+    addMessage() {},
+    clearMessages() {},
+    saveLocalCheckpoint: async () => { checkpoints.push(true); },
+    uid: () => crypto.randomUUID(),
+    validateProject: () => true,
+  };
+  const context = {
+    Blob,
+    Error,
+    Set,
+    console,
+    fetch: fetchImpl,
+    window: { AgendaSampleManager: manager, __AGENDA_PREVIEW_ONLINE_TEST__: true },
+    document: {
+      getElementById(id) {
+        if (!elements.has(id)) elements.set(id, element());
+        return elements.get(id);
+      },
+    },
+  };
+  vm.runInNewContext(read('admin-online.js'), context);
+  context.window.AgendaPreviewOnlineTest.setSupabaseClient({
+    auth: { getSession: async () => ({ data: { session: { access_token: 'test-token' } } }) },
+    storage: { from: () => ({ uploadToSignedUrl: uploadImpl }) },
+  });
+  return { api: context.window.AgendaPreviewOnlineTest, checkpoints };
+}
+
+function jsonResponse(status, payload) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => payload,
+  };
+}
 
 test('el gestor conserva IndexedDB y la preview aprobada', () => {
   const html = read('index.html');
@@ -72,4 +117,79 @@ test('la estructura mantiene exactamente doce funciones Vercel', () => {
     });
   }
   assert.equal(javascriptFiles(path.join(root, 'api')).length, 12);
+});
+
+test('upload ambiguo se confirma sin volver a subir cuando el objeto existe', async () => {
+  let uploads = 0;
+  let confirmations = 0;
+  const pageId = '3fb761e9-8c77-4933-a172-0bfa12d05484';
+  const storagePath = `550e8400-e29b-41d4-a716-446655440000/${pageId}/8ad210ae-581f-4b31-a354-8826ec3a5517`;
+  const { api } = loadOnlineManager(async (_url, options) => {
+    const body = JSON.parse(options.body);
+    assert.equal(body.action, 'confirm-upload');
+    confirmations += 1;
+    return jsonResponse(200, { ok: true, page: { id: pageId, storage_path: storagePath }, preview: { revision: 2 } });
+  }, async () => {
+    uploads += 1;
+    return { error: new Error('respuesta perdida') };
+  });
+  const project = { remotePreviewId: '550e8400-e29b-41d4-a716-446655440000' };
+  const page = {
+    blob: new Blob(['png'], { type: 'image/png' }), name: '01.png', width: 10, height: 20,
+    hash: 'a'.repeat(64), pendingUpload: {
+      mode: 'create', page_id: pageId, object_version: '8ad210ae-581f-4b31-a354-8826ec3a5517',
+      storage_path: storagePath, token: 'signed', uploaded: false,
+    },
+  };
+  await api.syncImagePage(project, page, 1, 1);
+  assert.equal(uploads, 1);
+  assert.equal(confirmations, 1);
+  assert.equal(page.remotePageId, pageId);
+  assert.equal(page.pendingUpload, undefined);
+});
+
+test('storage_object_missing descarta la autorización y el siguiente intento pide otra', async () => {
+  let authorizations = 0;
+  let phase = 1;
+  const pageId = '3fb761e9-8c77-4933-a172-0bfa12d05484';
+  const project = { remotePreviewId: '550e8400-e29b-41d4-a716-446655440000' };
+  const page = {
+    blob: new Blob(['png'], { type: 'image/png' }), name: '01.png', width: 10, height: 20,
+    hash: 'a'.repeat(64), pendingUpload: {
+      mode: 'create', page_id: pageId, object_version: '8ad210ae-581f-4b31-a354-8826ec3a5517',
+      storage_path: `${project.remotePreviewId}/${pageId}/8ad210ae-581f-4b31-a354-8826ec3a5517`,
+      token: 'expired', uploaded: false,
+    },
+  };
+  const { api } = loadOnlineManager(async (_url, options) => {
+    const body = JSON.parse(options.body);
+    if (body.action === 'confirm-upload') {
+      return jsonResponse(422, { code: 'storage_object_missing', error: 'No existe.' });
+    }
+    assert.equal(body.action, 'authorize-upload');
+    authorizations += 1;
+    return jsonResponse(200, { upload: {
+      mode: 'create', page_id: crypto.randomUUID(), object_version: crypto.randomUUID(),
+      storage_path: `${project.remotePreviewId}/${crypto.randomUUID()}/${crypto.randomUUID()}`, token: 'new',
+    } });
+  }, async () => ({ error: phase === 1 ? new Error('token expirado') : null }));
+  await assert.rejects(api.syncImagePage(project, page, 1, 1), /autorización nueva/);
+  assert.equal(page.pendingUpload, undefined);
+  phase = 2;
+  await assert.rejects(api.syncImagePage(project, page, 1, 1), /No existe/);
+  assert.equal(authorizations, 1);
+});
+
+test('DELETE 404 pendiente se considera completado y guarda checkpoint', async () => {
+  const { api, checkpoints } = loadOnlineManager(
+    async () => jsonResponse(404, { code: 'page_not_found', error: 'No existe.' }),
+    async () => ({ error: null })
+  );
+  const project = {
+    remotePreviewId: '550e8400-e29b-41d4-a716-446655440000',
+    pendingRemoteDeletes: ['3fb761e9-8c77-4933-a172-0bfa12d05484'],
+  };
+  await api.deletePendingRemotePages(project);
+  assert.deepEqual(project.pendingRemoteDeletes, []);
+  assert.equal(checkpoints.length, 1);
 });
