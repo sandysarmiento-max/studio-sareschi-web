@@ -247,9 +247,17 @@
     while (project.pendingRemoteDeletes.length) {
       const pageId = project.pendingRemoteDeletes[0];
       setProgress('Eliminando páginas pendientes…');
-      const result = await apiRequest('DELETE', {
-        action: 'delete-page', preview_id: project.remotePreviewId, page_id: pageId,
-      });
+      let result;
+      try {
+        result = await apiRequest('DELETE', {
+          action: 'delete-page', preview_id: project.remotePreviewId, page_id: pageId,
+        });
+      } catch (error) {
+        if (error.status !== 404) throw error;
+        project.pendingRemoteDeletes.shift();
+        await checkpoint();
+        continue;
+      }
       applyRemotePreview(project, result.preview);
       showWarning(result.warning);
       project.pendingRemoteDeletes.shift();
@@ -270,6 +278,25 @@
     return true;
   }
 
+  function uploadConfirmationPayload(project, page, pending, position) {
+    return {
+      action: 'confirm-upload', mode: pending.mode, preview_id: project.remotePreviewId,
+      page_id: pending.page_id, object_version: pending.object_version,
+      storage_path: pending.storage_path, position,
+      original_filename: page.name, mime_type: page.blob.type,
+      width_px: page.width, height_px: page.height,
+      file_size_bytes: page.blob.size, sha256: page.hash,
+    };
+  }
+
+  async function confirmPendingUpload(project, page, pending, position) {
+    const result = await apiRequest('POST', uploadConfirmationPayload(project, page, pending, position));
+    applyRemotePage(page, result.page);
+    applyRemotePreview(project, result.preview);
+    showWarning(result.warning);
+    await checkpoint();
+  }
+
   async function syncImagePage(project, page, position, total) {
     if (!(page.blob instanceof Blob)) {
       throw new Error(`Página ${position}: vuelve a cargar la imagen original para sincronizarla.`);
@@ -282,6 +309,19 @@
     if (mode === 'replace' && !page.needsUpload && page.remoteHash === page.hash) return;
     let pending = page.pendingUpload;
     if (pending && pending.mode === mode && await recoverConfirmedUpload(project, page, pending)) return;
+
+    if (pending?.confirmationPending && pending.mode === mode) {
+      setProgress(`Confirmando imagen ${position}/${total}…`);
+      try {
+        await confirmPendingUpload(project, page, pending, position);
+        return;
+      } catch (error) {
+        if (error.code !== 'storage_object_missing') throw error;
+        delete page.pendingUpload;
+        pending = null;
+        await checkpoint();
+      }
+    }
 
     if (!pending || pending.mode !== mode || pending.page_id !== (page.remotePageId || pending.page_id)) {
       setProgress(`Autorizando imagen ${position}/${total}…`);
@@ -302,24 +342,28 @@
           contentType: page.blob.type,
           upsert: false,
         });
-      if (error) throw error;
+      if (error) {
+        pending.confirmationPending = true;
+        await checkpoint();
+        try {
+          await confirmPendingUpload(project, page, pending, position);
+          return;
+        } catch (confirmError) {
+          if (confirmError.code === 'storage_object_missing') {
+            delete page.pendingUpload;
+            await checkpoint();
+            throw new Error(`Página ${position}: la subida no se completó. Vuelve a sincronizar para obtener una autorización nueva.`);
+          }
+          throw confirmError;
+        }
+      }
       pending.uploaded = true;
+      pending.confirmationPending = true;
       await checkpoint();
     }
 
     setProgress(`Confirmando imagen ${position}/${total}…`);
-    const result = await apiRequest('POST', {
-      action: 'confirm-upload', mode, preview_id: project.remotePreviewId,
-      page_id: pending.page_id, object_version: pending.object_version,
-      storage_path: pending.storage_path, position,
-      original_filename: page.name, mime_type: page.blob.type,
-      width_px: page.width, height_px: page.height,
-      file_size_bytes: page.blob.size, sha256: page.hash,
-    });
-    applyRemotePage(page, result.page);
-    applyRemotePreview(project, result.preview);
-    showWarning(result.warning);
-    await checkpoint();
+    await confirmPendingUpload(project, page, pending, position);
   }
 
   async function syncPages(project) {
@@ -329,11 +373,17 @@
       const position = index + 1;
       const blank = page.generated || page.type === 'blank' || page.isBlank;
       if (blank && !page.remotePageId) {
+        if (!page.pendingRemotePageId) {
+          page.pendingRemotePageId = manager.uid();
+          await checkpoint();
+        }
         setProgress(`Creando página blanca ${position}/${total}…`);
         const result = await apiRequest('POST', {
-          action: 'add-blank', preview_id: project.remotePreviewId, position,
+          action: 'add-blank', preview_id: project.remotePreviewId,
+          page_id: page.pendingRemotePageId, position,
         });
         applyRemotePage(page, result.page);
+        delete page.pendingRemotePageId;
         applyRemotePreview(project, result.preview);
         showWarning(result.warning);
         await checkpoint();
@@ -396,6 +446,19 @@
     } catch (error) {
       setProgress(error.message, { error: true });
     }
+  }
+
+  if (window.__AGENDA_PREVIEW_ONLINE_TEST__) {
+    window.AgendaPreviewOnlineTest = {
+      deletePendingRemotePages,
+      syncImagePage,
+      syncPages,
+      setSupabaseClient(client, session = { access_token: 'test-token' }) {
+        supabaseClient = client;
+        currentSession = session;
+      },
+    };
+    return;
   }
 
   elements.form.addEventListener('submit', async (event) => {
