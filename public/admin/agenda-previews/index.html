@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f0e9">
+  <title>Gestor de muestras · Studio Sareschi</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <header class="admin-header">
+    <div>
+      <span class="brand">Studio Sareschi</span>
+      <h1>Gestor de muestras de agendas</h1>
+      <p>Prepara, ordena y revisa tus muestras sin editar código.</p>
+    </div>
+    <button class="button button--primary" id="newProjectButton" type="button">+ Nueva muestra</button>
+  </header>
+
+  <main class="admin-layout">
+    <aside class="draft-panel" aria-label="Borradores guardados">
+      <div class="panel-heading"><h2>Borradores locales</h2><span id="draftCount">0</span></div>
+      <div class="draft-list" id="draftList"><p class="empty-copy">Todavía no hay borradores.</p></div>
+      <div class="online-panel" aria-label="Sincronización con Supabase">
+        <div class="panel-heading"><h2>Supabase</h2><span id="onlineStatus">Local</span></div>
+        <form id="onlineLoginForm" class="online-login">
+          <label>Email<input id="onlineEmail" type="email" autocomplete="username" required></label>
+          <label>Contraseña<input id="onlinePassword" type="password" autocomplete="current-password" required></label>
+          <button class="button button--secondary" type="submit">Iniciar sesión</button>
+        </form>
+        <div id="onlineSession" hidden>
+          <p class="online-copy">Sesión administrativa activa.</p>
+          <div class="online-session-actions">
+            <button class="button button--secondary" id="refreshRemoteButton" type="button">Actualizar</button>
+            <button class="button button--secondary" id="onlineLogoutButton" type="button">Salir</button>
+          </div>
+        </div>
+        <div class="panel-heading remote-heading"><h2>Muestras remotas</h2><span id="remoteCount">0</span></div>
+        <div class="draft-list" id="remoteList"><p class="empty-copy">Inicia sesión para verlas.</p></div>
+      </div>
+    </aside>
+
+    <section class="editor-panel">
+      <div class="step-strip" aria-label="Flujo de preparación">
+        <button class="step-button is-active" type="button" data-step="data">1. Datos</button>
+        <button class="step-button" type="button" data-step="pages">2. Páginas</button>
+        <button class="step-button" type="button" data-step="preview">3. Previsualizar</button>
+        <button class="step-button" type="button" data-step="save">4. Guardar</button>
+      </div>
+
+      <form id="projectForm" novalidate>
+        <section class="card" id="dataSection" tabindex="-1">
+          <div class="card-heading"><div><p class="eyebrow">Datos de la muestra</p><h2>Información de la agenda</h2></div><span class="status-pill" id="saveStatus">Sin guardar</span></div>
+          <div class="form-grid">
+            <label class="field field--wide">Título<input id="titleInput" name="title" required placeholder="Agenda Cozy Reading 2027"></label>
+            <label class="field">Slug<input id="slugInput" name="slug" required pattern="[a-z0-9-]+" placeholder="cozy-reading"></label>
+            <label class="field">Formato<select id="formatInput" name="format"><option>A5</option><option>A6</option><option>B5</option><option>Personalizado</option></select></label>
+            <label class="field">Ancho (mm)<input id="widthInput" name="width" type="number" min="1" step="0.1" required></label>
+            <label class="field">Alto (mm)<input id="heightInput" name="height" type="number" min="1" step="0.1" required></label>
+            <label class="field">Orientación<select id="orientationInput" name="orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+            <label class="field">Páginas del producto completo<input id="totalPagesInput" name="totalProductPages" type="number" min="1" step="1" required></label>
+            <label class="field">Texto del botón Comprar<input id="buyTextInput" name="buyButtonText" placeholder="Comprar esta agenda"></label>
+            <label class="field field--wide">URL de compra (opcional)<input id="buyUrlInput" name="purchaseUrl" type="url" placeholder="https://..."></label>
+          </div>
+        </section>
+
+        <section class="card" id="pagesSection" tabindex="-1">
+          <div class="card-heading">
+            <div><p class="eyebrow">Páginas de muestra</p><h2>Sube imágenes o un ZIP</h2></div>
+            <div class="upload-actions">
+              <label class="button button--secondary">Seleccionar imágenes<input id="imagesInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label>
+              <label class="button button--secondary">Subir ZIP<input id="zipInput" type="file" accept=".zip,application/zip" hidden></label>
+            </div>
+          </div>
+          <div class="drop-zone" id="dropZone" tabindex="0">Arrastra aquí imágenes o un ZIP</div>
+          <div class="messages" id="messages" aria-live="polite"></div>
+          <div class="summary" id="summary">
+            <div><span>Muestra</span><strong id="samplePages">0 páginas</strong></div>
+            <div><span>Formato</span><strong id="sampleFormat">A5</strong></div>
+            <div><span>Dimensiones promedio</span><strong id="sampleDimensions">—</strong></div>
+            <div><span>Proporción</span><strong id="sampleRatio">—</strong></div>
+            <div><span>Peso total</span><strong id="sampleWeight">0 MB</strong></div>
+            <div><span>Producto completo</span><strong id="productPages">180 páginas</strong></div>
+          </div>
+        </section>
+
+        <section class="card" id="organizerSection" tabindex="-1">
+          <div class="card-heading card-heading--pages">
+            <div><p class="eyebrow">Orden final del visor</p><h2>Organiza las páginas</h2></div>
+            <div class="page-actions">
+              <button class="button button--secondary" id="blankPageButton" type="button">+ Página blanca</button>
+              <button class="button button--secondary" id="duplicateButton" type="button" disabled>Duplicar</button>
+              <button class="button button--secondary" id="replaceButton" type="button" disabled>Reemplazar</button>
+              <button class="button button--danger" id="deletePageButton" type="button" disabled>Eliminar</button>
+              <input id="replaceInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+            </div>
+          </div>
+          <p class="helper" id="reorderHelp">Arrastra las páginas para cambiar su orden o selecciónalas para duplicar, reemplazar o eliminar.</p>
+          <div class="page-grid" id="pageGrid"><p class="empty-pages">Las miniaturas aparecerán aquí respetando el orden numérico.</p></div>
+        </section>
+
+        <div class="bottom-actions">
+          <button class="button button--secondary" id="deleteDraftButton" type="button">Eliminar borrador</button>
+          <span class="action-spacer"></span>
+          <button class="button button--secondary" id="exportJsonButton" type="button">Exportar configuración</button>
+          <button class="button button--secondary" id="exportZipButton" type="button">Exportar ZIP</button>
+          <button class="button button--preview" id="previewButton" type="button">Previsualizar</button>
+          <button class="button button--primary" id="saveDraftButton" type="submit">Guardar borrador</button>
+          <button class="button button--primary" id="syncDraftButton" type="button">Sincronizar</button>
+        </div>
+        <div class="sync-progress" id="syncProgress" role="status" aria-live="polite" hidden>
+          <span id="syncProgressText">Preparando sincronización…</span>
+          <button class="button button--secondary" id="reloadRemoteButton" type="button" hidden>Recargar versión remota</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <div class="preview-modal" id="previewModal" hidden>
+    <div class="preview-toolbar"><strong>Vista previa de la muestra</strong><button class="button button--primary" id="closePreviewButton" type="button">Volver al gestor</button></div>
+    <iframe id="previewFrame" title="Vista previa de la agenda" allowfullscreen></iframe>
+  </div>
+
+  <template id="viewerTemplate">
+    <main class="app-shell">
+      <header class="viewer-header">
+        <button class="icon-button back-button" id="closeButton" type="button" aria-label="Volver al gestor" title="Volver al gestor">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="identity">
+          <h1 id="productTitle">Vista previa</h1>
+          <p class="format-line"><span class="brand">Studio Sareschi</span><span aria-hidden="true"> · </span><span id="formatLine">A5</span><span aria-hidden="true"> · </span><span id="previewCount">Vista previa</span><span aria-hidden="true"> · </span><span id="productCount">Archivo completo</span></p>
+        </div>
+        <button class="buy-button" type="button" aria-disabled="true">Comprar esta agenda</button>
+      </header>
+      <section class="book-workspace" aria-label="Visor de agenda">
+        <button class="page-arrow page-arrow--previous" id="previousButton" type="button" aria-label="Página anterior"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="book-viewport" id="bookViewport">
+          <div class="book-position" id="bookPosition"><div class="book-scale" id="bookScale"><div id="book" aria-live="polite"></div></div></div>
+          <div class="loading-state" id="loadingState" role="status">Preparando la vista previa…</div>
+        </div>
+        <button class="page-arrow page-arrow--next" id="nextButton" type="button" aria-label="Página siguiente"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <nav class="viewer-controls" aria-label="Controles del visor">
+          <button class="control-button mobile-page-button" id="mobilePreviousButton" type="button" aria-label="Página anterior"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <span class="page-status" id="pageStatus">Página 1</span>
+          <button class="control-button mobile-page-button" id="mobileNextButton" type="button" aria-label="Página siguiente"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+          <button class="control-button" id="resetViewButton" type="button" aria-label="Reiniciar vista" title="Reiniciar vista"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 8V4m0 0h4M5 4l3.1 3.1A7 7 0 1110 18.7"/></svg></button>
+          <span class="control-divider" aria-hidden="true"></span>
+          <button class="control-button" id="soundButton" type="button" aria-pressed="false" aria-label="Activar sonido" title="Sonido"><span id="soundIcon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11 5L6.5 9H3v6h3.5l4.5 4z"/><path class="sound-wave" d="M15 9.5a4 4 0 010 5M17.8 6.8a7.5 7.5 0 010 10.4"/></svg></span></button>
+          <button class="control-button" id="zoomOutButton" type="button" aria-label="Alejar" title="Alejar"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M6.8 10.5h7.4M15 15l4 4"/></svg></button>
+          <output class="zoom-value" id="zoomValue" aria-label="Nivel de zoom">100%</output>
+          <button class="control-button" id="zoomInButton" type="button" aria-label="Acercar" title="Acercar"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M6.8 10.5h7.4M10.5 6.8v7.4M15 15l4 4"/></svg></button>
+          <button class="control-button" id="fullscreenButton" type="button" aria-label="Pantalla completa" title="Pantalla completa"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/></svg></button>
+        </nav>
+      </section>
+    </main>
+  </template>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="vendor/jszip.min.js"></script>
+  <script src="admin.js"></script>
+  <script src="admin-online.js"></script>
+</body>
+</html>
