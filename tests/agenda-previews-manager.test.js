@@ -32,7 +32,7 @@ function loadOnlineManager(fetchImpl, uploadImpl) {
     Set,
     console,
     fetch: fetchImpl,
-    window: { AgendaSampleManager: manager, __AGENDA_PREVIEW_ONLINE_TEST__: true },
+    window: { AgendaSampleManager: manager, __AGENDA_PREVIEW_ONLINE_TEST__: true, crypto },
     document: {
       getElementById(id) {
         if (!elements.has(id)) elements.set(id, element());
@@ -92,6 +92,7 @@ test('sincronización usa operaciones remotas existentes y optimistic locking', 
   assert.match(online, /error\.code === 'revision_conflict'/);
   assert.match(online, /pendingRemoteDeletes/);
   assert.match(online, /page\.pendingUpload/);
+  assert.match(online, /pendingRemotePageId = window\.crypto\.randomUUID\(\)/);
 });
 
 test('duplicar una imagen no comparte identidad ni Storage remoto', () => {
