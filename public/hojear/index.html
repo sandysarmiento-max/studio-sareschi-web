@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f0e9">
+  <meta name="robots" content="noindex,nofollow">
+  <base href="/admin/agenda-previews/">
+  <title>Muestra · Studio Sareschi</title>
+  <link rel="stylesheet" href="/admin/agenda-previews/styles.css">
+  <style>
+    [hidden] { display: none !important; }
+    .public-state {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      text-align: center;
+      background: #f6f0e9;
+      color: #342f30;
+    }
+    .public-state__card {
+      width: min(520px, 100%);
+      padding: 32px 24px;
+      border: 1px solid rgba(81, 58, 61, .15);
+      border-radius: 22px;
+      background: #fffdf9;
+      box-shadow: 0 18px 50px rgba(69, 45, 49, .10);
+    }
+    .public-state__brand {
+      margin: 0 0 8px;
+      color: #6f3744;
+      font-family: Georgia, serif;
+      letter-spacing: .06em;
+    }
+    .public-state h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.45rem, 4vw, 2rem);
+    }
+    .public-state p { margin: 0; color: #776d6d; line-height: 1.6; }
+    .public-state a {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      background: #6f3744;
+      color: white;
+      text-decoration: none;
+      font-size: .9rem;
+    }
+    .buy-button[href] { cursor: pointer; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <section class="public-state" id="publicState" aria-live="polite">
+    <div class="public-state__card">
+      <p class="public-state__brand">Studio Sareschi</p>
+      <h1 id="publicStateTitle">Preparando muestra…</h1>
+      <p id="publicStateText">Estamos cargando las páginas para que puedas hojearlas.</p>
+      <a id="publicStateLink" href="/pdfs/" hidden>Ver plantillas</a>
+    </div>
+  </section>
+
+  <main class="app-shell" id="viewerShell" hidden>
+    <header class="viewer-header">
+      <button class="icon-button back-button" id="closeButton" type="button" aria-label="Volver" title="Volver">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="identity">
+        <h1 id="productTitle">Vista previa</h1>
+        <p class="format-line"><span class="brand">Studio Sareschi</span><span aria-hidden="true"> · </span><span id="formatLine">A5</span><span aria-hidden="true"> · </span><span id="previewCount">Vista previa</span><span aria-hidden="true"> · </span><span id="productCount">Archivo completo</span></p>
+      </div>
+      <a class="buy-button" id="publicBuyButton" href="#" hidden>Comprar esta agenda</a>
+    </header>
+    <section class="book-workspace" aria-label="Visor de agenda">
+      <button class="page-arrow page-arrow--previous" id="previousButton" type="button" aria-label="Página anterior"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div class="book-viewport" id="bookViewport">
+        <div class="book-position" id="bookPosition"><div class="book-scale" id="bookScale"><div id="book" aria-live="polite"></div></div></div>
+        <div class="loading-state" id="loadingState" role="status">Preparando la vista previa…</div>
+      </div>
+      <button class="page-arrow page-arrow--next" id="nextButton" type="button" aria-label="Página siguiente"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      <nav class="viewer-controls" aria-label="Controles del visor">
+        <button class="control-button mobile-page-button" id="mobilePreviousButton" type="button" aria-label="Página anterior"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <span class="page-status" id="pageStatus">Página 1</span>
+        <button class="control-button mobile-page-button" id="mobileNextButton" type="button" aria-label="Página siguiente"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button class="control-button" id="resetViewButton" type="button" aria-label="Reiniciar vista" title="Reiniciar vista"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 8V4m0 0h4M5 4l3.1 3.1A7 7 0 1110 18.7"/></svg></button>
+        <span class="control-divider" aria-hidden="true"></span>
+        <button class="control-button" id="soundButton" type="button" aria-pressed="false" aria-label="Activar sonido" title="Sonido"><span id="soundIcon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11 5L6.5 9H3v6h3.5l4.5 4z"/><path class="sound-wave" d="M15 9.5a4 4 0 010 5M17.8 6.8a7.5 7.5 0 010 10.4"/></svg></span></button>
+        <button class="control-button" id="zoomOutButton" type="button" aria-label="Alejar" title="Alejar"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M6.8 10.5h7.4M15 15l4 4"/></svg></button>
+        <output class="zoom-value" id="zoomValue" aria-label="Nivel de zoom">100%</output>
+        <button class="control-button" id="zoomInButton" type="button" aria-label="Acercar" title="Acercar"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M6.8 10.5h7.4M10.5 6.8v7.4M15 15l4 4"/></svg></button>
+        <button class="control-button" id="fullscreenButton" type="button" aria-label="Pantalla completa" title="Pantalla completa"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/></svg></button>
+      </nav>
+    </section>
+  </main>
+
+  <script src="/admin/agenda-previews/vendor/page-flip.browser.js"></script>
+  <script src="/hojear/loader.js"></script>
+</body>
+</html>
