@@ -93,12 +93,16 @@ test('un draft es indistinguible de una muestra inexistente', async () => {
   assert.doesNotMatch(res.body, /draft|preview_id|created_by/i);
 });
 
-test('una muestra published devuelve solo datos públicos y URLs firmadas', async () => {
+test('una muestra published devuelve solo datos públicos y firma imágenes en un solo lote', async () => {
   const urls = [];
   const requests = [];
   const previewId = '550e8400-e29b-41d4-a716-446655440000';
-  const pageId = '3fb761e9-8c77-4933-a172-0bfa12d05484';
-  const version = '8ad210ae-581f-4b31-a354-8826ec3a5517';
+  const pageId1 = '3fb761e9-8c77-4933-a172-0bfa12d05484';
+  const pageId2 = '44738230-3e11-4ce3-b19b-c20e797c3624';
+  const version1 = '8ad210ae-581f-4b31-a354-8826ec3a5517';
+  const version2 = '967a1b36-e1df-48a4-b352-78b5eed14156';
+  const storagePath1 = `${previewId}/${pageId1}/${version1}`;
+  const storagePath2 = `${previewId}/${pageId2}/${version2}`;
 
   const handler = loadHandler(async (url, options = {}) => {
     const text = String(url);
@@ -124,14 +128,31 @@ test('una muestra published devuelve solo datos públicos y URLs firmadas', asyn
         {
           position: 1,
           page_type: 'image',
-          storage_path: `${previewId}/${pageId}/${version}`,
-          object_version: version,
+          storage_path: storagePath1,
+          object_version: version1,
         },
         { position: 2, page_type: 'blank', storage_path: null },
+        {
+          position: 3,
+          page_type: 'image',
+          storage_path: storagePath2,
+          object_version: version2,
+        },
       ]);
     }
-    if (text.includes('/storage/v1/object/sign/agenda-previews/')) {
-      return response(200, { signedURL: '/object/sign/agenda-previews/file?token=abc' });
+    if (text.endsWith('/storage/v1/object/sign/agenda-previews')) {
+      return response(200, [
+        {
+          path: storagePath1,
+          error: null,
+          signedURL: '/object/sign/agenda-previews/file-1?token=abc',
+        },
+        {
+          path: storagePath2,
+          error: null,
+          signedURL: '/object/sign/agenda-previews/file-2?token=def',
+        },
+      ]);
     }
     return response(500, { error: 'unexpected' });
   });
@@ -155,19 +176,30 @@ test('una muestra published devuelve solo datos públicos y URLs firmadas', asyn
     'total_product_pages',
     'width_mm',
   ]);
-  assert.equal(payload.pages.length, 2);
+  assert.equal(payload.pages.length, 3);
   assert.equal(payload.pages[0].page_type, 'image');
   assert.equal(
     payload.pages[0].signed_url,
-    'https://example.supabase.co/storage/v1/object/sign/agenda-previews/file?token=abc'
+    'https://example.supabase.co/storage/v1/object/sign/agenda-previews/file-1?token=abc'
   );
   assert.equal(payload.pages[1].page_type, 'blank');
   assert.equal(Object.prototype.hasOwnProperty.call(payload.pages[1], 'signed_url'), false);
+  assert.equal(payload.pages[2].page_type, 'image');
+  assert.equal(
+    payload.pages[2].signed_url,
+    'https://example.supabase.co/storage/v1/object/sign/agenda-previews/file-2?token=def'
+  );
   assert.equal(Object.prototype.hasOwnProperty.call(payload.pages[0], 'storage_path'), false);
   assert.match(urls.find((url) => url.includes('agenda_preview_pages')), /order=position\.asc/);
-  const signIndex = urls.findIndex((url) => url.includes('/storage/v1/object/sign/agenda-previews/'));
-  assert(signIndex >= 0);
-  assert.deepEqual(JSON.parse(requests[signIndex].body), { expiresIn: 900 });
+  const signIndexes = urls
+    .map((url, index) => ({ url, index }))
+    .filter(({ url }) => url.endsWith('/storage/v1/object/sign/agenda-previews'));
+  assert.equal(signIndexes.length, 1);
+  const signIndex = signIndexes[0].index;
+  assert.deepEqual(JSON.parse(requests[signIndex].body), {
+    expiresIn: 900,
+    paths: [storagePath1, storagePath2],
+  });
   assert.doesNotMatch(res.body, /created_by|object_version|storage_path|service-role-test/);
 });
 
