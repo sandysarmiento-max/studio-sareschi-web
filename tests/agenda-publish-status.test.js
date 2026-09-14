@@ -18,6 +18,12 @@ test('el gestor carga los controles de publicar/despublicar después del sincron
   assert(publishIndex > onlineIndex, 'publish-status.js debe cargarse después del sincronizador');
 });
 
+test('el formulario de login queda realmente oculto durante una sesión activa', () => {
+  const html = read('index.html');
+
+  assert.match(html, /\.online-login\[hidden\],#onlineSession\[hidden\]\{display:none!important\}/);
+});
+
 test('publicar y despublicar reutilizan set-status con optimistic locking', () => {
   const script = read('publish-status.js');
 
