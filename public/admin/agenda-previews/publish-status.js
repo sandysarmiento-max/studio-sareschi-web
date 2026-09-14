@@ -2,7 +2,6 @@
   'use strict';
 
   const API_URL = '/api/agenda-previews-admin';
-  const PUBLIC_VIEWER_BASE = 'https://www.studio-sareschi.com/hojear/?agenda=';
   const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
   const manager = window.AgendaSampleManager;
   const progress = document.getElementById('syncProgress');
@@ -54,7 +53,9 @@
   function publicUrl(project) {
     const slug = String(project?.slug || '').trim().toLowerCase();
     if (!SLUG_PATTERN.test(slug)) return '';
-    return `${PUBLIC_VIEWER_BASE}${encodeURIComponent(slug)}`;
+    const origin = String(window.location.origin || '').replace(/\/+$/, '');
+    if (!origin) return '';
+    return `${origin}/hojear/?agenda=${encodeURIComponent(slug)}`;
   }
 
   function updateUi() {
