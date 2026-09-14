@@ -8,6 +8,7 @@
   const saveStatus = document.getElementById('saveStatus');
   const remoteList = document.getElementById('remoteList');
   const syncButton = document.getElementById('syncDraftButton');
+  const onlineStatus = document.getElementById('onlineStatus');
 
   if (!manager || !progress) return;
 
@@ -97,6 +98,13 @@
     } finally {
       remoteSlugLoading.delete(project.remotePreviewId);
     }
+  }
+
+  function retryPublishedSlugAfterLogin() {
+    const project = getProject();
+    if (!project?.remotePreviewId || project.remoteStatus !== 'published') return;
+    remoteSlugLoading.delete(project.remotePreviewId);
+    window.setTimeout(updateUi, 0);
   }
 
   function updateUi() {
@@ -251,8 +259,14 @@
         expected_revision: project.remoteRevision,
       });
 
-      await refreshRemoteProject(project);
+      const refreshedPayload = await refreshRemoteProject(project);
       await manager.saveLocalCheckpoint();
+      if (!remoteMatchesLocal(project, refreshedPayload)) {
+        uiError = targetStatus === 'published'
+          ? 'La muestra se publicó, pero hay cambios locales pendientes. Despublícala antes de sincronizarlos.'
+          : 'La muestra se despublicó y hay cambios locales pendientes. Pulsa Sincronizar antes de volver a publicar.';
+        return;
+      }
       manager.setRemoteSaved();
     } catch (error) {
       uiError = error.message || 'No se pudo cambiar el estado de la muestra.';
@@ -287,6 +301,18 @@
       characterData: true,
       subtree: true,
       attributes: true,
+    });
+  }
+
+  if (onlineStatus && 'MutationObserver' in window) {
+    new MutationObserver(() => {
+      if (String(onlineStatus.textContent || '').trim() === 'Conectado') {
+        retryPublishedSlugAfterLogin();
+      }
+    }).observe(onlineStatus, {
+      childList: true,
+      characterData: true,
+      subtree: true,
     });
   }
 
