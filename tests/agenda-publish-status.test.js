@@ -91,6 +91,22 @@ test('después de cambiar estado revalida el proyecto antes de marcarlo sincroni
   assert.match(script, /manager\.setRemoteSaved\(\)/);
 });
 
+test('no guarda ni marca sincronizado otro proyecto si cambia la selección durante publicar', () => {
+  const script = read('publish-status.js');
+
+  assert.match(script, /const operationProjectId = project\.id/);
+  assert.match(script, /const operationRemotePreviewId = project\.remotePreviewId/);
+  assert.match(script, /function activeProjectMatches\(projectId, remotePreviewId\)/);
+  assert.match(script, /activeProject\?\.id === projectId/);
+  assert.match(script, /activeProject\?\.remotePreviewId === remotePreviewId/);
+  assert.match(script, /function requireActiveProject\(projectId, remotePreviewId\)/);
+  assert.match(script, /Cambiaste de muestra mientras se actualizaba el estado/);
+  assert.match(
+    script,
+    /const refreshedPayload = await refreshRemoteProject\(project\);\s*requireActiveProject\(operationProjectId, operationRemotePreviewId\);\s*await manager\.saveLocalCheckpoint\(\);\s*requireActiveProject\(operationProjectId, operationRemotePreviewId\);/
+  );
+});
+
 test('los errores de publicar o despublicar permanecen visibles tras refrescar controles', () => {
   const script = read('publish-status.js');
 
