@@ -3,6 +3,14 @@
     "cleanUrls":  false,
     "rewrites":  [
                      {
+                         "source":  "/api/paid-products-admin",
+                         "destination":  "/api/admin/paid-products"
+                     },
+                     {
+                         "source":  "/api/agenda-previews-admin",
+                         "destination":  "/api/admin/agenda-previews"
+                     },
+                     {
                          "source":  "/sitemap.xml",
                          "destination":  "/api/sitemap"
                      },
@@ -16,6 +24,16 @@
                      }
                  ],
     "redirects":  [
+                      {
+                          "source":  "/admin/agenda-previews",
+                          "destination":  "/admin/agenda-previews/index.html",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/admin/agenda-previews/",
+                          "destination":  "/admin/agenda-previews/index.html",
+                          "permanent":  false
+                      },
                       {
                           "source":  "/admin/folia-preview",
                           "destination":  "/admin/folia-preview/index.html",
