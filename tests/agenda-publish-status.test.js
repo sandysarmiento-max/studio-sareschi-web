@@ -70,6 +70,27 @@ test('el enlace publicado usa el slug remoto confirmado, no un slug local editad
   assert.match(script, /Publicada · comprobando enlace público/);
 });
 
+test('si el enlace publicado falló sin sesión se reintenta al pasar a Conectado', () => {
+  const script = read('publish-status.js');
+
+  assert.match(script, /const onlineStatus = document\.getElementById\('onlineStatus'\)/);
+  assert.match(script, /function retryPublishedSlugAfterLogin\(\)/);
+  assert.match(script, /remoteSlugLoading\.delete\(project\.remotePreviewId\)/);
+  assert.match(script, /String\(onlineStatus\.textContent \|\| ''\)\.trim\(\) === 'Conectado'/);
+  assert.match(script, /retryPublishedSlugAfterLogin\(\)/);
+});
+
+test('después de cambiar estado revalida el proyecto antes de marcarlo sincronizado', () => {
+  const script = read('publish-status.js');
+
+  assert.match(script, /const refreshedPayload = await refreshRemoteProject\(project\)/);
+  assert.match(script, /await manager\.saveLocalCheckpoint\(\)/);
+  assert.match(script, /if \(!remoteMatchesLocal\(project, refreshedPayload\)\)/);
+  assert.match(script, /La muestra se publicó, pero hay cambios locales pendientes/);
+  assert.match(script, /La muestra se despublicó y hay cambios locales pendientes/);
+  assert.match(script, /manager\.setRemoteSaved\(\)/);
+});
+
 test('los errores de publicar o despublicar permanecen visibles tras refrescar controles', () => {
   const script = read('publish-status.js');
 
