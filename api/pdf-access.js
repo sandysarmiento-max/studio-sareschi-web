@@ -263,7 +263,9 @@ async function createAgendaSignedUrl(storagePath) {
   const signedPath = String(result?.signedURL || result?.signedUrl || '').trim();
   if (!signedPath) throw new Error('No se pudo generar la URL firmada.');
   if (/^https:\/\//i.test(signedPath)) return signedPath;
-  return `${SUPABASE_URL}${signedPath.startsWith('/') ? '' : '/'}${signedPath}`;
+  if (signedPath.startsWith('/storage/v1/')) return `${SUPABASE_URL}${signedPath}`;
+  const relativePath = signedPath.startsWith('/') ? signedPath : `/${signedPath}`;
+  return `${SUPABASE_URL}/storage/v1${relativePath}`;
 }
 
 function agendaUnavailable(res) {
