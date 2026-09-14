@@ -43,10 +43,12 @@ test('la publicación exige que remoto y local coincidan antes de cambiar estado
   assert.match(script, /Pulsa Sincronizar antes de publicar/);
 });
 
-test('al publicarse muestra el enlace estable y permite copiarlo', () => {
+test('al publicarse usa el origen actual y permite copiar el enlace', () => {
   const script = read('publish-status.js');
 
-  assert.match(script, /https:\/\/www\.studio-sareschi\.com\/hojear\/\?agenda=/);
+  assert.match(script, /window\.location\.origin/);
+  assert.match(script, /\/hojear\/\?agenda=/);
+  assert.doesNotMatch(script, /https:\/\/www\.studio-sareschi\.com\/hojear\/\?agenda=/);
   assert.match(script, /Copiar enlace/);
   assert.match(script, /navigator\.clipboard\.writeText/);
 });
