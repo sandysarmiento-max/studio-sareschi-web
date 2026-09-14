@@ -6,6 +6,12 @@ const STOREFRONT_COLUMNS =
   'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
 const LEGACY_STOREFRONT_COLUMNS =
   'id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
+const AGENDA_PREVIEW_COLUMNS =
+  'id,title,slug,format,width_mm,height_mm,orientation,total_product_pages,buy_button_text,buy_url';
+const AGENDA_PAGE_COLUMNS = 'position,page_type,storage_path';
+const AGENDA_PREVIEW_BUCKET = 'agenda-previews';
+const AGENDA_SIGNED_URL_SECONDS = 15 * 60;
+const AGENDA_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const FALLBACK_PRODUCTS = [
   {
@@ -217,6 +223,133 @@ async function handleStorefront(req, res) {
   }
 }
 
+function normalizeAgendaSlug(value) {
+  const slug = String(value || '').trim().toLowerCase();
+  if (slug.length < 2 || slug.length > 100 || !AGENDA_SLUG_PATTERN.test(slug)) return '';
+  return slug;
+}
+
+function safeHttpsUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'https:' ? url.toString() : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function normalizeStoragePath(value) {
+  const path = String(value || '')
+    .split('/')
+    .filter(Boolean)
+    .join('/');
+  if (!path) throw new Error('Ruta de Storage inválida.');
+  return path;
+}
+
+function toAgendaSignedUrl(value) {
+  const signedPath = String(value || '').trim();
+  if (!signedPath) throw new Error('No se pudo generar la URL firmada.');
+  if (/^https:\/\//i.test(signedPath)) return signedPath;
+  if (signedPath.startsWith('/storage/v1/')) return `${SUPABASE_URL}${signedPath}`;
+  const relativePath = signedPath.startsWith('/') ? signedPath : `/${signedPath}`;
+  return `${SUPABASE_URL}/storage/v1${relativePath}`;
+}
+
+async function createAgendaSignedUrls(storagePaths) {
+  const paths = storagePaths.map(normalizeStoragePath);
+  if (!paths.length) return [];
+
+  const result = await callSupabase(
+    `/storage/v1/object/sign/${AGENDA_PREVIEW_BUCKET}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        expiresIn: AGENDA_SIGNED_URL_SECONDS,
+        paths,
+      }),
+    }
+  );
+
+  if (!Array.isArray(result) || result.length !== paths.length) {
+    throw new Error('No se pudieron generar todas las URLs firmadas.');
+  }
+
+  return result.map((item) => {
+    if (item?.error) throw new Error('No se pudo generar una URL firmada.');
+    return toAgendaSignedUrl(item?.signedURL || item?.signedUrl);
+  });
+}
+
+function agendaUnavailable(res) {
+  res.setHeader('Cache-Control', 'no-store');
+  return json(res, 404, { error: 'Muestra no disponible.' });
+}
+
+async function handleAgendaPreview(req, res) {
+  const slug = normalizeAgendaSlug(req.query?.agenda);
+  if (!slug) return agendaUnavailable(res);
+
+  try {
+    const previews = await callSupabase(
+      `/rest/v1/agenda_previews?select=${encodeURIComponent(AGENDA_PREVIEW_COLUMNS)}` +
+        `&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`,
+      { method: 'GET' }
+    );
+    const preview = Array.isArray(previews) ? previews[0] : null;
+    if (!preview) return agendaUnavailable(res);
+
+    const pages = await callSupabase(
+      `/rest/v1/agenda_preview_pages?select=${encodeURIComponent(AGENDA_PAGE_COLUMNS)}` +
+        `&preview_id=eq.${encodeURIComponent(preview.id)}&order=position.asc`,
+      { method: 'GET' }
+    );
+    if (!Array.isArray(pages) || !pages.length) return agendaUnavailable(res);
+
+    const imagePages = pages.filter((page) => page.page_type !== 'blank');
+    const signedUrls = await createAgendaSignedUrls(imagePages.map((page) => page.storage_path));
+    let signedIndex = 0;
+    const publicPages = pages.map((page) => {
+      const base = {
+        position: Number(page.position),
+        page_type: page.page_type === 'blank' ? 'blank' : 'image',
+      };
+      if (base.page_type === 'blank') return base;
+      const signedUrl = signedUrls[signedIndex];
+      signedIndex += 1;
+      return {
+        ...base,
+        signed_url: signedUrl,
+      };
+    });
+
+    res.setHeader('Cache-Control', 'no-store');
+    return json(res, 200, {
+      preview: {
+        title: String(preview.title || ''),
+        slug: String(preview.slug || ''),
+        format: String(preview.format || ''),
+        width_mm: Number(preview.width_mm),
+        height_mm: Number(preview.height_mm),
+        orientation: String(preview.orientation || ''),
+        total_product_pages: Number(preview.total_product_pages),
+        buy_button_text: preview.buy_button_text ? String(preview.buy_button_text) : null,
+        buy_url: safeHttpsUrl(preview.buy_url),
+      },
+      pages: publicPages,
+    });
+  } catch (error) {
+    console.error('Public agenda preview error:', {
+      name: error?.name,
+      message: error?.message,
+    });
+    res.setHeader('Cache-Control', 'no-store');
+    return json(res, 503, { error: 'Muestra no disponible.' });
+  }
+}
+
 async function handleAccessAction(req, res, payload) {
   const action = normalizeAction(payload?.action);
   const productId = payload?.productId ?? null;
@@ -251,6 +384,9 @@ module.exports = async function handler(req, res) {
     const action = req.query?.action;
     if (action === 'storefront') {
       return handleStorefront(req, res);
+    }
+    if (action === 'agenda-preview') {
+      return handleAgendaPreview(req, res);
     }
     return json(res, 400, { error: 'Acción GET no soportada.' });
   }
