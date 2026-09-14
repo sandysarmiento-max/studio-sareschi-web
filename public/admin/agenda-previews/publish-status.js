@@ -186,6 +186,21 @@
     return String(left || '').trim() === String(right || '').trim();
   }
 
+  function activeProjectMatches(projectId, remotePreviewId) {
+    const activeProject = getProject();
+    return Boolean(
+      activeProject?.id === projectId &&
+      activeProject?.remotePreviewId === remotePreviewId
+    );
+  }
+
+  function requireActiveProject(projectId, remotePreviewId) {
+    if (activeProjectMatches(projectId, remotePreviewId)) return;
+    throw new Error(
+      'Cambiaste de muestra mientras se actualizaba el estado. Vuelve a abrir la muestra original para confirmar si quedó publicada o despublicada.'
+    );
+  }
+
   function remoteMatchesLocal(project, payload) {
     const preview = payload?.preview;
     const pages = Array.isArray(payload?.pages) ? payload.pages : [];
@@ -227,6 +242,8 @@
     if (busy) return;
     const project = getProject();
     if (!project?.remotePreviewId) return;
+    const operationProjectId = project.id;
+    const operationRemotePreviewId = project.remotePreviewId;
 
     uiError = '';
     busy = true;
@@ -237,6 +254,7 @@
       if (targetStatus === 'published') {
         message.textContent = 'Comprobando que el borrador remoto esté completamente sincronizado…';
         const payload = await refreshRemoteProject(project);
+        requireActiveProject(operationProjectId, operationRemotePreviewId);
         targetStatus = project.remoteStatus === 'published' ? 'draft' : 'published';
         if (targetStatus !== 'published') {
           throw new Error('La muestra cambió de estado. Actualiza el gestor e inténtalo de nuevo.');
@@ -251,6 +269,7 @@
         : '¿Despublicar esta muestra? El enlace público dejará de mostrarla inmediatamente.';
       if (!window.confirm(confirmation)) return;
 
+      requireActiveProject(operationProjectId, operationRemotePreviewId);
       message.textContent = targetStatus === 'published' ? 'Publicando muestra…' : 'Despublicando muestra…';
       await apiRequest('POST', {
         action: 'set-status',
@@ -260,7 +279,9 @@
       });
 
       const refreshedPayload = await refreshRemoteProject(project);
+      requireActiveProject(operationProjectId, operationRemotePreviewId);
       await manager.saveLocalCheckpoint();
+      requireActiveProject(operationProjectId, operationRemotePreviewId);
       if (!remoteMatchesLocal(project, refreshedPayload)) {
         uiError = targetStatus === 'published'
           ? 'La muestra se publicó, pero hay cambios locales pendientes. Despublícala antes de sincronizarlos.'
