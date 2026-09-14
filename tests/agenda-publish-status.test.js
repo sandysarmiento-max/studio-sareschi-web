@@ -59,6 +59,27 @@ test('al publicarse usa el origen actual y permite copiar el enlace', () => {
   assert.match(script, /navigator\.clipboard\.writeText/);
 });
 
+test('el enlace publicado usa el slug remoto confirmado, no un slug local editado', () => {
+  const script = read('publish-status.js');
+
+  assert.match(script, /remoteSlugByPreviewId = new Map\(\)/);
+  assert.match(script, /project\?\.remoteStatus === 'published'/);
+  assert.match(script, /remoteSlugByPreviewId\.get\(project\.remotePreviewId\)/);
+  assert.match(script, /remoteSlugByPreviewId\.set\(project\.remotePreviewId, remoteSlug\)/);
+  assert.match(script, /rememberRemotePreview\(project, payload\.preview\)/);
+  assert.match(script, /Publicada · comprobando enlace público/);
+});
+
+test('los errores de publicar o despublicar permanecen visibles tras refrescar controles', () => {
+  const script = read('publish-status.js');
+
+  assert.match(script, /let uiError = ''/);
+  assert.match(script, /uiError = error\.message \|\| 'No se pudo cambiar el estado de la muestra\.'/);
+  assert.match(script, /panel\.classList\.toggle\('is-error', Boolean\(uiError\)\)/);
+  assert.match(script, /if \(uiError\) \{\s*message\.textContent = uiError;/);
+  assert.match(script, /finally \{\s*busy = false;\s*updateUi\(\);/);
+});
+
 test('los controles administrativos no contienen secretos de Supabase', () => {
   const script = read('publish-status.js');
 
