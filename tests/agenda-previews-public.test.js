@@ -131,7 +131,7 @@ test('una muestra published devuelve solo datos públicos y URLs firmadas', asyn
       ]);
     }
     if (text.includes('/storage/v1/object/sign/agenda-previews/')) {
-      return response(200, { signedURL: '/storage/v1/object/sign/agenda-previews/file?token=abc' });
+      return response(200, { signedURL: '/object/sign/agenda-previews/file?token=abc' });
     }
     return response(500, { error: 'unexpected' });
   });
@@ -157,7 +157,10 @@ test('una muestra published devuelve solo datos públicos y URLs firmadas', asyn
   ]);
   assert.equal(payload.pages.length, 2);
   assert.equal(payload.pages[0].page_type, 'image');
-  assert.match(payload.pages[0].signed_url, /^https:\/\/example\.supabase\.co\//);
+  assert.equal(
+    payload.pages[0].signed_url,
+    'https://example.supabase.co/storage/v1/object/sign/agenda-previews/file?token=abc'
+  );
   assert.equal(payload.pages[1].page_type, 'blank');
   assert.equal(Object.prototype.hasOwnProperty.call(payload.pages[1], 'signed_url'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(payload.pages[0], 'storage_path'), false);
