@@ -240,32 +240,47 @@ function safeHttpsUrl(value) {
   }
 }
 
-function encodeStoragePath(value) {
-  return String(value || '')
+function normalizeStoragePath(value) {
+  const path = String(value || '')
     .split('/')
     .filter(Boolean)
-    .map((segment) => encodeURIComponent(segment))
     .join('/');
+  if (!path) throw new Error('Ruta de Storage inválida.');
+  return path;
 }
 
-async function createAgendaSignedUrl(storagePath) {
-  const encodedPath = encodeStoragePath(storagePath);
-  if (!encodedPath) throw new Error('Ruta de Storage inválida.');
-
-  const result = await callSupabase(
-    `/storage/v1/object/sign/${AGENDA_PREVIEW_BUCKET}/${encodedPath}`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ expiresIn: AGENDA_SIGNED_URL_SECONDS }),
-    }
-  );
-
-  const signedPath = String(result?.signedURL || result?.signedUrl || '').trim();
+function toAgendaSignedUrl(value) {
+  const signedPath = String(value || '').trim();
   if (!signedPath) throw new Error('No se pudo generar la URL firmada.');
   if (/^https:\/\//i.test(signedPath)) return signedPath;
   if (signedPath.startsWith('/storage/v1/')) return `${SUPABASE_URL}${signedPath}`;
   const relativePath = signedPath.startsWith('/') ? signedPath : `/${signedPath}`;
   return `${SUPABASE_URL}/storage/v1${relativePath}`;
+}
+
+async function createAgendaSignedUrls(storagePaths) {
+  const paths = storagePaths.map(normalizeStoragePath);
+  if (!paths.length) return [];
+
+  const result = await callSupabase(
+    `/storage/v1/object/sign/${AGENDA_PREVIEW_BUCKET}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        expiresIn: AGENDA_SIGNED_URL_SECONDS,
+        paths,
+      }),
+    }
+  );
+
+  if (!Array.isArray(result) || result.length !== paths.length) {
+    throw new Error('No se pudieron generar todas las URLs firmadas.');
+  }
+
+  return result.map((item) => {
+    if (item?.error) throw new Error('No se pudo generar una URL firmada.');
+    return toAgendaSignedUrl(item?.signedURL || item?.signedUrl);
+  });
 }
 
 function agendaUnavailable(res) {
@@ -293,19 +308,22 @@ async function handleAgendaPreview(req, res) {
     );
     if (!Array.isArray(pages) || !pages.length) return agendaUnavailable(res);
 
-    const publicPages = await Promise.all(
-      pages.map(async (page) => {
-        const base = {
-          position: Number(page.position),
-          page_type: page.page_type === 'blank' ? 'blank' : 'image',
-        };
-        if (base.page_type === 'blank') return base;
-        return {
-          ...base,
-          signed_url: await createAgendaSignedUrl(page.storage_path),
-        };
-      })
-    );
+    const imagePages = pages.filter((page) => page.page_type !== 'blank');
+    const signedUrls = await createAgendaSignedUrls(imagePages.map((page) => page.storage_path));
+    let signedIndex = 0;
+    const publicPages = pages.map((page) => {
+      const base = {
+        position: Number(page.position),
+        page_type: page.page_type === 'blank' ? 'blank' : 'image',
+      };
+      if (base.page_type === 'blank') return base;
+      const signedUrl = signedUrls[signedIndex];
+      signedIndex += 1;
+      return {
+        ...base,
+        signed_url: signedUrl,
+      };
+    });
 
     res.setHeader('Cache-Control', 'no-store');
     return json(res, 200, {
