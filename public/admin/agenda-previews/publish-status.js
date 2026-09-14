@@ -13,6 +13,9 @@
 
   let supabaseClient = null;
   let busy = false;
+  let uiError = '';
+  const remoteSlugByPreviewId = new Map();
+  const remoteSlugLoading = new Set();
 
   const panel = document.createElement('div');
   panel.className = 'sync-progress';
@@ -50,12 +53,50 @@
     }
   }
 
+  function publicSlug(project) {
+    if (project?.remoteStatus === 'published') {
+      return remoteSlugByPreviewId.get(project.remotePreviewId) || '';
+    }
+    return String(project?.slug || '').trim().toLowerCase();
+  }
+
   function publicUrl(project) {
-    const slug = String(project?.slug || '').trim().toLowerCase();
+    const slug = publicSlug(project);
     if (!SLUG_PATTERN.test(slug)) return '';
     const origin = String(window.location.origin || '').replace(/\/+$/, '');
     if (!origin) return '';
     return `${origin}/hojear/?agenda=${encodeURIComponent(slug)}`;
+  }
+
+  function rememberRemotePreview(project, preview) {
+    if (!preview) return;
+    project.remoteRevision = preview.revision;
+    project.remoteStatus = preview.status;
+    project.remoteSyncedAt = Date.now();
+    const remoteSlug = String(preview.slug || '').trim().toLowerCase();
+    if (project.remotePreviewId && SLUG_PATTERN.test(remoteSlug)) {
+      remoteSlugByPreviewId.set(project.remotePreviewId, remoteSlug);
+    }
+  }
+
+  async function ensurePublishedSlug(project) {
+    if (
+      !project?.remotePreviewId ||
+      project.remoteStatus !== 'published' ||
+      remoteSlugByPreviewId.has(project.remotePreviewId) ||
+      remoteSlugLoading.has(project.remotePreviewId)
+    ) return;
+
+    remoteSlugLoading.add(project.remotePreviewId);
+    try {
+      const payload = await apiRequest('GET', null, `?id=${encodeURIComponent(project.remotePreviewId)}`);
+      rememberRemotePreview(project, payload.preview);
+      updateUi();
+    } catch (_error) {
+      // La acción administrativa principal mostrará sus propios errores cuando corresponda.
+    } finally {
+      remoteSlugLoading.delete(project.remotePreviewId);
+    }
   }
 
   function updateUi() {
@@ -67,14 +108,20 @@
 
     panel.hidden = false;
     const published = project.remoteStatus === 'published';
+    if (published) void ensurePublishedSlug(project);
     const url = publicUrl(project);
     statusButton.textContent = published ? 'Despublicar muestra' : 'Publicar muestra';
     statusButton.disabled = busy || !project.remoteRevision;
     copyButton.hidden = !published || !url;
     copyButton.disabled = busy;
+    panel.classList.toggle('is-error', Boolean(uiError));
 
-    if (published && url) {
+    if (uiError) {
+      message.textContent = uiError;
+    } else if (published && url) {
       message.innerHTML = `Publicada · <code style="word-break:break-all">${escapeHtml(url)}</code>`;
+    } else if (published) {
+      message.textContent = 'Publicada · comprobando enlace público…';
     } else {
       message.textContent = 'Borrador remoto. Antes de publicar se comprobará que todo esté sincronizado.';
     }
@@ -164,11 +211,7 @@
 
   async function refreshRemoteProject(project) {
     const payload = await apiRequest('GET', null, `?id=${encodeURIComponent(project.remotePreviewId)}`);
-    if (payload.preview) {
-      project.remoteRevision = payload.preview.revision;
-      project.remoteStatus = payload.preview.status;
-      project.remoteSyncedAt = Date.now();
-    }
+    rememberRemotePreview(project, payload.preview);
     return payload;
   }
 
@@ -177,6 +220,7 @@
     const project = getProject();
     if (!project?.remotePreviewId) return;
 
+    uiError = '';
     busy = true;
     updateUi();
     try {
@@ -210,11 +254,8 @@
       await refreshRemoteProject(project);
       await manager.saveLocalCheckpoint();
       manager.setRemoteSaved();
-      message.textContent = targetStatus === 'published'
-        ? 'Muestra publicada correctamente.'
-        : 'Muestra despublicada correctamente.';
     } catch (error) {
-      message.textContent = error.message || 'No se pudo cambiar el estado de la muestra.';
+      uiError = error.message || 'No se pudo cambiar el estado de la muestra.';
     } finally {
       busy = false;
       updateUi();
@@ -222,8 +263,13 @@
   }
 
   async function copyPublicLink() {
+    uiError = '';
     const url = publicUrl(getProject());
-    if (!url) return;
+    if (!url) {
+      updateUi();
+      return;
+    }
+    panel.classList.remove('is-error');
     try {
       await navigator.clipboard.writeText(url);
       message.textContent = 'Enlace público copiado.';
@@ -244,8 +290,14 @@
     });
   }
 
-  if (remoteList) remoteList.addEventListener('click', () => window.setTimeout(updateUi, 900));
-  if (syncButton) syncButton.addEventListener('click', () => window.setTimeout(updateUi, 1200));
+  if (remoteList) remoteList.addEventListener('click', () => window.setTimeout(() => {
+    uiError = '';
+    updateUi();
+  }, 900));
+  if (syncButton) syncButton.addEventListener('click', () => window.setTimeout(() => {
+    uiError = '';
+    updateUi();
+  }, 1200));
   window.addEventListener('agenda-manager-ready', updateUi);
   window.addEventListener('focus', updateUi);
   updateUi();
