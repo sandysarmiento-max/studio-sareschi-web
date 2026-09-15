@@ -144,6 +144,7 @@
           price_yape_pe: Number(product.price_yape_pe ?? product.price_canva_pe ?? 0),
           price_paypal_usd: Number(product.price_paypal_usd ?? product.price_canva_int ?? 0),
           hotmart_url: String(product.hotmart_url || ''),
+          flipbook_url: String(product.flipbook_url || ''),
         };
       }
 
@@ -157,6 +158,7 @@
           price_yape_pe: 0,
           price_paypal_usd: 0,
           hotmart_url: '',
+          flipbook_url: '',
           main_image_url: '',
           preview_01_url: '',
           preview_02_url: '',
@@ -253,9 +255,13 @@
         if (name === 'description') {
           return `<div class="admin-field" style="grid-column:1/-1;"><label>${label}</label><textarea data-field="${name}" rows="3">${safeValue}</textarea></div>`;
         }
-        const fullWidth = name === 'hotmart_url' ? ' style="grid-column:1/-1;"' : '';
+        const fullWidth = ['hotmart_url', 'flipbook_url'].includes(name) ? ' style="grid-column:1/-1;"' : '';
         const priceAttrs = name.startsWith('price_') ? ' min="0" step="0.01" inputmode="decimal"' : '';
-        const placeholder = name === 'hotmart_url' ? ' placeholder="https://pay.hotmart.com/..."' : '';
+        const placeholder = name === 'hotmart_url'
+          ? ' placeholder="https://pay.hotmart.com/..."'
+          : name === 'flipbook_url'
+            ? ' placeholder="/hojear/?agenda=agenda-cozy-reading-2027"'
+            : '';
         return `<div class="admin-field"${fullWidth}><label>${label}</label><input data-field="${name}" type="${type}" value="${safeValue}"${priceAttrs}${placeholder} /></div>`;
       }
 
@@ -277,6 +283,12 @@
               <div class="admin-row">${field('description', 'Descripción', product.description)}</div>
               <div class="admin-row">
                 ${field('hotmart_url', 'Enlace directo de pago en Hotmart', product.hotmart_url, 'url')}
+              </div>
+              <div class="admin-row">
+                ${field('flipbook_url', 'Enlace para hojear / Flipbook', product.flipbook_url, 'text')}
+                <p class="admin-help">
+                  Puedes pegar la URL pública de /hojear/ o cualquier enlace HTTPS externo. Si queda vacío, no se mostrará el botón “Hojear muestra”.
+                </p>
               </div>
               <div class="admin-row">
                 ${field('price_yape_pe', 'Precio directo con Yape (S/)', product.price_yape_pe, 'number')}
@@ -353,6 +365,8 @@
           renderProducts();
           if (payload.purchaseMigrationPending) {
             setStatus('Los productos se muestran con los precios anteriores como referencia. Ejecuta la migración de compra directa antes de guardar cambios.', true);
+          } else if (payload.flipbookMigrationPending) {
+            setStatus('La lista cargó correctamente, pero falta ejecutar la migración del campo “Enlace para hojear / Flipbook” en Supabase. No guardes productos hasta aplicarla.', true);
           }
         } catch (error) {
           if (error.code === 'missing_paid_products_table') {
@@ -523,6 +537,10 @@
           renderProducts();
           setStatus(useLocalMode ? 'Producto guardado en modo local.' : 'Producto guardado correctamente.');
         } catch (error) {
+          if (error.code === 'missing_flipbook_column') {
+            setStatus('Falta ejecutar la migración del campo “Enlace para hojear / Flipbook” en Supabase. El producto no se guardó.', true);
+            return;
+          }
           if (error.code === 'missing_paid_products_table') {
             useLocalMode = true;
             const next = {

@@ -96,6 +96,31 @@ function validHotmartUrl(value) {
   }
 }
 
+function isMissingFlipbookColumn(error) {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes('flipbook_url') &&
+    (message.includes('does not exist') || message.includes('schema cache') || message.includes('column'));
+}
+
+function validFlipbookUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw.startsWith('//')) return '';
+
+  const relativeMatch = raw.match(/^\/hojear\/\?agenda=([a-z0-9]+(?:-[a-z0-9]+)*)$/);
+  if (relativeMatch) {
+    const slug = relativeMatch[1];
+    return slug.length >= 2 && slug.length <= 100 ? raw : '';
+  }
+  if (raw.startsWith('/')) return '';
+
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
 function notFound(res) {
   res.statusCode = 404;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -157,11 +182,24 @@ module.exports = async function handler(req, res) {
 
   try {
     const columns =
+      'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,flipbook_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
+    const columnsWithoutFlipbook =
       'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
 
-    const products = await callSupabase(
-      `/rest/v1/paid_products?select=${encodeURIComponent(columns)}&code=eq.${encodeURIComponent(productCode)}&active=eq.true&limit=1`
-    );
+    let products;
+    try {
+      products = await callSupabase(
+        `/rest/v1/paid_products?select=${encodeURIComponent(columns)}&code=eq.${encodeURIComponent(productCode)}&active=eq.true&limit=1`
+      );
+    } catch (error) {
+      if (!isMissingFlipbookColumn(error)) throw error;
+      products = await callSupabase(
+        `/rest/v1/paid_products?select=${encodeURIComponent(columnsWithoutFlipbook)}&code=eq.${encodeURIComponent(productCode)}&active=eq.true&limit=1`
+      );
+      if (Array.isArray(products)) {
+        products = products.map((item) => ({ ...item, flipbook_url: '' }));
+      }
+    }
 
     const product = Array.isArray(products) ? products[0] : null;
 
@@ -194,6 +232,7 @@ module.exports = async function handler(req, res) {
       .filter(Boolean);
 
     const hotmartUrl = validHotmartUrl(product.hotmart_url);
+    const flipbookUrl = validFlipbookUrl(product.flipbook_url);
 
     const pricePen = Number(product.price_yape_pe || 0);
     const priceUsd = Number(product.price_paypal_usd || 0);
@@ -642,6 +681,20 @@ module.exports = async function handler(req, res) {
 
 
           <div class="product-sale__actions">
+
+            ${
+              flipbookUrl
+                ? `
+                  <a
+                    class="btn btn-secondary"
+                    href="${escapeHtml(flipbookUrl)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Hojear muestra
+                  </a>`
+                : ''
+            }
 
             <a
               class="btn btn-primary"
