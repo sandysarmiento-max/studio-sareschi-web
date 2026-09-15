@@ -29,6 +29,9 @@ jobs:
       - name: Apply scoped flipbook changes
         run: python .github/scripts/run_flipbook_patch.py
 
+      - name: Normalize generated whitespace
+        run: sed -i 's/[[:space:]]\+$//' public/pdfs/index.html
+
       - name: Run regression checks
         run: |
           node --test tests/*.test.js
