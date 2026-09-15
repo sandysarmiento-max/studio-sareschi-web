@@ -3,6 +3,8 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const { getProductSlug } = require('./product-slugs');
 
 const STOREFRONT_COLUMNS =
+  'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,flipbook_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
+const STOREFRONT_COLUMNS_WITHOUT_FLIPBOOK =
   'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
 const LEGACY_STOREFRONT_COLUMNS =
   'id,code,title,description,price_pdf_pe,price_pdf_int,price_canva_pe,price_canva_int,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
@@ -22,6 +24,7 @@ const FALLBACK_PRODUCTS = [
     price_yape_pe: 8,
     price_paypal_usd: 3,
     hotmart_url: '',
+    flipbook_url: '',
     main_image_url: '/freebies/previews/fb_001_preview.jpg',
     preview_01_url: '/freebies/previews/fb_002_preview.jpg',
     preview_02_url: '/freebies/previews/fb_003_preview.jpg',
@@ -88,6 +91,12 @@ function isMissingPurchaseColumns(error) {
     (message.includes('does not exist') || message.includes('schema cache') || message.includes('column'));
 }
 
+function isMissingFlipbookColumn(error) {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes('flipbook_url') &&
+    (message.includes('does not exist') || message.includes('schema cache') || message.includes('column'));
+}
+
 function normalizeLegacyProduct(product) {
   return {
     id: product?.id,
@@ -97,6 +106,7 @@ function normalizeLegacyProduct(product) {
     price_yape_pe: Number(product?.price_canva_pe || 0),
     price_paypal_usd: Number(product?.price_canva_int || 0),
     hotmart_url: '',
+    flipbook_url: '',
     main_image_url: product?.main_image_url || '',
     preview_01_url: product?.preview_01_url || '',
     preview_02_url: product?.preview_02_url || '',
@@ -115,13 +125,32 @@ async function fetchActiveProducts() {
       { method: 'GET' }
     );
   } catch (error) {
-    if (!isMissingPurchaseColumns(error)) throw error;
+    if (isMissingFlipbookColumn(error)) {
+      try {
+        const products = await callSupabase(
+          `/rest/v1/paid_products?select=${STOREFRONT_COLUMNS_WITHOUT_FLIPBOOK}${order}`,
+          { method: 'GET' }
+        );
+        return Array.isArray(products)
+          ? products.map((product) => ({ ...product, flipbook_url: '' }))
+          : products;
+      } catch (fallbackError) {
+        if (!isMissingPurchaseColumns(fallbackError)) throw fallbackError;
+        const legacyProducts = await callSupabase(
+          `/rest/v1/paid_products?select=${LEGACY_STOREFRONT_COLUMNS}${order}`,
+          { method: 'GET' }
+        );
+        return Array.isArray(legacyProducts)
+          ? legacyProducts.map(normalizeLegacyProduct)
+          : legacyProducts;
+      }
+    }
 
+    if (!isMissingPurchaseColumns(error)) throw error;
     const legacyProducts = await callSupabase(
       `/rest/v1/paid_products?select=${LEGACY_STOREFRONT_COLUMNS}${order}`,
       { method: 'GET' }
     );
-
     return Array.isArray(legacyProducts)
       ? legacyProducts.map(normalizeLegacyProduct)
       : legacyProducts;
@@ -177,6 +206,25 @@ function normalizeHotmartUrl(value) {
   }
 }
 
+function normalizeFlipbookUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw.startsWith('//')) return '';
+
+  const relativeMatch = raw.match(/^\/hojear\/\?agenda=([a-z0-9]+(?:-[a-z0-9]+)*)$/);
+  if (relativeMatch) {
+    const slug = relativeMatch[1];
+    return slug.length >= 2 && slug.length <= 100 ? raw : '';
+  }
+  if (raw.startsWith('/')) return '';
+
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'https:' ? url.toString() : '';
+  } catch (_error) {
+    return '';
+  }
+}
+
 function normalizeStorefrontProduct(product) {
   return {
     ...product,
@@ -184,6 +232,7 @@ function normalizeStorefrontProduct(product) {
     price_yape_pe: Number(product?.price_yape_pe || 0),
     price_paypal_usd: Number(product?.price_paypal_usd || 0),
     hotmart_url: normalizeHotmartUrl(product?.hotmart_url),
+    flipbook_url: normalizeFlipbookUrl(product?.flipbook_url),
     main_image_url: toAbsolutePublicImageUrl(product?.main_image_url),
     preview_01_url: toAbsolutePublicImageUrl(product?.preview_01_url),
     preview_02_url: toAbsolutePublicImageUrl(product?.preview_02_url),

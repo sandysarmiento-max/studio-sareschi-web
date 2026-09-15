@@ -182,6 +182,25 @@
           .replaceAll("'", '&#39;');
       }
 
+      function normalizeFlipbookUrl(value) {
+        const raw = String(value || '').trim();
+        if (!raw || raw.startsWith('//')) return '';
+
+        const relativeMatch = raw.match(/^\/hojear\/\?agenda=([a-z0-9]+(?:-[a-z0-9]+)*)$/);
+        if (relativeMatch) {
+          const slug = relativeMatch[1];
+          return slug.length >= 2 && slug.length <= 100 ? raw : '';
+        }
+        if (raw.startsWith('/')) return '';
+
+        try {
+          const url = new URL(raw);
+          return url.protocol === 'https:' ? url.toString() : '';
+        } catch (_error) {
+          return '';
+        }
+      }
+
       function normalizeProduct(product) {
         return {
           id: String(product?.id || ''),
@@ -192,6 +211,7 @@
           price_yape_pe: Number(product?.price_yape_pe || 0),
           price_paypal_usd: Number(product?.price_paypal_usd || 0),
           hotmart_url: String(product?.hotmart_url || ''),
+          flipbook_url: normalizeFlipbookUrl(product?.flipbook_url),
           main_image_url: String(product?.main_image_url || ''),
           preview_01_url: String(product?.preview_01_url || ''),
           preview_02_url: String(product?.preview_02_url || ''),
@@ -357,12 +377,23 @@
         return `<button class="btn btn-secondary" data-action="buy-hotmart" data-product-id="${escapeHtml(product.id)}">Comprar en Hotmart</button>`;
       }
 
+      function getFlipbookButton(product) {
+        if (!product.flipbook_url) return '';
+        return `<button class="btn btn-secondary" data-action="open-flipbook" data-product-id="${escapeHtml(product.id)}">Hojear muestra</button>`;
+      }
+
       function openHotmartCheckout(product) {
         if (!product?.hotmart_url) {
           alert('Este producto todavía no tiene configurado su enlace de Hotmart.');
           return;
         }
         window.open(product.hotmart_url, '_blank', 'noopener,noreferrer');
+      }
+
+      function openFlipbook(product) {
+        const url = normalizeFlipbookUrl(product?.flipbook_url);
+        if (!url) return;
+        window.open(url, '_blank', 'noopener,noreferrer');
       }
 
       function openWhatsAppOrder(product) {
@@ -388,6 +419,7 @@
             <p>${escapeHtml(product.description || '')}</p>
             <div class="price-row">${getPriceMarkup(product)}</div>
             <div class="card-actions">
+              ${getFlipbookButton(product)}
               ${getHotmartButton(product)}
               <button class="btn btn-primary" data-action="buy-whatsapp" data-product-id="${escapeHtml(product.id)}">Comprar por WhatsApp</button>
             </div>
@@ -415,6 +447,7 @@
               <p>${escapeHtml(product.description || '')}</p>
               <div class="price-row price-row--detail">${getPriceMarkup(product)}</div>
               <div class="card-actions card-actions--detail">
+                ${getFlipbookButton(product)}
                 ${getHotmartButton(product)}
                 <button class="btn btn-primary" data-action="buy-whatsapp" data-product-id="${escapeHtml(product.id)}">Comprar por WhatsApp</button>
               </div>
@@ -487,6 +520,7 @@
           const productId = actionButton.dataset.productId;
           const product = storeProducts.find((item) => String(item.id) === String(productId));
           if (product) {
+            if (actionButton.dataset.action === 'open-flipbook') openFlipbook(product);
             if (actionButton.dataset.action === 'buy-hotmart') openHotmartCheckout(product);
             if (actionButton.dataset.action === 'buy-whatsapp') openWhatsAppOrder(product);
           }
