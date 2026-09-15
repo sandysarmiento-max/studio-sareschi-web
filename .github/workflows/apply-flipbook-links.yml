@@ -23,6 +23,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Install test dependencies
+        run: npm install --no-package-lock --ignore-scripts
+
       - name: Apply scoped flipbook changes
         run: python .github/scripts/run_flipbook_patch.py
 
