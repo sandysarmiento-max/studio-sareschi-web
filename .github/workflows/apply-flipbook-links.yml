@@ -24,7 +24,7 @@ jobs:
           node-version: '22'
 
       - name: Apply scoped flipbook changes
-        run: python .github/scripts/apply_flipbook_links.py
+        run: python .github/scripts/run_flipbook_patch.py
 
       - name: Run regression checks
         run: |
@@ -40,6 +40,6 @@ jobs:
           git config user.name "studio-sareschi-bot"
           git config user.email "studio-sareschi-bot@users.noreply.github.com"
           git add lib/paid-products-admin-handler.js public/admin/paid-products/index.html api/pdf-access.js public/pdfs/index.html api/plantilla.js tests/paid-products-flipbook.test.js
-          git rm .github/workflows/apply-flipbook-links.yml .github/scripts/apply_flipbook_links.py
+          git rm .github/workflows/apply-flipbook-links.yml .github/scripts/apply_flipbook_links.py .github/scripts/run_flipbook_patch.py
           git commit -m "Completa enlaces de flipbook en productos de paga"
           git push origin HEAD:feat/paid-products-flipbook-links
