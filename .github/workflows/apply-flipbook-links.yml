@@ -1,0 +1,677 @@
+name: Apply flipbook links to PR 130
+
+on:
+  push:
+    branches:
+      - feat/paid-products-flipbook-links
+    paths:
+      - .github/workflows/apply-flipbook-links.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/paid-products-flipbook-links
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply scoped flipbook changes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def text(path):
+              return Path(path).read_text(encoding='utf-8')
+
+          def write(path, value):
+              Path(path).write_text(value, encoding='utf-8')
+
+          def replace_once(value, old, new, label):
+              count = value.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 exact match, found {count}')
+              return value.replace(old, new, 1)
+
+          def sub_once(value, pattern, replacement, label):
+              next_value, count = re.subn(pattern, replacement, value, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 regex match, found {count}')
+              return next_value
+
+          # 1) Admin backend
+          path = 'lib/paid-products-admin-handler.js'
+          s = text(path)
+          s = replace_once(
+              s,
+              "const PRODUCT_COLUMNS =\n  'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order,created_at,updated_at';\n",
+              "const PRODUCT_COLUMNS =\n  'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,flipbook_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order,created_at,updated_at';\nconst PRODUCT_COLUMNS_WITHOUT_FLIPBOOK =\n  'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order,created_at,updated_at';\n",
+              'admin columns',
+          )
+          purchase_fn = """function isMissingPurchaseColumns(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const mentionsNewColumn =
+    message.includes('hotmart_url') ||
+    message.includes('price_yape_pe') ||
+    message.includes('price_paypal_usd');
+
+  return mentionsNewColumn &&
+    (message.includes('does not exist') || message.includes('schema cache') || message.includes('column'));
+}
+"""
+          flipbook_helpers = purchase_fn + """
+function isMissingFlipbookColumn(error) {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes('flipbook_url') &&
+    (message.includes('does not exist') || message.includes('schema cache') || message.includes('column'));
+}
+
+function sanitizeFlipbookUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  const invalidMessage =
+    'El enlace para hojear debe ser /hojear/?agenda=<slug> o una URL HTTPS válida.';
+
+  if (raw.startsWith('//')) {
+    throw new Error(invalidMessage);
+  }
+
+  const relativeMatch = raw.match(/^\/hojear\/\?agenda=([a-z0-9]+(?:-[a-z0-9]+)*)$/);
+  if (relativeMatch) {
+    const slug = relativeMatch[1];
+    if (slug.length >= 2 && slug.length <= 100) return raw;
+    throw new Error(invalidMessage);
+  }
+
+  if (raw.startsWith('/')) {
+    throw new Error(invalidMessage);
+  }
+
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:') throw new Error(invalidMessage);
+    return url.toString();
+  } catch (error) {
+    if (error?.message === invalidMessage) throw error;
+    throw new Error(invalidMessage);
+  }
+}
+"""
+          s = replace_once(s, purchase_fn, flipbook_helpers, 'admin flipbook helpers')
+          s = replace_once(
+              s,
+              "    hotmart_url: sanitizeHotmartUrl(payload.hotmart_url),\n",
+              "    hotmart_url: sanitizeHotmartUrl(payload.hotmart_url),\n    flipbook_url: sanitizeFlipbookUrl(payload.flipbook_url),\n",
+              'admin sanitize payload',
+          )
+          s = replace_once(
+              s,
+              "    hotmart_url: '',\n    main_image_url: product?.main_image_url || '',\n",
+              "    hotmart_url: '',\n    flipbook_url: '',\n    main_image_url: product?.main_image_url || '',\n",
+              'admin legacy normalize',
+          )
+          new_list = r'''async function listProducts(res) {
+  try {
+    const products = await callSupabase(
+      `/rest/v1/paid_products?select=${encodeURIComponent(PRODUCT_COLUMNS)}&order=sort_order.asc,created_at.asc`
+    );
+    return json(res, 200, {
+      products,
+      purchaseMigrationPending: false,
+      flipbookMigrationPending: false,
+    });
+  } catch (error) {
+    if (isMissingFlipbookColumn(error)) {
+      try {
+        const products = await callSupabase(
+          `/rest/v1/paid_products?select=${encodeURIComponent(PRODUCT_COLUMNS_WITHOUT_FLIPBOOK)}&order=sort_order.asc,created_at.asc`
+        );
+        return json(res, 200, {
+          products: Array.isArray(products)
+            ? products.map((product) => ({ ...product, flipbook_url: '' }))
+            : products,
+          purchaseMigrationPending: false,
+          flipbookMigrationPending: true,
+        });
+      } catch (fallbackError) {
+        if (!isMissingPurchaseColumns(fallbackError)) throw fallbackError;
+        const products = await callSupabase(
+          `/rest/v1/paid_products?select=${encodeURIComponent(LEGACY_PRODUCT_COLUMNS)}&order=sort_order.asc,created_at.asc`
+        );
+        return json(res, 200, {
+          products: Array.isArray(products) ? products.map(normalizeLegacyProduct) : products,
+          purchaseMigrationPending: true,
+          flipbookMigrationPending: true,
+        });
+      }
+    }
+
+    if (isMissingPurchaseColumns(error)) {
+      const products = await callSupabase(
+        `/rest/v1/paid_products?select=${encodeURIComponent(LEGACY_PRODUCT_COLUMNS)}&order=sort_order.asc,created_at.asc`
+      );
+      return json(res, 200, {
+        products: Array.isArray(products) ? products.map(normalizeLegacyProduct) : products,
+        purchaseMigrationPending: true,
+        flipbookMigrationPending: false,
+      });
+    }
+    if (String(error.message || '').includes("Could not find the table 'public.paid_products'")) {
+      return json(res, 503, {
+        code: 'missing_paid_products_table',
+        error: 'La tabla paid_products todavía no existe en este proyecto de Supabase.',
+      });
+    }
+    throw error;
+  }
+}
+
+'''
+          s = sub_once(
+              s,
+              r'async function listProducts\(res\) \{.*?\n\}\n\n(?=function migrationRequired)',
+              new_list,
+              'admin listProducts',
+          )
+          migration_fn = """function migrationRequired(res) {
+  return json(res, 503, {
+    code: 'missing_purchase_columns',
+    error: 'Primero debes ejecutar la migración de precios directos y Hotmart en Supabase.',
+  });
+}
+"""
+          s = replace_once(
+              s,
+              migration_fn,
+              migration_fn + """
+function flipbookMigrationRequired(res) {
+  return json(res, 503, {
+    code: 'missing_flipbook_column',
+    error: 'Primero debes ejecutar la migración del campo Enlace para hojear / Flipbook en Supabase.',
+  });
+}
+""",
+              'admin migration helper',
+          )
+          s = s.replace(
+              "  } catch (error) {\n    if (isMissingPurchaseColumns(error)) {\n      return migrationRequired(res);\n    }",
+              "  } catch (error) {\n    if (isMissingFlipbookColumn(error)) {\n      return flipbookMigrationRequired(res);\n    }\n    if (isMissingPurchaseColumns(error)) {\n      return migrationRequired(res);\n    }",
+          )
+          if s.count("if (isMissingFlipbookColumn(error)) {\n      return flipbookMigrationRequired(res);") != 2:
+              raise SystemExit('admin create/update migration handling was not applied twice')
+          write(path, s)
+
+          # 2) Paid products admin UI
+          path = 'public/admin/paid-products/index.html'
+          s = text(path)
+          s = replace_once(
+              s,
+              "          hotmart_url: String(product.hotmart_url || ''),\n",
+              "          hotmart_url: String(product.hotmart_url || ''),\n          flipbook_url: String(product.flipbook_url || ''),\n",
+              'admin ui normalize',
+          )
+          s = replace_once(
+              s,
+              "          hotmart_url: '',\n          main_image_url: '',\n",
+              "          hotmart_url: '',\n          flipbook_url: '',\n          main_image_url: '',\n",
+              'admin ui empty product',
+          )
+          s = replace_once(
+              s,
+              "        const fullWidth = name === 'hotmart_url' ? ' style=\"grid-column:1/-1;\"' : '';\n        const priceAttrs = name.startsWith('price_') ? ' min=\"0\" step=\"0.01\" inputmode=\"decimal\"' : '';\n        const placeholder = name === 'hotmart_url' ? ' placeholder=\"https://pay.hotmart.com/...\"' : '';\n",
+              "        const fullWidth = ['hotmart_url', 'flipbook_url'].includes(name) ? ' style=\"grid-column:1/-1;\"' : '';\n        const priceAttrs = name.startsWith('price_') ? ' min=\"0\" step=\"0.01\" inputmode=\"decimal\"' : '';\n        const placeholder = name === 'hotmart_url'\n          ? ' placeholder=\"https://pay.hotmart.com/...\"'\n          : name === 'flipbook_url'\n            ? ' placeholder=\"/hojear/?agenda=agenda-cozy-reading-2027\"'\n            : '';\n",
+              'admin ui field helper',
+          )
+          s = replace_once(
+              s,
+              "              <div class=\"admin-row\">\n                ${field('hotmart_url', 'Enlace directo de pago en Hotmart', product.hotmart_url, 'url')}\n              </div>\n",
+              "              <div class=\"admin-row\">\n                ${field('hotmart_url', 'Enlace directo de pago en Hotmart', product.hotmart_url, 'url')}\n              </div>\n              <div class=\"admin-row\">\n                ${field('flipbook_url', 'Enlace para hojear / Flipbook', product.flipbook_url, 'text')}\n                <p class=\"admin-help\">\n                  Puedes pegar la URL pública de /hojear/ o cualquier enlace HTTPS externo. Si queda vacío, no se mostrará el botón “Hojear muestra”.\n                </p>\n              </div>\n",
+              'admin ui field render',
+          )
+          s = replace_once(
+              s,
+              "          if (payload.purchaseMigrationPending) {\n            setStatus('Los productos se muestran con los precios anteriores como referencia. Ejecuta la migración de compra directa antes de guardar cambios.', true);\n          }\n",
+              "          if (payload.purchaseMigrationPending) {\n            setStatus('Los productos se muestran con los precios anteriores como referencia. Ejecuta la migración de compra directa antes de guardar cambios.', true);\n          } else if (payload.flipbookMigrationPending) {\n            setStatus('La lista cargó correctamente, pero falta ejecutar la migración del campo “Enlace para hojear / Flipbook” en Supabase. No guardes productos hasta aplicarla.', true);\n          }\n",
+              'admin ui migration status',
+          )
+          s = replace_once(
+              s,
+              "        } catch (error) {\n          if (error.code === 'missing_paid_products_table') {\n",
+              "        } catch (error) {\n          if (error.code === 'missing_flipbook_column') {\n            setStatus('Falta ejecutar la migración del campo “Enlace para hojear / Flipbook” en Supabase. El producto no se guardó.', true);\n            return;\n          }\n          if (error.code === 'missing_paid_products_table') {\n",
+              'admin ui save migration error',
+          )
+          write(path, s)
+
+          # 3) Public storefront API
+          path = 'api/pdf-access.js'
+          s = text(path)
+          s = replace_once(
+              s,
+              "const STOREFRONT_COLUMNS =\n  'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';\n",
+              "const STOREFRONT_COLUMNS =\n  'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,flipbook_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';\nconst STOREFRONT_COLUMNS_WITHOUT_FLIPBOOK =\n  'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';\n",
+              'storefront columns',
+          )
+          s = replace_once(
+              s,
+              "    hotmart_url: '',\n    main_image_url: '/freebies/previews/fb_001_preview.jpg',\n",
+              "    hotmart_url: '',\n    flipbook_url: '',\n    main_image_url: '/freebies/previews/fb_001_preview.jpg',\n",
+              'storefront fallback product',
+          )
+          s = replace_once(
+              s,
+              purchase_fn,
+              flipbook_helpers.replace('sanitizeFlipbookUrl', 'unusedSanitizeFlipbookUrl').split('function unusedSanitizeFlipbookUrl', 1)[0].rstrip() + "\n\n",
+              'storefront missing column helper',
+          )
+          s = replace_once(
+              s,
+              "    hotmart_url: '',\n    main_image_url: product?.main_image_url || '',\n",
+              "    hotmart_url: '',\n    flipbook_url: '',\n    main_image_url: product?.main_image_url || '',\n",
+              'storefront legacy normalize',
+          )
+          new_fetch = r'''async function fetchActiveProducts() {
+  const order = '&active=eq.true&order=sort_order.asc,created_at.asc';
+
+  try {
+    return await callSupabase(
+      `/rest/v1/paid_products?select=${STOREFRONT_COLUMNS}${order}`,
+      { method: 'GET' }
+    );
+  } catch (error) {
+    if (isMissingFlipbookColumn(error)) {
+      try {
+        const products = await callSupabase(
+          `/rest/v1/paid_products?select=${STOREFRONT_COLUMNS_WITHOUT_FLIPBOOK}${order}`,
+          { method: 'GET' }
+        );
+        return Array.isArray(products)
+          ? products.map((product) => ({ ...product, flipbook_url: '' }))
+          : products;
+      } catch (fallbackError) {
+        if (!isMissingPurchaseColumns(fallbackError)) throw fallbackError;
+        const legacyProducts = await callSupabase(
+          `/rest/v1/paid_products?select=${LEGACY_STOREFRONT_COLUMNS}${order}`,
+          { method: 'GET' }
+        );
+        return Array.isArray(legacyProducts)
+          ? legacyProducts.map(normalizeLegacyProduct)
+          : legacyProducts;
+      }
+    }
+
+    if (!isMissingPurchaseColumns(error)) throw error;
+    const legacyProducts = await callSupabase(
+      `/rest/v1/paid_products?select=${LEGACY_STOREFRONT_COLUMNS}${order}`,
+      { method: 'GET' }
+    );
+    return Array.isArray(legacyProducts)
+      ? legacyProducts.map(normalizeLegacyProduct)
+      : legacyProducts;
+  }
+}
+
+'''
+          s = sub_once(
+              s,
+              r'async function fetchActiveProducts\(\) \{.*?\n\}\n\n(?=function toAbsolutePublicImageUrl)',
+              new_fetch,
+              'storefront fetch fallback',
+          )
+          hotmart_normalizer = r'''function normalizeHotmartUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  try {
+    const url = new URL(raw);
+    const hostname = url.hostname.toLowerCase();
+    const isHotmartHost =
+      hostname === 'hotmart.com' ||
+      hostname.endsWith('.hotmart.com') ||
+      hostname === 'hotm.art' ||
+      hostname.endsWith('.hotm.art');
+
+    if (url.protocol !== 'https:' || !isHotmartHost) {
+      return '';
+    }
+
+    return url.toString();
+  } catch (_error) {
+    return '';
+  }
+}
+'''
+          public_flipbook = hotmart_normalizer + r'''
+function normalizeFlipbookUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw.startsWith('//')) return '';
+
+  const relativeMatch = raw.match(/^\/hojear\/\?agenda=([a-z0-9]+(?:-[a-z0-9]+)*)$/);
+  if (relativeMatch) {
+    const slug = relativeMatch[1];
+    return slug.length >= 2 && slug.length <= 100 ? raw : '';
+  }
+  if (raw.startsWith('/')) return '';
+
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'https:' ? url.toString() : '';
+  } catch (_error) {
+    return '';
+  }
+}
+'''
+          s = replace_once(s, hotmart_normalizer, public_flipbook, 'storefront flipbook sanitizer')
+          s = replace_once(
+              s,
+              "    hotmart_url: normalizeHotmartUrl(product?.hotmart_url),\n",
+              "    hotmart_url: normalizeHotmartUrl(product?.hotmart_url),\n    flipbook_url: normalizeFlipbookUrl(product?.flipbook_url),\n",
+              'storefront normalized product',
+          )
+          write(path, s)
+
+          # 4) Public catalog UI
+          path = 'public/pdfs/index.html'
+          s = text(path)
+          normalize_anchor = """      function normalizeProduct(product) {
+"""
+          flipbook_client = r'''      function normalizeFlipbookUrl(value) {
+        const raw = String(value || '').trim();
+        if (!raw || raw.startsWith('//')) return '';
+
+        const relativeMatch = raw.match(/^\/hojear\/\?agenda=([a-z0-9]+(?:-[a-z0-9]+)*)$/);
+        if (relativeMatch) {
+          const slug = relativeMatch[1];
+          return slug.length >= 2 && slug.length <= 100 ? raw : '';
+        }
+        if (raw.startsWith('/')) return '';
+
+        try {
+          const url = new URL(raw);
+          return url.protocol === 'https:' ? url.toString() : '';
+        } catch (_error) {
+          return '';
+        }
+      }
+
+      function normalizeProduct(product) {
+'''
+          s = replace_once(s, normalize_anchor, flipbook_client, 'catalog flipbook sanitizer')
+          s = replace_once(
+              s,
+              "          hotmart_url: String(product?.hotmart_url || ''),\n",
+              "          hotmart_url: String(product?.hotmart_url || ''),\n          flipbook_url: normalizeFlipbookUrl(product?.flipbook_url),\n",
+              'catalog normalize product',
+          )
+          hotmart_button = r'''      function getHotmartButton(product) {
+        if (!product.hotmart_url) {
+          return '<button class="btn btn-secondary" type="button" disabled title="Agrega el enlace desde el panel de productos">Hotmart próximamente</button>';
+        }
+        return `<button class="btn btn-secondary" data-action="buy-hotmart" data-product-id="${escapeHtml(product.id)}">Comprar en Hotmart</button>`;
+      }
+'''
+          s = replace_once(
+              s,
+              hotmart_button,
+              hotmart_button + r'''
+      function getFlipbookButton(product) {
+        if (!product.flipbook_url) return '';
+        return `<button class="btn btn-secondary" data-action="open-flipbook" data-product-id="${escapeHtml(product.id)}">Hojear muestra</button>`;
+      }
+''',
+              'catalog flipbook button helper',
+          )
+          open_hotmart = r'''      function openHotmartCheckout(product) {
+        if (!product?.hotmart_url) {
+          alert('Este producto todavía no tiene configurado su enlace de Hotmart.');
+          return;
+        }
+        window.open(product.hotmart_url, '_blank', 'noopener,noreferrer');
+      }
+'''
+          s = replace_once(
+              s,
+              open_hotmart,
+              open_hotmart + r'''
+      function openFlipbook(product) {
+        const url = normalizeFlipbookUrl(product?.flipbook_url);
+        if (!url) return;
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+''',
+              'catalog open flipbook',
+          )
+          s = s.replace(
+              "            <div class=\"card-actions\">\n              ${getHotmartButton(product)}\n",
+              "            <div class=\"card-actions\">\n              ${getFlipbookButton(product)}\n              ${getHotmartButton(product)}\n",
+          )
+          if s.count("${getFlipbookButton(product)}") != 2:
+              # add modal separately when only card replacement matched once
+              s = replace_once(
+                  s,
+                  "              <div class=\"card-actions card-actions--detail\">\n                ${getHotmartButton(product)}\n",
+                  "              <div class=\"card-actions card-actions--detail\">\n                ${getFlipbookButton(product)}\n                ${getHotmartButton(product)}\n",
+                  'catalog detail flipbook button',
+              )
+          s = replace_once(
+              s,
+              "            if (actionButton.dataset.action === 'buy-hotmart') openHotmartCheckout(product);\n            if (actionButton.dataset.action === 'buy-whatsapp') openWhatsAppOrder(product);\n",
+              "            if (actionButton.dataset.action === 'open-flipbook') openFlipbook(product);\n            if (actionButton.dataset.action === 'buy-hotmart') openHotmartCheckout(product);\n            if (actionButton.dataset.action === 'buy-whatsapp') openWhatsAppOrder(product);\n",
+              'catalog action handler',
+          )
+          write(path, s)
+
+          # 5) Individual product page
+          path = 'api/plantilla.js'
+          s = text(path)
+          valid_hotmart = r'''function validHotmartUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.toLowerCase();
+
+    const allowed =
+      host === 'hotmart.com' ||
+      host.endsWith('.hotmart.com') ||
+      host === 'hotm.art' ||
+      host.endsWith('.hotm.art');
+
+    return url.protocol === 'https:' && allowed ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+'''
+          s = replace_once(
+              s,
+              valid_hotmart,
+              valid_hotmart + r'''
+function isMissingFlipbookColumn(error) {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes('flipbook_url') &&
+    (message.includes('does not exist') || message.includes('schema cache') || message.includes('column'));
+}
+
+function validFlipbookUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw.startsWith('//')) return '';
+
+  const relativeMatch = raw.match(/^\/hojear\/\?agenda=([a-z0-9]+(?:-[a-z0-9]+)*)$/);
+  if (relativeMatch) {
+    const slug = relativeMatch[1];
+    return slug.length >= 2 && slug.length <= 100 ? raw : '';
+  }
+  if (raw.startsWith('/')) return '';
+
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+''',
+              'product page flipbook helpers',
+          )
+          old_query = r'''    const columns =
+      'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
+
+    const products = await callSupabase(
+      `/rest/v1/paid_products?select=${encodeURIComponent(columns)}&code=eq.${encodeURIComponent(productCode)}&active=eq.true&limit=1`
+    );
+'''
+          new_query = r'''    const columns =
+      'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,flipbook_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
+    const columnsWithoutFlipbook =
+      'id,code,title,description,price_yape_pe,price_paypal_usd,hotmart_url,main_image_url,preview_01_url,preview_02_url,preview_03_url,active,sort_order';
+
+    let products;
+    try {
+      products = await callSupabase(
+        `/rest/v1/paid_products?select=${encodeURIComponent(columns)}&code=eq.${encodeURIComponent(productCode)}&active=eq.true&limit=1`
+      );
+    } catch (error) {
+      if (!isMissingFlipbookColumn(error)) throw error;
+      products = await callSupabase(
+        `/rest/v1/paid_products?select=${encodeURIComponent(columnsWithoutFlipbook)}&code=eq.${encodeURIComponent(productCode)}&active=eq.true&limit=1`
+      );
+      if (Array.isArray(products)) {
+        products = products.map((item) => ({ ...item, flipbook_url: '' }));
+      }
+    }
+'''
+          s = replace_once(s, old_query, new_query, 'product page query fallback')
+          s = replace_once(
+              s,
+              "    const hotmartUrl = validHotmartUrl(product.hotmart_url);\n",
+              "    const hotmartUrl = validHotmartUrl(product.hotmart_url);\n    const flipbookUrl = validFlipbookUrl(product.flipbook_url);\n",
+              'product page flipbook value',
+          )
+          actions_start = """          <div class=\"product-sale__actions\">\n\n            <a\n"""
+          actions_with_flipbook = """          <div class=\"product-sale__actions\">\n\n            ${\n              flipbookUrl\n                ? `\n                  <a\n                    class=\"btn btn-secondary\"\n                    href=\"${escapeHtml(flipbookUrl)}\"\n                    target=\"_blank\"\n                    rel=\"noopener noreferrer\"\n                  >\n                    Hojear muestra\n                  </a>`\n                : ''\n            }\n\n            <a\n"""
+          s = replace_once(s, actions_start, actions_with_flipbook, 'product page flipbook action')
+          write(path, s)
+
+          # 6) Focused regression tests
+          Path('tests/paid-products-flipbook.test.js').write_text(r'''const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+const ROOT = path.resolve(__dirname, '..');
+const read = (relativePath) => fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
+
+function loadAdminHelpers() {
+  const filename = path.join(ROOT, 'lib/paid-products-admin-handler.js');
+  const source = fs.readFileSync(filename, 'utf8') +
+    '\nmodule.exports.__test = { sanitizeFlipbookUrl, isMissingFlipbookColumn };\n';
+  const sandbox = {
+    module: { exports: {} },
+    exports: {},
+    require,
+    process,
+    Buffer,
+    URL,
+    console,
+  };
+  vm.runInNewContext(source, sandbox, { filename });
+  return sandbox.module.exports.__test;
+}
+
+test('admin valida enlaces internos /hojear y HTTPS externos', () => {
+  const { sanitizeFlipbookUrl } = loadAdminHelpers();
+  assert.equal(sanitizeFlipbookUrl(''), '');
+  assert.equal(
+    sanitizeFlipbookUrl('/hojear/?agenda=agenda-cozy-reading-2027'),
+    '/hojear/?agenda=agenda-cozy-reading-2027'
+  );
+  assert.equal(sanitizeFlipbookUrl('https://example.com/demo'), 'https://example.com/demo');
+
+  for (const value of [
+    'http://example.com/demo',
+    '//example.com/demo',
+    'javascript:alert(1)',
+    'data:text/html,hello',
+    '/otra-ruta/',
+    '/hojear/?agenda=Slug Invalido',
+  ]) {
+    assert.throws(() => sanitizeFlipbookUrl(value));
+  }
+});
+
+test('backend distingue la migración flipbook y conserva fallback de lectura', () => {
+  const { isMissingFlipbookColumn } = loadAdminHelpers();
+  assert.equal(
+    isMissingFlipbookColumn(new Error('column paid_products.flipbook_url does not exist')),
+    true
+  );
+  assert.equal(isMissingFlipbookColumn(new Error('price_yape_pe does not exist')), false);
+
+  const admin = read('lib/paid-products-admin-handler.js');
+  assert.match(admin, /PRODUCT_COLUMNS_WITHOUT_FLIPBOOK/);
+  assert.match(admin, /flipbookMigrationPending: true/);
+  assert.match(admin, /missing_flipbook_column/);
+
+  const storefront = read('api/pdf-access.js');
+  assert.match(storefront, /STOREFRONT_COLUMNS_WITHOUT_FLIPBOOK/);
+  assert.match(storefront, /flipbook_url: ''/);
+});
+
+test('panel de productos incluye el campo Enlace para hojear / Flipbook', () => {
+  const adminUi = read('public/admin/paid-products/index.html');
+  assert.match(adminUi, /Enlace para hojear \/ Flipbook/);
+  assert.match(adminUi, /\/hojear\/\?agenda=agenda-cozy-reading-2027/);
+  assert.match(adminUi, /missing_flipbook_column/);
+});
+
+test('catálogo muestra Hojear muestra solo a través del enlace validado', () => {
+  const catalog = read('public/pdfs/index.html');
+  assert.match(catalog, /function normalizeFlipbookUrl/);
+  assert.match(catalog, /function getFlipbookButton/);
+  assert.match(catalog, /if \(!product\.flipbook_url\) return ''/);
+  assert.match(catalog, /Hojear muestra/);
+  assert.match(catalog, /data-action="open-flipbook"/);
+});
+
+test('página individual usa fallback de columna y botón condicional', () => {
+  const productPage = read('api/plantilla.js');
+  assert.match(productPage, /columnsWithoutFlipbook/);
+  assert.match(productPage, /isMissingFlipbookColumn/);
+  assert.match(productPage, /const flipbookUrl = validFlipbookUrl/);
+  assert.match(productPage, /flipbookUrl\s*\n\s*\? `/);
+  assert.match(productPage, /Hojear muestra/);
+});
+''', encoding='utf-8')
+          PY
+
+      - name: Run regression checks
+        shell: bash
+        run: |
+          node --test tests/*.test.js
+          node --test tests/paid-products-flipbook.test.js
+          node --check lib/paid-products-admin-handler.js
+          node --check api/pdf-access.js
+          node --check api/plantilla.js
+          git diff --check
+
+      - name: Commit changes to PR branch
+        shell: bash
+        run: |
+          git config user.name "studio-sareschi-bot"
+          git config user.email "studio-sareschi-bot@users.noreply.github.com"
+          git add lib/paid-products-admin-handler.js public/admin/paid-products/index.html api/pdf-access.js public/pdfs/index.html api/plantilla.js tests/paid-products-flipbook.test.js
+          git rm .github/workflows/apply-flipbook-links.yml
+          git commit -m "Completa enlaces de flipbook en productos de paga"
+          git push origin HEAD:feat/paid-products-flipbook-links
