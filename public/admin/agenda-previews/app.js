@@ -173,7 +173,9 @@
     const pageElements = config.previewPages.map((source, index) => {
       const page = document.createElement('div');
       page.className = 'agenda-preview-page';
-      page.dataset.density = index === 0 || index === lastIndex ? 'hard' : 'soft';
+      // Cada tapa física tiene dos caras: exterior e interior.
+      // Por eso páginas 1-2 y las dos últimas deben compartir densidad HARD.
+      page.dataset.density = index <= 1 || index >= lastIndex - 1 ? 'hard' : 'soft';
       page.style.background = '#fff';
       page.style.overflow = 'hidden';
 
@@ -251,8 +253,8 @@
     pageFlip.on('changeOrientation', () => updateStatus(lastPageIndex));
 
     if (htmlPages) {
-      // Modo experimental: solo portada y contraportada son rígidas.
-      // Las páginas interiores mantienen densidad soft y la misma navegación/controles.
+      // Modo experimental: las dos caras de portada y contraportada son rígidas.
+      // Las páginas interiores continúan con densidad soft y los mismos controles.
       pageFlip.loadFromHTML(htmlPages);
     } else {
       // Visor aprobado actual: conserva Canvas/imágenes para el gestor y configuraciones sin hardCovers.
