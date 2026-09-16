@@ -82,6 +82,8 @@
   let renderDensityTimer = null;
   let instanceReady = false;
   let soundGestureLocked = false;
+  let zoomBaseWidth = 0;
+  let zoomBaseHeight = 0;
 
   function hardCoverModeEnabled() {
     return Boolean(config.hardCovers && Array.isArray(config.previewPages) && config.previewPages.length > 1);
@@ -107,7 +109,56 @@
       if (lastPageIndex === 0) coverOffset = -currentSize.width / 2;
       else if (lastPageIndex === config.previewPages.length - 1) coverOffset = currentSize.width / 2;
     }
-    elements.position.style.transform = `translateX(${coverOffset}px)`;
+    elements.position.style.transform = `translateX(${coverOffset * zoom}px)`;
+  }
+
+  function measureZoomBase() {
+    const measuredWidth = bookElement.offsetWidth;
+    const measuredHeight = bookElement.offsetHeight;
+    if (measuredWidth > 0) zoomBaseWidth = measuredWidth;
+    if (measuredHeight > 0) zoomBaseHeight = measuredHeight;
+
+    if (!zoomBaseWidth && currentSize) {
+      zoomBaseWidth = currentSize.width * (currentMode === 'landscape' ? 2 : 1);
+    }
+    if (!zoomBaseHeight && currentSize) zoomBaseHeight = currentSize.height;
+  }
+
+  function syncZoomLayout(centerViewport = false) {
+    measureZoomBase();
+    if (!zoomBaseWidth || !zoomBaseHeight) return;
+
+    const scaledWidth = Math.max(1, Math.ceil(zoomBaseWidth * zoom));
+    const scaledHeight = Math.max(1, Math.ceil(zoomBaseHeight * zoom));
+
+    // El contenedor exterior reserva el tamaño real del libro ampliado.
+    // Así las barras de desplazamiento alcanzan también la parte superior e izquierda,
+    // algo que no ocurre si solo se usa transform: scale() sobre un elemento centrado.
+    elements.viewport.style.display = 'flex';
+    elements.viewport.style.alignItems = 'flex-start';
+    elements.viewport.style.justifyContent = 'flex-start';
+    elements.position.style.position = 'relative';
+    elements.position.style.flex = '0 0 auto';
+    elements.position.style.margin = 'auto';
+    elements.position.style.width = `${scaledWidth}px`;
+    elements.position.style.height = `${scaledHeight}px`;
+
+    elements.scale.style.position = 'absolute';
+    elements.scale.style.left = '0';
+    elements.scale.style.top = '0';
+    elements.scale.style.width = `${zoomBaseWidth}px`;
+    elements.scale.style.height = `${zoomBaseHeight}px`;
+    elements.scale.style.transformOrigin = 'top left';
+    elements.scale.style.transform = `scale(${zoom})`;
+
+    applyBookPosition();
+
+    if (centerViewport) {
+      window.requestAnimationFrame(() => {
+        elements.viewport.scrollLeft = Math.max(0, (elements.viewport.scrollWidth - elements.viewport.clientWidth) / 2);
+        elements.viewport.scrollTop = Math.max(0, (elements.viewport.scrollHeight - elements.viewport.clientHeight) / 2);
+      });
+    }
   }
 
   function visibleLabel(index) {
@@ -131,7 +182,7 @@
 
   function applyZoom(nextZoom) {
     zoom = Math.max(.8, Math.min(1.5, nextZoom));
-    elements.scale.style.transform = `scale(${zoom})`;
+    syncZoomLayout(true);
     elements.zoomValue.value = `${Math.round(zoom * 100)}%`;
     elements.zoomValue.textContent = `${Math.round(zoom * 100)}%`;
     elements.zoomOut.disabled = zoom <= .8;
@@ -139,6 +190,7 @@
     window.clearTimeout(renderDensityTimer);
     renderDensityTimer = window.setTimeout(() => {
       if (pageFlip && instanceReady) pageFlip.getUI().update();
+      syncZoomLayout(false);
     }, 220);
   }
 
@@ -166,6 +218,8 @@
     if (bookElement.isConnected) bookElement.replaceWith(replacement);
     else elements.scale.appendChild(replacement);
     bookElement = replacement;
+    zoomBaseWidth = 0;
+    zoomBaseHeight = 0;
   }
 
   function prepareHtmlPages() {
@@ -207,6 +261,8 @@
     const layout = getLayout();
     currentMode = layout.mode;
     currentSize = layout;
+    zoomBaseWidth = 0;
+    zoomBaseHeight = 0;
     instanceReady = false;
     soundGestureLocked = false;
     elements.loading.hidden = false;
@@ -232,6 +288,7 @@
       lastPageIndex = event.data.page;
       instanceReady = true;
       updateStatus(lastPageIndex);
+      syncZoomLayout(false);
       elements.loading.hidden = true;
     });
     pageFlip.on('flip', (event) => {
@@ -243,6 +300,7 @@
       const state = event.data;
       if (state === 'read') {
         soundGestureLocked = false;
+        syncZoomLayout(false);
         return;
       }
       if (instanceReady && !soundGestureLocked && (state === 'flipping' || state === 'user_fold')) {
@@ -250,7 +308,10 @@
         playPageSound();
       }
     });
-    pageFlip.on('changeOrientation', () => updateStatus(lastPageIndex));
+    pageFlip.on('changeOrientation', () => {
+      updateStatus(lastPageIndex);
+      syncZoomLayout(false);
+    });
 
     if (htmlPages) {
       // Modo experimental: las dos caras de portada y contraportada son rígidas.
