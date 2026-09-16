@@ -15,7 +15,7 @@
     viewer.hidden = true;
     state.hidden = false;
     stateTitle.textContent = 'Muestra no disponible';
-    stateText.textContent = 'Esta muestra todavía no está disponible para hojearla.';
+    stateText.textContent = 'Esta muestra todavía no está disponible para hojear.';
     stateLink.hidden = false;
     document.title = 'Muestra no disponible · Studio Sareschi';
   }
