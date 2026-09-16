@@ -83,6 +83,10 @@
   let instanceReady = false;
   let soundGestureLocked = false;
 
+  function hardCoverModeEnabled() {
+    return Boolean(config.hardCovers && Array.isArray(config.previewPages) && config.previewPages.length > 1);
+  }
+
   function setProductText() {
     document.getElementById('productTitle').textContent = config.title;
     document.getElementById('formatLine').textContent = config.format;
@@ -164,6 +168,35 @@
     bookElement = replacement;
   }
 
+  function prepareHtmlPages() {
+    const lastIndex = config.previewPages.length - 1;
+    const pageElements = config.previewPages.map((source, index) => {
+      const page = document.createElement('div');
+      page.className = 'agenda-preview-page';
+      page.dataset.density = index === 0 || index === lastIndex ? 'hard' : 'soft';
+      page.style.background = '#fff';
+      page.style.overflow = 'hidden';
+
+      const image = document.createElement('img');
+      image.src = source;
+      image.alt = '';
+      image.draggable = false;
+      image.decoding = 'async';
+      image.style.display = 'block';
+      image.style.width = '100%';
+      image.style.height = '100%';
+      image.style.objectFit = 'fill';
+      image.style.userSelect = 'none';
+      image.style.webkitUserDrag = 'none';
+      image.setAttribute('aria-hidden', 'true');
+
+      page.appendChild(image);
+      return page;
+    });
+    bookElement.replaceChildren(...pageElements);
+    return pageElements;
+  }
+
   function initialize(startPage = 0) {
     if (!window.St || !window.St.PageFlip) {
       elements.loading.textContent = 'No se pudo iniciar el visor.';
@@ -175,6 +208,7 @@
     instanceReady = false;
     soundGestureLocked = false;
     elements.loading.hidden = false;
+    const htmlPages = hardCoverModeEnabled() ? prepareHtmlPages() : null;
 
     pageFlip = new window.St.PageFlip(bookElement, {
       width: layout.width,
@@ -215,8 +249,15 @@
       }
     });
     pageFlip.on('changeOrientation', () => updateStatus(lastPageIndex));
-    // Una URL inmutable por cara. Evita la clonación de nodos HTML y cambios de src durante el giro.
-    pageFlip.loadFromImages(Object.freeze([...config.previewPages]));
+
+    if (htmlPages) {
+      // Modo experimental: solo portada y contraportada son rígidas.
+      // Las páginas interiores mantienen densidad soft y la misma navegación/controles.
+      pageFlip.loadFromHTML(htmlPages);
+    } else {
+      // Visor aprobado actual: conserva Canvas/imágenes para el gestor y configuraciones sin hardCovers.
+      pageFlip.loadFromImages(Object.freeze([...config.previewPages]));
+    }
   }
 
   function rebuildForViewport() {
@@ -326,13 +367,14 @@
     },
     getState: () => ({
       mode: currentMode,
+      renderMode: hardCoverModeEnabled() ? 'html-hard-covers' : 'canvas-images',
       pageWidth: currentSize && currentSize.width,
       pageHeight: currentSize && currentSize.height,
       currentPageIndex: lastPageIndex,
       previewPages: [...config.previewPages],
       instanceCount: pageFlip ? 1 : 0,
       audioReady,
-      pageSources: pageFlip ? Array.from({ length: pageFlip.getPageCount() }, (_, index) => pageFlip.getPage(index).image.src) : []
+      pageSources: pageFlip ? [...config.previewPages] : []
     })
   };
 })();
