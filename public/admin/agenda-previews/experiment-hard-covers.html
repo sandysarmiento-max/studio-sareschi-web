@@ -36,15 +36,48 @@
     </section>
   </main>
   <script>
+    const pageSvg = (pageNumber, label, hard, accent) => {
+      const lines = Array.from({ length: 14 }, (_, i) => `<line x1="110" y1="${360 + i * 82}" x2="890" y2="${360 + i * 82}" stroke="#ded8d2" stroke-width="2"/>`).join('');
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1419" viewBox="0 0 1000 1419">
+        <rect width="1000" height="1419" fill="#fffdf9"/>
+        <rect x="0" y="0" width="1000" height="118" fill="${accent}" opacity=".18"/>
+        <rect x="72" y="72" width="856" height="1275" rx="8" fill="none" stroke="#d9d0ca" stroke-width="3"/>
+        ${hard ? `<rect x="72" y="72" width="856" height="1275" rx="8" fill="${accent}" opacity=".08"/>` : lines}
+        <text x="500" y="205" text-anchor="middle" font-family="Georgia,serif" font-size="44" fill="#6f3744">${label}</text>
+        <text x="500" y="278" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" fill="#776d6d">Página ${pageNumber} · ${hard ? 'HARD' : 'SOFT'}</text>
+        ${hard ? `<text x="500" y="760" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" fill="#315c62">TAPA RÍGIDA</text><text x="500" y="815" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" fill="#776d6d">Debe girar como una placa, sin triángulo doblado</text>` : `<text x="500" y="1260" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" fill="#9a8f8d">Página interior: debe doblarse como papel</text>`}
+      </svg>`;
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    };
+
+    const labels = [
+      ['PORTADA EXTERIOR', true, '#d9a1ad'],
+      ['PORTADA INTERIOR', true, '#d9a1ad'],
+      ['INTERIOR 1', false, '#b8c8b1'],
+      ['INTERIOR 2', false, '#b8c8b1'],
+      ['INTERIOR 3', false, '#b8c8b1'],
+      ['INTERIOR 4', false, '#b8c8b1'],
+      ['INTERIOR 5', false, '#b8c8b1'],
+      ['INTERIOR 6', false, '#b8c8b1'],
+      ['INTERIOR 7', false, '#b8c8b1'],
+      ['INTERIOR 8', false, '#b8c8b1'],
+      ['INTERIOR 9', false, '#b8c8b1'],
+      ['INTERIOR 10', false, '#b8c8b1'],
+      ['INTERIOR 11', false, '#b8c8b1'],
+      ['INTERIOR 12', false, '#b8c8b1'],
+      ['CONTRAPORTADA INTERIOR', true, '#a8c9cf'],
+      ['CONTRAPORTADA EXTERIOR', true, '#a8c9cf']
+    ];
+
     window.__AGENDA_PREVIEW_CONFIG__ = {
-      slug: 'cozy-reading-hard-demo',
-      title: 'Agenda Cozy Reading 2027 · prueba HARD',
+      slug: 'hard-covers-demo',
+      title: 'Prueba integrada de tapas HARD',
       format: 'A5',
       width: 148,
       height: 210,
       orientation: 'vertical',
       totalProductPages: 180,
-      previewPages: Array.from({length:16},(_,i)=>`previews/cozy-reading/${String(i+1).padStart(2,'0')}.png`),
+      previewPages: labels.map(([label, hard, accent], index) => pageSvg(index + 1, label, hard, accent)),
       hardCovers: true
     };
   </script>
