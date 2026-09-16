@@ -41,6 +41,16 @@
               if (nextValue.includes(marker) && !nextValue.includes('"hardCovers":true')) {
                 nextValue = nextValue.replace(marker, `${marker}"hardCovers":true,`);
               }
+
+              const depthStyle = `<style id="hard-cover-depth-demo">
+                #book{filter:drop-shadow(0 4px 10px rgba(69,45,49,.10))}
+                .agenda-preview-page{outline:1px solid rgba(69,45,49,.035);box-shadow:0 2px 7px rgba(69,45,49,.075)}
+                .agenda-preview-page[data-density="hard"]{box-shadow:0 3px 9px rgba(69,45,49,.09)}
+              </style>`;
+              if (nextValue.includes('</head>') && !nextValue.includes('hard-cover-depth-demo')) {
+                nextValue = nextValue.replace('</head>', `${depthStyle}</head>`);
+              }
+
               descriptor.set.call(this, nextValue);
             }
           });
