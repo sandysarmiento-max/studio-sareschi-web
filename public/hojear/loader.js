@@ -15,7 +15,7 @@
     viewer.hidden = true;
     state.hidden = false;
     stateTitle.textContent = 'Muestra no disponible';
-    stateText.textContent = 'Esta muestra todavía no está disponible para hojear.';
+    stateText.textContent = 'Esta muestra todavía no está disponible para hojearla.';
     stateLink.hidden = false;
     document.title = 'Muestra no disponible · Studio Sareschi';
   }
@@ -152,6 +152,9 @@
         orientation: preview.orientation === 'landscape' ? 'horizontal' : 'vertical',
         totalProductPages: Number(preview.total_product_pages),
         previewPages,
+        // Rama experimental: activa páginas HTML con portada y contraportada HARD.
+        // El gestor local no recibe esta bandera y conserva el render Canvas aprobado.
+        hardCovers: true,
       };
 
       configureBuyButton(preview);
