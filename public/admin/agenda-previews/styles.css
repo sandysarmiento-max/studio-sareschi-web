@@ -8,7 +8,7 @@
   --ink: #342f30;
   --muted: #776d6d;
   --line: rgba(81, 58, 61, .15);
-  --shadow: 0 10px 24px rgba(69, 45, 49, .12);
+  --shadow: 0 22px 60px rgba(69, 45, 49, .18);
 }
 
 * { box-sizing: border-box; }
@@ -93,7 +93,10 @@ h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp
 
 /* En el modo HTML de tapas rígidas, el centro del libro coincide con el lomo.
    En doble página funciona como canal central; cerrado queda justo sobre el lomo de la tapa. */
-#book:has(.agenda-preview-page) { position: relative; }
+#book:has(.agenda-preview-page) {
+  position: relative;
+  filter: drop-shadow(0 10px 24px rgba(69, 45, 49, .12));
+}
 #book:has(.agenda-preview-page)::after {
   content: "";
   position: absolute;
