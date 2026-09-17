@@ -8,7 +8,7 @@
   --ink: #342f30;
   --muted: #776d6d;
   --line: rgba(81, 58, 61, .15);
-  --shadow: 0 22px 60px rgba(69, 45, 49, .18);
+  --shadow: 0 10px 24px rgba(69, 45, 49, .12);
 }
 
 * { box-sizing: border-box; }
@@ -90,6 +90,45 @@ h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp
 .book-position { transform-origin: center; transition: none; }
 .book-scale { transform-origin: center; transition: transform .2s ease; }
 #book { filter: drop-shadow(var(--shadow)); }
+
+.agenda-preview-page { position: relative; background: #fff; }
+.agenda-preview-page[data-density="hard"]::before,
+.agenda-preview-page[data-density="hard"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Tapa exterior delantera e interior trasera: lomo a la izquierda, canto fino a la derecha. */
+.agenda-preview-page:first-child::before,
+.agenda-preview-page:nth-last-child(2)::before {
+  left: 0;
+  width: 9px;
+  background: linear-gradient(90deg, rgba(52,47,48,.12), rgba(52,47,48,.035) 46%, transparent 100%);
+}
+.agenda-preview-page:first-child::after,
+.agenda-preview-page:nth-last-child(2)::after {
+  right: 0;
+  width: 3px;
+  background: linear-gradient(270deg, rgba(52,47,48,.13), rgba(52,47,48,.025) 65%, transparent 100%);
+}
+
+/* Interior delantero y tapa exterior trasera: el lomo cambia de lado. */
+.agenda-preview-page:nth-child(2)::before,
+.agenda-preview-page:last-child::before {
+  right: 0;
+  width: 9px;
+  background: linear-gradient(270deg, rgba(52,47,48,.12), rgba(52,47,48,.035) 46%, transparent 100%);
+}
+.agenda-preview-page:nth-child(2)::after,
+.agenda-preview-page:last-child::after {
+  left: 0;
+  width: 3px;
+  background: linear-gradient(90deg, rgba(52,47,48,.13), rgba(52,47,48,.025) 65%, transparent 100%);
+}
 
 .page-arrow { width: 46px; height: 52px; border: 0; border-radius: 14px; display: grid; place-items: center; background: rgba(255, 253, 249, .52); box-shadow: 0 5px 18px rgba(69,45,49,.07); }
 .page-arrow svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
