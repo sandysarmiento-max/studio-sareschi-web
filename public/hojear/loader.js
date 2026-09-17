@@ -406,9 +406,9 @@
 
       configureBuyButton(preview);
       installPublicClose();
-      await loadApprovedViewer();
       state.hidden = true;
       viewer.hidden = false;
+      await loadApprovedViewer();
     } catch (_error) {
       showUnavailable();
     }
