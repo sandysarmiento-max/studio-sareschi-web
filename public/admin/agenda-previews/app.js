@@ -94,9 +94,41 @@
     });
   }
 
+  function installOpaqueBackingStyles() {
+    if (document.getElementById('managerOpaqueBackingStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'managerOpaqueBackingStyles';
+    style.textContent = `
+      .public-flip-page,
+      .stf__item.public-flip-page {
+        background: #fff !important;
+        background-color: #fff !important;
+        opacity: 1 !important;
+        isolation: isolate;
+      }
+      .public-flip-page > .manager-opaque-backing {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        display: block;
+        background: #fff !important;
+        opacity: 1 !important;
+        pointer-events: none;
+      }
+      .public-flip-page > img {
+        position: relative;
+        z-index: 1;
+        background: #fff !important;
+        opacity: 1 !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   async function installApprovedViewerStyles() {
     await loadStylesheet('/hojear/viewer.css', 'managerPublicViewerStyles');
     await loadStylesheet('/hojear/viewer-depth.css', 'managerPublicViewerDepthStyles');
+    installOpaqueBackingStyles();
   }
 
   function decodeImageUrl(url) {
@@ -166,13 +198,18 @@
       page.className = 'public-flip-page';
       page.dataset.density = index <= 1 || index >= lastIndex - 1 ? 'hard' : 'soft';
 
+      const backing = document.createElement('span');
+      backing.className = 'manager-opaque-backing';
+      backing.setAttribute('aria-hidden', 'true');
+
       const image = document.createElement('img');
       image.src = source;
       image.alt = '';
       image.draggable = false;
       image.decoding = 'sync';
       image.setAttribute('aria-hidden', 'true');
-      page.appendChild(image);
+
+      page.append(backing, image);
       return page;
     });
   }
