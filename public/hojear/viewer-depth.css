@@ -1,0 +1,15 @@
+/* Profundidad del pliego abierto sin una capa superpuesta sobre todo el libro.
+   La sombra pertenece a cada hoja y se limita al borde interior junto al lomo. */
+.public-flip-page[data-density="soft"].--left {
+  box-shadow:
+    inset -16px 0 16px -15px rgba(52, 47, 48, .19),
+    inset -1px 0 0 rgba(52, 47, 48, .08),
+    inset 0 0 0 1px rgba(60, 45, 48, .035);
+}
+
+.public-flip-page[data-density="soft"].--right {
+  box-shadow:
+    inset 16px 0 16px -15px rgba(52, 47, 48, .19),
+    inset 1px 0 0 rgba(52, 47, 48, .08),
+    inset 0 0 0 1px rgba(60, 45, 48, .035);
+}
