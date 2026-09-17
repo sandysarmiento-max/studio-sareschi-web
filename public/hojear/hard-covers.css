@@ -1,0 +1,76 @@
+#book.public-hard-cover-book {
+  position: relative;
+  filter: drop-shadow(0 10px 24px rgba(69, 45, 49, .12));
+}
+
+#book.public-hard-cover-book::after {
+  content: "";
+  position: absolute;
+  z-index: 50;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 14px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(52,47,48,.035) 20%,
+    rgba(52,47,48,.13) 46%,
+    rgba(52,47,48,.16) 50%,
+    rgba(52,47,48,.13) 54%,
+    rgba(52,47,48,.035) 80%,
+    transparent 100%);
+}
+
+.agenda-preview-page {
+  position: relative;
+  background: #fff;
+}
+
+.agenda-preview-page > img {
+  position: relative;
+  z-index: 1;
+}
+
+.agenda-preview-page[data-density="hard"]::before,
+.agenda-preview-page[data-density="hard"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.agenda-preview-page:first-child::before,
+.agenda-preview-page:nth-last-child(2)::before {
+  left: 0;
+  width: 12px;
+  background: linear-gradient(90deg, rgba(52,47,48,.20), rgba(52,47,48,.07) 40%, transparent 100%);
+}
+
+.agenda-preview-page:first-child::after,
+.agenda-preview-page:nth-last-child(2)::after {
+  right: 0;
+  width: 3px;
+  background: linear-gradient(270deg, rgba(52,47,48,.24), rgba(52,47,48,.055) 62%, transparent 100%);
+}
+
+.agenda-preview-page:nth-child(2)::before,
+.agenda-preview-page:last-child::before {
+  right: 0;
+  width: 12px;
+  background: linear-gradient(270deg, rgba(52,47,48,.20), rgba(52,47,48,.07) 40%, transparent 100%);
+}
+
+.agenda-preview-page:nth-child(2)::after,
+.agenda-preview-page:last-child::after {
+  left: 0;
+  width: 3px;
+  background: linear-gradient(90deg, rgba(52,47,48,.24), rgba(52,47,48,.055) 62%, transparent 100%);
+}
+
+@media (max-width: 700px) {
+  #book.public-hard-cover-book::after { display: none; }
+}
