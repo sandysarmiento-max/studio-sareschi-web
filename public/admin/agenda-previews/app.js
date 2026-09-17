@@ -44,6 +44,7 @@
   const config = window.__AGENDA_PREVIEW_CONFIG__ || agendas[params.get('agenda')] || agendas['cozy-reading'];
   const AUDIO_SOURCE = '/admin/agenda-previews/audio/page-turn-short.ogg';
   const MOBILE_MIN_SPREAD_WIDTH = 620;
+  const generatedPageUrls = [];
 
   const elements = {
     viewport: document.getElementById('bookViewport'),
@@ -116,8 +117,21 @@
     });
   }
 
+  async function createLocalPageUrl(source) {
+    const response = await fetch(source, { cache: 'no-store' });
+    if (!response.ok) throw new Error('No se pudo preparar una página de la muestra.');
+    const blob = await response.blob();
+    if (!String(blob.type || '').toLowerCase().startsWith('image/')) {
+      throw new Error('La página recibida no es una imagen válida.');
+    }
+    const url = URL.createObjectURL(blob);
+    generatedPageUrls.push(url);
+    await decodeImageUrl(url);
+    return url;
+  }
+
   async function preparePages() {
-    await Promise.all(config.previewPages.map((source) => decodeImageUrl(source)));
+    config.previewPages = await Promise.all(config.previewPages.map((source) => createLocalPageUrl(source)));
   }
 
   function setProductText() {
@@ -172,6 +186,10 @@
     return left === right ? `Página ${left}` : `Páginas ${left}–${right}`;
   }
 
+  function isSpreadOpen(index) {
+    return currentMode === 'landscape' && index > 0 && index < config.previewPages.length - 1;
+  }
+
   function applyBookPosition() {
     let coverOffset = 0;
     if (currentMode === 'landscape' && currentSize) {
@@ -191,6 +209,7 @@
     elements.mobilePrevious.disabled = atStart;
     elements.next.disabled = atEnd;
     elements.mobileNext.disabled = atEnd;
+    document.body.classList.toggle('is-spread-open', isSpreadOpen(bounded));
     applyBookPosition();
   }
 
@@ -447,6 +466,10 @@
     }
   }
 
+  window.addEventListener('pagehide', () => {
+    generatedPageUrls.forEach((url) => URL.revokeObjectURL(url));
+  });
+
   window.__viewerDebug = {
     destroy: async () => {
       window.clearTimeout(resizeTimer);
@@ -462,6 +485,8 @@
         pageFlip.destroy();
         pageFlip = null;
       }
+      generatedPageUrls.forEach((url) => URL.revokeObjectURL(url));
+      generatedPageUrls.length = 0;
     },
     getState: () => ({
       mode: currentMode,
