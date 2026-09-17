@@ -104,7 +104,6 @@
         background: #fff !important;
         background-color: #fff !important;
         opacity: 1 !important;
-        isolation: isolate;
       }
       .public-flip-page > .manager-opaque-backing {
         position: absolute;
