@@ -152,6 +152,8 @@
         orientation: preview.orientation === 'landscape' ? 'horizontal' : 'vertical',
         totalProductPages: Number(preview.total_product_pages),
         previewPages,
+        // El visor público usa tapas rígidas; el gestor conserva el render Canvas aprobado.
+        hardCovers: true,
       };
 
       configureBuyButton(preview);

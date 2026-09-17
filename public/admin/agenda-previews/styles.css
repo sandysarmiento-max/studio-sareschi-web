@@ -91,6 +91,72 @@ h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp
 .book-scale { transform-origin: center; transition: transform .2s ease; }
 #book { filter: drop-shadow(var(--shadow)); }
 
+/* En el modo HTML de tapas rígidas, el centro del libro coincide con el lomo.
+   En doble página funciona como canal central; cerrado queda justo sobre el lomo de la tapa. */
+#book:has(.agenda-preview-page) {
+  position: relative;
+  filter: drop-shadow(0 10px 24px rgba(69, 45, 49, .12));
+}
+#book:has(.agenda-preview-page)::after {
+  content: "";
+  position: absolute;
+  z-index: 50;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 14px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(52,47,48,.035) 20%,
+    rgba(52,47,48,.13) 46%,
+    rgba(52,47,48,.16) 50%,
+    rgba(52,47,48,.13) 54%,
+    rgba(52,47,48,.035) 80%,
+    transparent 100%);
+}
+
+.agenda-preview-page { position: relative; background: #fff; }
+.agenda-preview-page > img { position: relative; z-index: 1; }
+.agenda-preview-page[data-density="hard"]::before,
+.agenda-preview-page[data-density="hard"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+/* Tapa exterior delantera e interior trasera: lomo a la izquierda, canto muy fino a la derecha. */
+.agenda-preview-page:first-child::before,
+.agenda-preview-page:nth-last-child(2)::before {
+  left: 0;
+  width: 12px;
+  background: linear-gradient(90deg, rgba(52,47,48,.20), rgba(52,47,48,.07) 40%, transparent 100%);
+}
+.agenda-preview-page:first-child::after,
+.agenda-preview-page:nth-last-child(2)::after {
+  right: 0;
+  width: 3px;
+  background: linear-gradient(270deg, rgba(52,47,48,.24), rgba(52,47,48,.055) 62%, transparent 100%);
+}
+
+/* Interior delantero y tapa exterior trasera: el lomo cambia de lado. */
+.agenda-preview-page:nth-child(2)::before,
+.agenda-preview-page:last-child::before {
+  right: 0;
+  width: 12px;
+  background: linear-gradient(270deg, rgba(52,47,48,.20), rgba(52,47,48,.07) 40%, transparent 100%);
+}
+.agenda-preview-page:nth-child(2)::after,
+.agenda-preview-page:last-child::after {
+  left: 0;
+  width: 3px;
+  background: linear-gradient(90deg, rgba(52,47,48,.24), rgba(52,47,48,.055) 62%, transparent 100%);
+}
+
 .page-arrow { width: 46px; height: 52px; border: 0; border-radius: 14px; display: grid; place-items: center; background: rgba(255, 253, 249, .52); box-shadow: 0 5px 18px rgba(69,45,49,.07); }
 .page-arrow svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .page-arrow:hover { color: var(--wine); background: rgba(255,255,255,.9); box-shadow: 0 7px 22px rgba(69,45,49,.11); }
@@ -139,6 +205,7 @@ body.is-fullscreen .buy-button { display: none; }
   .back-button { width: 38px; height: 38px; }
   .book-workspace { display: block; padding: 4px 0 0; }
   .book-viewport { min-height: 0; height: 100%; overflow: auto; padding-bottom: 44px; }
+  #book:has(.agenda-preview-page)::after { display: none; }
   .page-arrow { display: none; }
   .mobile-page-button { display: inline-grid; place-items: center; }
   .viewer-controls { bottom: 6px; max-width: calc(100% - 8px); gap: 2px; }
