@@ -5,7 +5,6 @@
     `previews/${folder}/${String(index + 1).padStart(2, '0')}.png`
   );
 
-  // Catálogo independiente: añadir productos aquí, sin tocar la lógica del visor.
   const agendas = {
     'cozy-reading': {
       slug: 'cozy-reading',
@@ -17,8 +16,6 @@
       totalProductPages: 180,
       previewPages: imageList('cozy-reading', 16)
     },
-    // Configuración técnica para comprobar proporciones personalizadas.
-    // Se abre con ?agenda=proportion-test y reutiliza imágenes solo para la prueba local.
     'proportion-test': {
       slug: 'proportion-test',
       title: 'Prueba de libreta angosta',
@@ -29,7 +26,6 @@
       totalProductPages: 64,
       previewPages: imageList('cozy-reading', 10)
     },
-    // Comprueba que el total dinámico supera 16: ?agenda=dynamic-30-test
     'dynamic-30-test': {
       slug: 'dynamic-30-test',
       title: 'Prueba dinámica de 30 páginas',
@@ -45,10 +41,10 @@
   };
 
   const params = new URLSearchParams(window.location.search);
-  // El administrador puede inyectar una configuración temporal sin alterar el catálogo público.
   const config = window.__AGENDA_PREVIEW_CONFIG__ || agendas[params.get('agenda')] || agendas['cozy-reading'];
-  const AUDIO_SOURCE = 'audio/page-turn-short.ogg';
+  const AUDIO_SOURCE = '/admin/agenda-previews/audio/page-turn-short.ogg';
   const MOBILE_MIN_SPREAD_WIDTH = 620;
+
   const elements = {
     viewport: document.getElementById('bookViewport'),
     position: document.getElementById('bookPosition'),
@@ -60,7 +56,6 @@
     mobileNext: document.getElementById('mobileNextButton'),
     status: document.getElementById('pageStatus'),
     sound: document.getElementById('soundButton'),
-    soundIcon: document.getElementById('soundIcon'),
     zoomIn: document.getElementById('zoomInButton'),
     zoomOut: document.getElementById('zoomOutButton'),
     zoomValue: document.getElementById('zoomValue'),
@@ -69,111 +64,60 @@
     close: document.getElementById('closeButton')
   };
 
-  let pageFlip;
+  let pageFlip = null;
   let bookElement = document.getElementById('book');
-  let zoom = 1;
-  let soundEnabled = false;
-  let pageSound = null;
-  let audioReady = false;
-  let lastPageIndex = 0;
   let currentMode = null;
   let currentSize = null;
-  let resizeTimer = null;
-  let renderDensityTimer = null;
-  let instanceReady = false;
-  let soundGestureLocked = false;
+  let lastPageIndex = 0;
+  let zoom = 1;
   let zoomBaseWidth = 0;
   let zoomBaseHeight = 0;
+  let resizeTimer = null;
+  let instanceReady = false;
+  let soundEnabled = false;
+  let soundGestureLocked = false;
+  let pageSound = null;
+  let audioReady = false;
 
-  function hardCoverModeEnabled() {
-    return Boolean(
-      (config.hardCovers || window.__AGENDA_PREVIEW_CONFIG__) &&
-      Array.isArray(config.previewPages) &&
-      config.previewPages.length > 1
-    );
+  function loadStylesheet(href, id) {
+    const existing = document.getElementById(id);
+    if (existing) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const link = document.createElement('link');
+      link.id = id;
+      link.rel = 'stylesheet';
+      link.href = href;
+      link.onload = resolve;
+      link.onerror = () => reject(new Error(`No se pudo cargar ${href}`));
+      document.head.appendChild(link);
+    });
   }
 
-  function installHardCoverStyles() {
-    if (!hardCoverModeEnabled() || document.getElementById('adminHardCoverStyles')) return;
-    const style = document.createElement('style');
-    style.id = 'adminHardCoverStyles';
-    style.textContent = `
-      #book {
-        position: relative;
-        filter: drop-shadow(0 9px 20px rgba(69,45,49,.11)) drop-shadow(0 2px 4px rgba(69,45,49,.05));
-      }
-      .agenda-preview-page {
-        position: relative;
-        overflow: hidden;
-        background: #fff !important;
-        opacity: 1 !important;
-        box-shadow: inset 0 0 0 1px rgba(60,45,48,.035);
-      }
-      .agenda-preview-page > img {
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        height: 100%;
-        display: block;
-        object-fit: fill;
-        background: #fff;
-        opacity: 1 !important;
-        user-select: none;
-        pointer-events: none;
-        -webkit-user-drag: none;
-      }
-      .agenda-preview-page[data-density="soft"]::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-        background: #fff;
-        opacity: 1;
-        pointer-events: none;
-      }
-      .agenda-preview-page[data-density="hard"]::before,
-      .agenda-preview-page[data-density="hard"]::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        z-index: 6;
-        pointer-events: none;
-      }
-      .agenda-preview-page[data-density="hard"].--right::before {
-        left: 0;
-        width: 12px;
-        background: linear-gradient(90deg, rgba(52,47,48,.20), rgba(52,47,48,.07) 40%, transparent 100%);
-      }
-      .agenda-preview-page[data-density="hard"].--right::after {
-        right: 0;
-        width: 3px;
-        background: linear-gradient(270deg, rgba(52,47,48,.24), rgba(52,47,48,.055) 62%, transparent 100%);
-      }
-      .agenda-preview-page[data-density="hard"].--left::before {
-        right: 0;
-        width: 12px;
-        background: linear-gradient(270deg, rgba(52,47,48,.20), rgba(52,47,48,.07) 40%, transparent 100%);
-      }
-      .agenda-preview-page[data-density="hard"].--left::after {
-        left: 0;
-        width: 3px;
-        background: linear-gradient(90deg, rgba(52,47,48,.24), rgba(52,47,48,.055) 62%, transparent 100%);
-      }
-      .agenda-preview-page[data-density="soft"].--left {
-        box-shadow:
-          inset -16px 0 16px -15px rgba(52,47,48,.19),
-          inset -1px 0 0 rgba(52,47,48,.08),
-          inset 0 0 0 1px rgba(60,45,48,.035);
-      }
-      .agenda-preview-page[data-density="soft"].--right {
-        box-shadow:
-          inset 16px 0 16px -15px rgba(52,47,48,.19),
-          inset 1px 0 0 rgba(52,47,48,.08),
-          inset 0 0 0 1px rgba(60,45,48,.035);
-      }
-    `;
-    document.head.appendChild(style);
+  async function installApprovedViewerStyles() {
+    await loadStylesheet('/hojear/viewer.css', 'managerPublicViewerStyles');
+    await loadStylesheet('/hojear/viewer-depth.css', 'managerPublicViewerDepthStyles');
+  }
+
+  function decodeImageUrl(url) {
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = url;
+    if (typeof image.decode === 'function') {
+      return image.decode().catch(() => new Promise((resolve, reject) => {
+        if (image.complete && image.naturalWidth > 0) return resolve();
+        image.onload = resolve;
+        image.onerror = reject;
+      }));
+    }
+    return new Promise((resolve, reject) => {
+      if (image.complete && image.naturalWidth > 0) return resolve();
+      image.onload = resolve;
+      image.onerror = reject;
+    });
+  }
+
+  async function preparePages() {
+    await Promise.all(config.previewPages.map((source) => decodeImageUrl(source)));
   }
 
   function setProductText() {
@@ -182,102 +126,6 @@
     document.getElementById('previewCount').textContent = `Vista previa de ${config.previewPages.length} páginas`;
     document.getElementById('productCount').textContent = `Archivo completo: ${config.totalProductPages} páginas`;
     document.title = `${config.title} · Studio Sareschi`;
-  }
-
-  function playPageSound() {
-    if (!soundEnabled || !pageSound || !audioReady) return;
-    pageSound.currentTime = 0;
-    pageSound.play().catch(() => {});
-  }
-
-  function applyBookPosition() {
-    let coverOffset = 0;
-    if (currentMode === 'landscape' && currentSize) {
-      if (lastPageIndex === 0) coverOffset = -currentSize.width / 2;
-      else if (lastPageIndex === config.previewPages.length - 1) coverOffset = currentSize.width / 2;
-    }
-    elements.position.style.transform = `translateX(${coverOffset * zoom}px)`;
-  }
-
-  function measureZoomBase() {
-    const measuredWidth = bookElement.offsetWidth;
-    const measuredHeight = bookElement.offsetHeight;
-    if (measuredWidth > 0) zoomBaseWidth = measuredWidth;
-    if (measuredHeight > 0) zoomBaseHeight = measuredHeight;
-
-    if (!zoomBaseWidth && currentSize) {
-      zoomBaseWidth = currentSize.width * (currentMode === 'landscape' ? 2 : 1);
-    }
-    if (!zoomBaseHeight && currentSize) zoomBaseHeight = currentSize.height;
-  }
-
-  function syncZoomLayout(centerViewport = false) {
-    measureZoomBase();
-    if (!zoomBaseWidth || !zoomBaseHeight) return;
-
-    const scaledWidth = Math.max(1, Math.ceil(zoomBaseWidth * zoom));
-    const scaledHeight = Math.max(1, Math.ceil(zoomBaseHeight * zoom));
-
-    // El contenedor exterior reserva el tamaño real del libro ampliado.
-    // Así las barras de desplazamiento alcanzan también la parte superior e izquierda.
-    elements.viewport.style.display = 'flex';
-    elements.viewport.style.alignItems = 'flex-start';
-    elements.viewport.style.justifyContent = 'flex-start';
-    elements.position.style.position = 'relative';
-    elements.position.style.flex = '0 0 auto';
-    elements.position.style.margin = 'auto';
-    elements.position.style.width = `${scaledWidth}px`;
-    elements.position.style.height = `${scaledHeight}px`;
-
-    elements.scale.style.position = 'absolute';
-    elements.scale.style.left = '0';
-    elements.scale.style.top = '0';
-    elements.scale.style.width = `${zoomBaseWidth}px`;
-    elements.scale.style.height = `${zoomBaseHeight}px`;
-    elements.scale.style.transformOrigin = 'top left';
-    elements.scale.style.transform = `scale(${zoom})`;
-
-    applyBookPosition();
-
-    if (centerViewport) {
-      window.requestAnimationFrame(() => {
-        elements.viewport.scrollLeft = Math.max(0, (elements.viewport.scrollWidth - elements.viewport.clientWidth) / 2);
-        elements.viewport.scrollTop = Math.max(0, (elements.viewport.scrollHeight - elements.viewport.clientHeight) / 2);
-      });
-    }
-  }
-
-  function visibleLabel(index) {
-    if (currentMode === 'portrait' || index === 0 || index === config.previewPages.length - 1) return `Página ${index + 1}`;
-    const left = index % 2 === 0 ? index : index + 1;
-    const right = Math.min(left + 1, config.previewPages.length);
-    return left === right ? `Página ${left}` : `Páginas ${left}–${right}`;
-  }
-
-  function updateStatus(index) {
-    const bounded = Math.max(0, Math.min(index, config.previewPages.length - 1));
-    elements.status.textContent = `${visibleLabel(bounded)} / ${config.previewPages.length}`;
-    const atStart = bounded === 0;
-    const atEnd = bounded >= config.previewPages.length - 1;
-    elements.previous.disabled = atStart;
-    elements.mobilePrevious.disabled = atStart;
-    elements.next.disabled = atEnd;
-    elements.mobileNext.disabled = atEnd;
-    applyBookPosition();
-  }
-
-  function applyZoom(nextZoom) {
-    zoom = Math.max(.8, Math.min(1.5, nextZoom));
-    syncZoomLayout(true);
-    elements.zoomValue.value = `${Math.round(zoom * 100)}%`;
-    elements.zoomValue.textContent = `${Math.round(zoom * 100)}%`;
-    elements.zoomOut.disabled = zoom <= .8;
-    elements.zoomIn.disabled = zoom >= 1.5;
-    window.clearTimeout(renderDensityTimer);
-    renderDensityTimer = window.setTimeout(() => {
-      if (pageFlip && instanceReady) pageFlip.getUI().update();
-      syncZoomLayout(false);
-    }, 220);
   }
 
   function getLayout() {
@@ -297,46 +145,119 @@
     };
   }
 
-  function replaceBookElement() {
-    const replacement = document.createElement('div');
-    replacement.id = 'book';
-    replacement.setAttribute('aria-live', 'polite');
-    if (bookElement.isConnected) bookElement.replaceWith(replacement);
-    else elements.scale.appendChild(replacement);
-    bookElement = replacement;
-    zoomBaseWidth = 0;
-    zoomBaseHeight = 0;
-  }
-
-  function prepareHtmlPages() {
+  function createHtmlPages() {
     const lastIndex = config.previewPages.length - 1;
-    const pageElements = config.previewPages.map((source, index) => {
+    return config.previewPages.map((source, index) => {
       const page = document.createElement('div');
-      page.className = 'agenda-preview-page';
-      // Cada tapa física tiene dos caras: exterior e interior.
-      // Por eso páginas 1-2 y las dos últimas deben compartir densidad HARD.
+      page.className = 'public-flip-page';
       page.dataset.density = index <= 1 || index >= lastIndex - 1 ? 'hard' : 'soft';
-      page.style.background = '#fff';
-      page.style.overflow = 'hidden';
 
       const image = document.createElement('img');
       image.src = source;
       image.alt = '';
       image.draggable = false;
-      image.decoding = 'async';
-      image.style.display = 'block';
-      image.style.width = '100%';
-      image.style.height = '100%';
-      image.style.objectFit = 'fill';
-      image.style.userSelect = 'none';
-      image.style.webkitUserDrag = 'none';
+      image.decoding = 'sync';
       image.setAttribute('aria-hidden', 'true');
-
       page.appendChild(image);
       return page;
     });
-    bookElement.replaceChildren(...pageElements);
-    return pageElements;
+  }
+
+  function visibleLabel(index) {
+    if (currentMode === 'portrait' || index === 0 || index === config.previewPages.length - 1) {
+      return `Página ${index + 1}`;
+    }
+    const left = index % 2 === 0 ? index : index + 1;
+    const right = Math.min(left + 1, config.previewPages.length);
+    return left === right ? `Página ${left}` : `Páginas ${left}–${right}`;
+  }
+
+  function applyBookPosition() {
+    let coverOffset = 0;
+    if (currentMode === 'landscape' && currentSize) {
+      if (lastPageIndex === 0) coverOffset = -currentSize.width / 2;
+      else if (lastPageIndex === config.previewPages.length - 1) coverOffset = currentSize.width / 2;
+    }
+    elements.position.style.transform = `translateX(${coverOffset * zoom}px)`;
+  }
+
+  function updateStatus(index) {
+    const bounded = Math.max(0, Math.min(index, config.previewPages.length - 1));
+    lastPageIndex = bounded;
+    elements.status.textContent = `${visibleLabel(bounded)} / ${config.previewPages.length}`;
+    const atStart = bounded === 0;
+    const atEnd = bounded >= config.previewPages.length - 1;
+    elements.previous.disabled = atStart;
+    elements.mobilePrevious.disabled = atStart;
+    elements.next.disabled = atEnd;
+    elements.mobileNext.disabled = atEnd;
+    applyBookPosition();
+  }
+
+  function captureZoomBase() {
+    if (!bookElement || !bookElement.offsetWidth || !bookElement.offsetHeight) return false;
+    zoomBaseWidth = bookElement.offsetWidth;
+    zoomBaseHeight = bookElement.offsetHeight;
+    return true;
+  }
+
+  function syncZoomLayout(centerViewport = false) {
+    if (!zoomBaseWidth || !zoomBaseHeight) {
+      if (!captureZoomBase()) return;
+    }
+    const scaledWidth = Math.max(1, Math.ceil(zoomBaseWidth * zoom));
+    const scaledHeight = Math.max(1, Math.ceil(zoomBaseHeight * zoom));
+
+    elements.viewport.classList.add('is-zoom-layout');
+    elements.position.style.width = `${scaledWidth}px`;
+    elements.position.style.height = `${scaledHeight}px`;
+    elements.scale.style.width = `${zoomBaseWidth}px`;
+    elements.scale.style.height = `${zoomBaseHeight}px`;
+    elements.scale.style.transform = `scale(${zoom})`;
+    applyBookPosition();
+
+    if (centerViewport) {
+      window.requestAnimationFrame(() => {
+        elements.viewport.scrollLeft = Math.max(0, (elements.viewport.scrollWidth - elements.viewport.clientWidth) / 2);
+        elements.viewport.scrollTop = Math.max(0, (elements.viewport.scrollHeight - elements.viewport.clientHeight) / 2);
+      });
+    }
+  }
+
+  function resetZoomLayout() {
+    zoomBaseWidth = 0;
+    zoomBaseHeight = 0;
+    elements.viewport.classList.remove('is-zoom-layout');
+    elements.position.style.width = '';
+    elements.position.style.height = '';
+    elements.position.style.transform = '';
+    elements.scale.style.width = '';
+    elements.scale.style.height = '';
+    elements.scale.style.transform = '';
+  }
+
+  function applyZoom(nextZoom, centerViewport = true) {
+    zoom = Math.max(.8, Math.min(1.5, nextZoom));
+    elements.zoomValue.value = `${Math.round(zoom * 100)}%`;
+    elements.zoomValue.textContent = `${Math.round(zoom * 100)}%`;
+    elements.zoomOut.disabled = zoom <= .8;
+    elements.zoomIn.disabled = zoom >= 1.5;
+    syncZoomLayout(centerViewport);
+  }
+
+  function playPageSound() {
+    if (!soundEnabled || !pageSound || !audioReady) return;
+    pageSound.currentTime = 0;
+    pageSound.play().catch(() => {});
+  }
+
+  function replaceBookElement() {
+    const replacement = document.createElement('div');
+    replacement.id = 'book';
+    replacement.setAttribute('aria-live', 'polite');
+    if (bookElement && bookElement.isConnected) bookElement.replaceWith(replacement);
+    else elements.scale.appendChild(replacement);
+    bookElement = replacement;
   }
 
   function initialize(startPage = 0) {
@@ -344,15 +265,17 @@
       elements.loading.textContent = 'No se pudo iniciar el visor.';
       return;
     }
+
     const layout = getLayout();
     currentMode = layout.mode;
     currentSize = layout;
-    zoomBaseWidth = 0;
-    zoomBaseHeight = 0;
     instanceReady = false;
     soundGestureLocked = false;
+    resetZoomLayout();
     elements.loading.hidden = false;
-    const htmlPages = hardCoverModeEnabled() ? prepareHtmlPages() : null;
+
+    const pages = createHtmlPages();
+    bookElement.replaceChildren(...pages);
 
     pageFlip = new window.St.PageFlip(bookElement, {
       width: layout.width,
@@ -370,23 +293,24 @@
       flippingTime: 720,
       startPage: Math.max(0, Math.min(startPage, config.previewPages.length - 1))
     });
+
     pageFlip.on('init', (event) => {
-      lastPageIndex = event.data.page;
       instanceReady = true;
+      lastPageIndex = event.data.page;
       updateStatus(lastPageIndex);
-      syncZoomLayout(false);
       elements.loading.hidden = true;
+      window.requestAnimationFrame(() => {
+        captureZoomBase();
+        applyZoom(zoom, false);
+      });
     });
-    pageFlip.on('flip', (event) => {
-      const nextPageIndex = event.data;
-      lastPageIndex = nextPageIndex;
-      updateStatus(lastPageIndex);
-    });
+
+    pageFlip.on('flip', (event) => updateStatus(event.data));
+    pageFlip.on('changeOrientation', () => updateStatus(lastPageIndex));
     pageFlip.on('changeState', (event) => {
       const state = event.data;
       if (state === 'read') {
         soundGestureLocked = false;
-        syncZoomLayout(false);
         return;
       }
       if (instanceReady && !soundGestureLocked && (state === 'flipping' || state === 'user_fold')) {
@@ -394,16 +318,8 @@
         playPageSound();
       }
     });
-    pageFlip.on('changeOrientation', () => {
-      updateStatus(lastPageIndex);
-      syncZoomLayout(false);
-    });
 
-    if (htmlPages) {
-      pageFlip.loadFromHTML(htmlPages);
-    } else {
-      pageFlip.loadFromImages(Object.freeze([...config.previewPages]));
-    }
+    pageFlip.loadFromHTML(pages);
   }
 
   function rebuildForViewport() {
@@ -411,100 +327,135 @@
     const changedMode = nextLayout.mode !== currentMode;
     const changedSize = !currentSize || Math.abs(nextLayout.width - currentSize.width) > 3 || Math.abs(nextLayout.height - currentSize.height) > 3;
     if (!changedMode && !changedSize) return;
+
     const pageToRestore = pageFlip ? pageFlip.getCurrentPageIndex() : lastPageIndex;
     if (pageFlip) pageFlip.destroy();
+    pageFlip = null;
+    resetZoomLayout();
     replaceBookElement();
     initialize(pageToRestore);
   }
 
-  const previous = () => pageFlip && pageFlip.flipPrev();
-  const next = () => pageFlip && pageFlip.flipNext();
-  const resetView = () => {
+  const previous = () => pageFlip && instanceReady && pageFlip.flipPrev();
+  const next = () => pageFlip && instanceReady && pageFlip.flipNext();
+
+  function resetView() {
     if (!pageFlip || !instanceReady) return;
     soundGestureLocked = true;
     if (pageSound) {
       pageSound.pause();
       pageSound.currentTime = 0;
     }
-    pageFlip.getRender().finishAnimation();
+    try { pageFlip.getRender().finishAnimation(); } catch (_error) {}
     pageFlip.turnToPage(0);
     lastPageIndex = 0;
-    applyZoom(1);
+    zoom = 1;
+    applyZoom(1, true);
     updateStatus(0);
     soundGestureLocked = false;
-  };
-  elements.previous.addEventListener('click', previous);
-  elements.mobilePrevious.addEventListener('click', previous);
-  elements.next.addEventListener('click', next);
-  elements.mobileNext.addEventListener('click', next);
-  elements.resetView.addEventListener('click', resetView);
-  elements.sound.addEventListener('click', () => {
-    if (!audioReady) return;
-    soundEnabled = !soundEnabled;
-    elements.sound.setAttribute('aria-pressed', String(soundEnabled));
-    elements.sound.setAttribute('aria-label', soundEnabled ? 'Silenciar sonido' : 'Activar sonido');
-  });
-  elements.zoomIn.addEventListener('click', () => applyZoom(zoom + .1));
-  elements.zoomOut.addEventListener('click', () => applyZoom(zoom - .1));
-  elements.fullscreen.addEventListener('click', async () => {
-    if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.();
-    else await document.exitFullscreen?.();
-  });
-  document.addEventListener('fullscreenchange', () => document.body.classList.toggle('is-fullscreen', Boolean(document.fullscreenElement)));
-  document.addEventListener('fullscreenchange', () => window.setTimeout(rebuildForViewport, 100));
-  elements.close.addEventListener('click', () => {
-    if (window.history.length > 1) window.history.back();
-    else window.location.href = './';
-  });
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowLeft') previous();
-    if (event.key === 'ArrowRight') next();
-    if (event.key === 'Escape' && document.fullscreenElement) document.exitFullscreen?.();
-  });
+  }
 
-  window.addEventListener('resize', () => {
-    window.clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(rebuildForViewport, 180);
-  });
+  function installControls() {
+    elements.previous.addEventListener('click', previous);
+    elements.mobilePrevious.addEventListener('click', previous);
+    elements.next.addEventListener('click', next);
+    elements.mobileNext.addEventListener('click', next);
+    elements.resetView.addEventListener('click', resetView);
+    elements.zoomIn.addEventListener('click', () => applyZoom(zoom + .1));
+    elements.zoomOut.addEventListener('click', () => applyZoom(zoom - .1));
 
-  installHardCoverStyles();
-  setProductText();
-  pageSound = new Audio(AUDIO_SOURCE);
-  pageSound.preload = 'auto';
-  pageSound.volume = .22;
-  elements.sound.disabled = true;
-  elements.sound.title = 'Cargando sonido…';
-  elements.sound.setAttribute('aria-label', 'Cargando sonido');
-  const markAudioReady = () => {
-    if (audioReady) return;
-    audioReady = true;
-    elements.sound.disabled = false;
-    elements.sound.title = 'Sonido';
-    elements.sound.setAttribute('aria-label', 'Activar sonido');
-  };
-  pageSound.addEventListener('loadeddata', markAudioReady, { once: true });
-  pageSound.addEventListener('canplaythrough', markAudioReady, { once: true });
-  pageSound.addEventListener('error', () => {
-    audioReady = false;
-    soundEnabled = false;
+    elements.sound.addEventListener('click', () => {
+      if (!audioReady) return;
+      soundEnabled = !soundEnabled;
+      elements.sound.setAttribute('aria-pressed', String(soundEnabled));
+      elements.sound.setAttribute('aria-label', soundEnabled ? 'Silenciar sonido' : 'Activar sonido');
+    });
+
+    elements.fullscreen.addEventListener('click', async () => {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.();
+      else await document.exitFullscreen?.();
+    });
+
+    elements.close.addEventListener('click', () => {
+      if (window.history.length > 1) window.history.back();
+      else window.location.href = './';
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') previous();
+      if (event.key === 'ArrowRight') next();
+      if (event.key === 'Escape' && document.fullscreenElement) document.exitFullscreen?.();
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      document.body.classList.toggle('is-fullscreen', Boolean(document.fullscreenElement));
+      window.setTimeout(rebuildForViewport, 120);
+    });
+
+    window.addEventListener('resize', () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(rebuildForViewport, 180);
+    });
+  }
+
+  function prepareAudio() {
+    pageSound = new Audio(AUDIO_SOURCE);
+    pageSound.preload = 'auto';
+    pageSound.volume = .22;
     elements.sound.disabled = true;
-    elements.sound.title = 'Sonido no disponible';
-    elements.sound.setAttribute('aria-label', 'Sonido no disponible');
-    elements.sound.setAttribute('aria-pressed', 'false');
-  });
-  pageSound.load();
-  applyZoom(1);
-  initialize();
+    elements.sound.title = 'Cargando sonido…';
+    elements.sound.setAttribute('aria-label', 'Cargando sonido');
+
+    const markAudioReady = () => {
+      if (audioReady) return;
+      audioReady = true;
+      elements.sound.disabled = false;
+      elements.sound.title = 'Sonido';
+      elements.sound.setAttribute('aria-label', 'Activar sonido');
+    };
+
+    pageSound.addEventListener('loadeddata', markAudioReady, { once: true });
+    pageSound.addEventListener('canplaythrough', markAudioReady, { once: true });
+    pageSound.addEventListener('error', () => {
+      audioReady = false;
+      soundEnabled = false;
+      elements.sound.disabled = true;
+      elements.sound.title = 'Sonido no disponible';
+      elements.sound.setAttribute('aria-label', 'Sonido no disponible');
+      elements.sound.setAttribute('aria-pressed', 'false');
+    });
+    pageSound.load();
+  }
+
+  async function start() {
+    try {
+      elements.loading.hidden = false;
+      elements.loading.textContent = 'Preparando la vista previa…';
+      await installApprovedViewerStyles();
+      await preparePages();
+      setProductText();
+      installControls();
+      prepareAudio();
+      zoom = 1;
+      elements.zoomValue.value = '100%';
+      elements.zoomValue.textContent = '100%';
+      await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
+      initialize();
+    } catch (_error) {
+      elements.loading.hidden = false;
+      elements.loading.textContent = 'No se pudo preparar la vista previa.';
+    }
+  }
+
   window.__viewerDebug = {
     destroy: async () => {
       window.clearTimeout(resizeTimer);
-      window.clearTimeout(renderDensityTimer);
       if (pageSound) {
         pageSound.pause();
         pageSound.currentTime = 0;
       }
       if (document.fullscreenElement && document.exitFullscreen) {
-        try { await document.exitFullscreen(); } catch (_) {}
+        try { await document.exitFullscreen(); } catch (_error) {}
       }
       instanceReady = false;
       if (pageFlip) {
@@ -514,14 +465,15 @@
     },
     getState: () => ({
       mode: currentMode,
-      renderMode: hardCoverModeEnabled() ? 'html-hard-covers' : 'canvas-images',
+      renderMode: 'html-hard-covers',
       pageWidth: currentSize && currentSize.width,
       pageHeight: currentSize && currentSize.height,
       currentPageIndex: lastPageIndex,
       previewPages: [...config.previewPages],
       instanceCount: pageFlip ? 1 : 0,
-      audioReady,
-      pageSources: pageFlip ? [...config.previewPages] : []
+      audioReady
     })
   };
+
+  start();
 })();
