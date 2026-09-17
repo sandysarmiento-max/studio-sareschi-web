@@ -152,8 +152,7 @@
         orientation: preview.orientation === 'landscape' ? 'horizontal' : 'vertical',
         totalProductPages: Number(preview.total_product_pages),
         previewPages,
-        // Rama experimental: activa páginas HTML con portada y contraportada HARD.
-        // El gestor local no recibe esta bandera y conserva el render Canvas aprobado.
+        // El visor público usa tapas rígidas; el gestor conserva el render Canvas aprobado.
         hardCovers: true,
       };
 
