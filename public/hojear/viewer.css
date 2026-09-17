@@ -133,6 +133,35 @@ h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp
   pointer-events: none;
 }
 
+/* Profundidad localizada en el canal central. Cada mitad lleva su propia sombra
+   únicamente en el borde que toca el lomo; no existe ninguna capa sobre todo el libro. */
+body.is-spread-open .public-flip-page[data-density="soft"].--left::after,
+body.is-spread-open .public-flip-page[data-density="soft"].--right::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  z-index: 2;
+  pointer-events: none;
+}
+body.is-spread-open .public-flip-page[data-density="soft"].--left::after {
+  right: 0;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(52,47,48,.025) 35%,
+    rgba(52,47,48,.075) 68%,
+    rgba(52,47,48,.17) 100%);
+}
+body.is-spread-open .public-flip-page[data-density="soft"].--right::after {
+  left: 0;
+  background: linear-gradient(90deg,
+    rgba(52,47,48,.17) 0%,
+    rgba(52,47,48,.075) 32%,
+    rgba(52,47,48,.025) 65%,
+    transparent 100%);
+}
+
 .public-flip-page[data-density="hard"]::before,
 .public-flip-page[data-density="hard"]::after {
   content: "";
