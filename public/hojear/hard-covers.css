@@ -23,14 +23,19 @@
     transparent 100%);
 }
 
-.agenda-preview-page {
+#book.public-hard-cover-book .agenda-preview-page {
   position: relative;
-  background: #fff;
+  isolation: isolate;
+  background: #fff !important;
+  opacity: 1 !important;
 }
 
-.agenda-preview-page > img {
+#book.public-hard-cover-book .agenda-preview-page > img {
   position: relative;
   z-index: 1;
+  display: block;
+  background: #fff;
+  opacity: 1 !important;
 }
 
 .agenda-preview-page[data-density="hard"]::before,
