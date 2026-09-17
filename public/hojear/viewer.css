@@ -108,6 +108,8 @@ h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp
   box-shadow: inset 0 0 0 1px rgba(60,45,48,.035);
 }
 .public-flip-page > img {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   display: block;
@@ -117,6 +119,18 @@ h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp
   user-select: none;
   pointer-events: none;
   -webkit-user-drag: none;
+}
+
+/* Capa de papel real bajo cada hoja blanda. StPageFlip clona la página durante el giro;
+   esta base blanca se clona con ella y evita ver otras páginas a través del PNG. */
+.public-flip-page[data-density="soft"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #fff;
+  opacity: 1;
+  pointer-events: none;
 }
 
 .public-flip-page[data-density="hard"]::before,
