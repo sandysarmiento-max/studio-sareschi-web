@@ -10,6 +10,8 @@
   const buyButton = document.getElementById('publicBuyButton');
   const closeButton = document.getElementById('closeButton');
   const generatedBlankUrls = [];
+  let zoomBaseWidth = 0;
+  let zoomBaseHeight = 0;
 
   function showUnavailable() {
     viewer.hidden = true;
@@ -92,11 +94,189 @@
     buyButton.hidden = false;
   }
 
+  function installPublicHardCoverStyles() {
+    if (document.querySelector('link[data-public-hard-cover-styles]')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/hojear/hard-covers.css';
+    link.dataset.publicHardCoverStyles = '1';
+    document.head.appendChild(link);
+  }
+
+  function installPublicHardCoverAdapter() {
+    const OriginalPageFlip = window.St && window.St.PageFlip;
+    if (!OriginalPageFlip || OriginalPageFlip.__studioPublicHardCoverAdapter) return;
+
+    class PublicPageFlip extends OriginalPageFlip {
+      loadFromImages(images) {
+        const sources = Array.from(images || []);
+        if (sources.length <= 1) return super.loadFromImages(images);
+
+        const lastIndex = sources.length - 1;
+        const pages = sources.map((source, index) => {
+          const page = document.createElement('div');
+          page.className = 'agenda-preview-page';
+          page.dataset.density = index <= 1 || index >= lastIndex - 1 ? 'hard' : 'soft';
+          page.style.background = '#fff';
+          page.style.overflow = 'hidden';
+
+          const image = document.createElement('img');
+          image.src = source;
+          image.alt = '';
+          image.draggable = false;
+          image.decoding = 'async';
+          image.style.display = 'block';
+          image.style.width = '100%';
+          image.style.height = '100%';
+          image.style.objectFit = 'fill';
+          image.style.userSelect = 'none';
+          image.style.webkitUserDrag = 'none';
+          image.setAttribute('aria-hidden', 'true');
+
+          page.appendChild(image);
+          return page;
+        });
+
+        const book = document.getElementById('book');
+        if (book) {
+          book.classList.add('public-hard-cover-book');
+          book.replaceChildren(...pages);
+        }
+        return super.loadFromHTML(pages);
+      }
+    }
+
+    PublicPageFlip.__studioPublicHardCoverAdapter = true;
+    window.St.PageFlip = PublicPageFlip;
+  }
+
+  function clearPublicZoomLayout() {
+    const viewport = document.getElementById('bookViewport');
+    const position = document.getElementById('bookPosition');
+    const scale = document.getElementById('bookScale');
+    zoomBaseWidth = 0;
+    zoomBaseHeight = 0;
+    if (viewport) {
+      viewport.style.display = '';
+      viewport.style.alignItems = '';
+      viewport.style.justifyContent = '';
+    }
+    if (position) {
+      position.style.position = '';
+      position.style.flex = '';
+      position.style.margin = '';
+      position.style.width = '';
+      position.style.height = '';
+      position.style.transform = '';
+    }
+    if (scale) {
+      scale.style.position = '';
+      scale.style.left = '';
+      scale.style.top = '';
+      scale.style.width = '';
+      scale.style.height = '';
+      scale.style.transformOrigin = '';
+      scale.style.transform = '';
+    }
+  }
+
+  function publicZoomLevel() {
+    const output = document.getElementById('zoomValue');
+    const value = Number.parseInt(String(output && output.textContent || '100'), 10);
+    return Number.isFinite(value) ? Math.max(.8, Math.min(1.5, value / 100)) : 1;
+  }
+
+  function syncPublicZoomLayout(centerViewport = false) {
+    const viewport = document.getElementById('bookViewport');
+    const position = document.getElementById('bookPosition');
+    const scale = document.getElementById('bookScale');
+    const book = document.getElementById('book');
+    if (!viewport || !position || !scale || !book || !book.offsetWidth || !book.offsetHeight) return;
+
+    if (!zoomBaseWidth) zoomBaseWidth = book.offsetWidth;
+    if (!zoomBaseHeight) zoomBaseHeight = book.offsetHeight;
+
+    const zoom = publicZoomLevel();
+    const scaledWidth = Math.max(1, Math.ceil(zoomBaseWidth * zoom));
+    const scaledHeight = Math.max(1, Math.ceil(zoomBaseHeight * zoom));
+
+    viewport.style.display = 'flex';
+    viewport.style.alignItems = 'flex-start';
+    viewport.style.justifyContent = 'flex-start';
+
+    position.style.position = 'relative';
+    position.style.flex = '0 0 auto';
+    position.style.margin = 'auto';
+    position.style.width = `${scaledWidth}px`;
+    position.style.height = `${scaledHeight}px`;
+
+    scale.style.position = 'absolute';
+    scale.style.left = '0';
+    scale.style.top = '0';
+    scale.style.width = `${zoomBaseWidth}px`;
+    scale.style.height = `${zoomBaseHeight}px`;
+    scale.style.transformOrigin = 'top left';
+    scale.style.transform = `scale(${zoom})`;
+
+    const viewerState = window.__viewerDebug && window.__viewerDebug.getState
+      ? window.__viewerDebug.getState()
+      : null;
+    let coverOffset = 0;
+    if (viewerState && viewerState.mode === 'landscape' && viewerState.pageWidth) {
+      if (viewerState.currentPageIndex === 0) coverOffset = -viewerState.pageWidth / 2;
+      else if (viewerState.currentPageIndex === window.__AGENDA_PREVIEW_CONFIG__.previewPages.length - 1) {
+        coverOffset = viewerState.pageWidth / 2;
+      }
+    }
+    position.style.transform = `translateX(${coverOffset * zoom}px)`;
+
+    if (centerViewport) {
+      window.requestAnimationFrame(() => {
+        viewport.scrollLeft = Math.max(0, (viewport.scrollWidth - viewport.clientWidth) / 2);
+        viewport.scrollTop = Math.max(0, (viewport.scrollHeight - viewport.clientHeight) / 2);
+      });
+    }
+  }
+
+  function installPublicZoomSupport() {
+    const zoomIn = document.getElementById('zoomInButton');
+    const zoomOut = document.getElementById('zoomOutButton');
+    const reset = document.getElementById('resetViewButton');
+    const status = document.getElementById('pageStatus');
+
+    const syncSoon = (center = false) => window.requestAnimationFrame(() => syncPublicZoomLayout(center));
+    zoomIn?.addEventListener('click', () => syncSoon(true));
+    zoomOut?.addEventListener('click', () => syncSoon(true));
+    reset?.addEventListener('click', () => syncSoon(true));
+
+    if (status && window.MutationObserver) {
+      const observer = new MutationObserver(() => syncSoon(false));
+      observer.observe(status, { childList: true, characterData: true, subtree: true });
+    }
+
+    window.addEventListener('resize', () => {
+      clearPublicZoomLayout();
+      window.setTimeout(() => syncPublicZoomLayout(false), 240);
+    });
+    document.addEventListener('fullscreenchange', () => {
+      clearPublicZoomLayout();
+      window.setTimeout(() => syncPublicZoomLayout(false), 180);
+    });
+
+    syncSoon(false);
+    window.setTimeout(() => syncPublicZoomLayout(false), 120);
+  }
+
   function loadApprovedViewer() {
     return new Promise((resolve, reject) => {
+      installPublicHardCoverStyles();
+      installPublicHardCoverAdapter();
       const script = document.createElement('script');
       script.src = '/admin/agenda-previews/app.js';
-      script.onload = resolve;
+      script.onload = () => {
+        installPublicZoomSupport();
+        resolve();
+      };
       script.onerror = () => reject(new Error('No se pudo cargar el visor.'));
       document.body.appendChild(script);
     });
@@ -152,8 +332,6 @@
         orientation: preview.orientation === 'landscape' ? 'horizontal' : 'vertical',
         totalProductPages: Number(preview.total_product_pages),
         previewPages,
-        // El visor público usa tapas rígidas; el gestor conserva el render Canvas aprobado.
-        hardCovers: true,
       };
 
       configureBuyButton(preview);
