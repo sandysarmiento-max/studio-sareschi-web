@@ -195,7 +195,7 @@
     return config.previewPages.map((source, index) => {
       const page = document.createElement('div');
       page.className = 'public-flip-page';
-      page.dataset.density = index <= 1 || index >= lastIndex - 1 ? 'hard' : 'soft';
+      page.dataset.density = index === 0 || index === lastIndex ? 'hard' : 'soft';
 
       const backing = document.createElement('span');
       backing.className = 'manager-opaque-backing';
