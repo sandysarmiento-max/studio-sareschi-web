@@ -71,8 +71,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <base href="${base}">
   <title>Vista previa · Studio Sareschi</title>
-  <link rel="stylesheet" href="/hojear/viewer.css">
-  <link rel="stylesheet" href="/hojear/viewer-depth.css">
+  <link id="managerPublicViewerStyles" rel="stylesheet" href="/hojear/viewer.css">
+  <link id="managerPublicViewerDepthStyles" rel="stylesheet" href="/hojear/viewer-depth.css">
 </head>
 <body>
 ${template.innerHTML}
