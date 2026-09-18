@@ -339,7 +339,7 @@
       showCover: true,
       usePortrait: layout.mode === 'portrait',
       autoSize: false,
-      maxShadowOpacity: .28,
+      maxShadowOpacity: .08,
       mobileScrollSupport: false,
       swipeDistance: 24,
       clickEventForward: true,
