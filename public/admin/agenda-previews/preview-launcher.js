@@ -77,7 +77,7 @@
 <body>
 ${template.innerHTML}
 <script>window.__AGENDA_PREVIEW_CONFIG__=${safeConfig}<\/script>
-<script src="vendor/page-flip.browser.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"><\/script>
 <script src="app.js"><\/script>
 <script>
 (function(){
