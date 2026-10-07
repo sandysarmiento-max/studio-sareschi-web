@@ -48,7 +48,11 @@
 
   function fileSummary(resource) {
     const pdf = resource.storage_path ? 'PDF cargado' : 'PDF pendiente';
-    const preview = resource.thumbnail ? 'miniatura en Storage' : 'miniatura antigua o pendiente';
+    const preview = resource.thumbnail
+      ? 'miniatura en Storage'
+      : resource.preview_url
+        ? 'miniatura antigua'
+        : 'sin miniatura';
     return `${pdf} · ${preview}`;
   }
 

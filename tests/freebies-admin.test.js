@@ -18,6 +18,8 @@ const {
   buildAuthorizationDiagnostic,
   confirmCreate,
   confirmUpload,
+  legacyThumbnailUrl,
+  signedThumbnail,
 } = require('../lib/freebies-admin-handler')._test;
 
 test('el diagnóstico temporal solo expone datos seguros de autorización', () => {
@@ -245,6 +247,60 @@ test('autoriza miniatura y confirma su reemplazo en thumbnail', async () => {
     storage_path: authorization.upload.storage_path,
   });
   assert.equal(admin.updatedRecord.thumbnail, authorization.upload.storage_path);
+});
+
+test('el listado administrativo usa el fallback de miniatura para un recurso legacy', async () => {
+  const previewUrl = await signedThumbnail({}, 'freebies-private', {
+    thumbnail: null,
+    storage_path: 'freebies/fb_001.pdf',
+  });
+  assert.equal(previewUrl, '/freebies/previews/fb_001_preview.jpg');
+});
+
+test('el listado administrativo firma una miniatura almacenada en Storage', async () => {
+  let signedPath = null;
+  const admin = {
+    storage: {
+      from(bucket) {
+        assert.equal(bucket, 'freebies-private');
+        return {
+          async createSignedUrl(storagePath) {
+            signedPath = storagePath;
+            return { data: { signedUrl: 'https://storage.test/signed-preview' }, error: null };
+          },
+        };
+      },
+    },
+  };
+  const previewUrl = await signedThumbnail(admin, 'freebies-private', {
+    thumbnail: 'previews/resource/version.webp',
+    storage_path: 'freebies/fb_001.pdf',
+  });
+  assert.equal(signedPath, 'previews/resource/version.webp');
+  assert.equal(previewUrl, 'https://storage.test/signed-preview');
+});
+
+test('el listado administrativo devuelve null sin thumbnail ni código legacy', async () => {
+  const previewUrl = await signedThumbnail({}, 'freebies-private', {
+    thumbnail: null,
+    storage_path: 'freebies/550e8400-e29b-41d4-a716-446655440000/version.pdf',
+  });
+  assert.equal(previewUrl, null);
+});
+
+test('el fallback rechaza rutas fuera del rango legacy exacto fb_001 a fb_018', () => {
+  const invalidPaths = [
+    'freebies/fb_000.pdf',
+    'freebies/fb_019.pdf',
+    'freebies/fb_001_v2.pdf',
+    'freebies/FB_001.pdf',
+    '/freebies/fb_001.pdf',
+    'freebies/archive/fb_001.pdf',
+  ];
+  for (const storagePath of invalidPaths) {
+    assert.equal(legacyThumbnailUrl(storagePath), null, storagePath);
+  }
+  assert.equal(legacyThumbnailUrl('freebies/fb_018.pdf'), '/freebies/previews/fb_018_preview.jpg');
 });
 
 test('el dispatcher administrativo reconoce freebies', async () => {
