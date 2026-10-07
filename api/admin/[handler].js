@@ -2,10 +2,12 @@
 
 const paidProductsHandler = require('../../lib/paid-products-admin-handler');
 const agendaPreviewsHandler = require('../../lib/agenda-previews-admin-handler');
+const freebiesHandler = require('../../lib/freebies-admin-handler');
 
 const HANDLERS = Object.freeze({
   'paid-products': paidProductsHandler,
   'agenda-previews': agendaPreviewsHandler,
+  freebies: freebiesHandler,
 });
 
 function getHandlerName(req) {

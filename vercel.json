@@ -11,6 +11,10 @@
                          "destination":  "/api/admin/agenda-previews"
                      },
                      {
+                         "source":  "/api/freebies-admin",
+                         "destination":  "/api/admin/freebies"
+                     },
+                     {
                          "source":  "/sitemap.xml",
                          "destination":  "/api/sitemap"
                      },
@@ -32,6 +36,16 @@
                       {
                           "source":  "/admin/agenda-previews/",
                           "destination":  "/admin/agenda-previews/index.html",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/admin/freebies",
+                          "destination":  "/admin/freebies/index.html",
+                          "permanent":  false
+                      },
+                      {
+                          "source":  "/admin/freebies/",
+                          "destination":  "/admin/freebies/index.html",
                           "permanent":  false
                       },
                       {
