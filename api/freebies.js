@@ -89,7 +89,7 @@ function buildPreviewImageUrlFromCode(code) {
   return `/freebies/previews/${code}_preview.jpg`;
 }
 
-function normalizeFreebie(row, index) {
+function normalizeFreebie(row, index, previewImageUrl) {
   const slug = typeof row.slug === 'string' ? row.slug.trim().toLowerCase() : '';
   const inferredCode = extractFreebieCode(row);
   const id = row.id || slug || inferredCode || `freebie-${index + 1}`;
@@ -97,7 +97,6 @@ function normalizeFreebie(row, index) {
   const description = row.description || row.subtitle || 'Plantilla PDF gratuita de Studio Sareschi.';
   const category = row.category || 'Zona Gratuita';
   const accent = row.accent_color || row.color || row.preview_color || '#f2e6ef';
-  const previewImageUrl = buildPreviewImageUrlFromCode(inferredCode);
 
   return {
     id,
@@ -108,6 +107,13 @@ function normalizeFreebie(row, index) {
     accent,
     preview_image_url: previewImageUrl,
   };
+}
+
+async function getPreviewImageUrl(row) {
+  const thumbnail = typeof row.thumbnail === 'string' ? row.thumbnail.trim() : '';
+  if (!thumbnail) return buildPreviewImageUrlFromCode(extractFreebieCode(row));
+  if (/^https?:\/\//i.test(thumbnail) || thumbnail.startsWith('/')) return thumbnail;
+  return createSignedUrl(thumbnail);
 }
 
 function extractStoragePath(row) {
@@ -136,7 +142,9 @@ async function listFreeProducts() {
   const activeRows = rows.filter((row) => row.is_active !== false);
 
   return {
-    normalized: activeRows.map(normalizeFreebie),
+    normalized: await Promise.all(
+      activeRows.map(async (row, index) => normalizeFreebie(row, index, await getPreviewImageUrl(row)))
+    ),
     raw: activeRows,
   };
 }
