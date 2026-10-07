@@ -13,8 +13,10 @@ const {
 } = require('../lib/freebies-admin-core');
 const { createAdminDispatcher } = require('../api/admin/[handler]')._test;
 const {
+  authorizeCreate,
   authorizeUpload,
   buildAuthorizationDiagnostic,
+  confirmCreate,
   confirmUpload,
 } = require('../lib/freebies-admin-handler')._test;
 
@@ -75,6 +77,113 @@ test('las subidas validan MIME y límites antes de firmar', () => {
   assert.equal(sanitizeUploadRequest({ resource_id, kind: 'thumbnail', mime_type: 'image/png', file_size: 100 }).kind, 'thumbnail');
   assert.throws(() => sanitizeUploadRequest({ resource_id, kind: 'pdf', mime_type: 'image/png', file_size: 100 }), ApiError);
   assert.throws(() => sanitizeUploadRequest({ resource_id, kind: 'thumbnail', mime_type: 'image/gif', file_size: 100 }), ApiError);
+});
+
+function creationAdmin({ insertError = null } = {}) {
+  let insertedRecord = null;
+  let storedObject = null;
+  let removeCalled = false;
+  return {
+    get insertedRecord() { return insertedRecord; },
+    get insertCalled() { return Boolean(insertedRecord); },
+    get removeCalled() { return removeCalled; },
+    setStoredObject(value) { storedObject = value; },
+    from(table) {
+      assert.equal(table, 'free_products');
+      return {
+        select() {
+          return { eq() { return { maybeSingle: async () => ({ data: null, error: null }) }; } };
+        },
+        insert(record) {
+          insertedRecord = record;
+          return {
+            select() {
+              return { single: async () => ({ data: insertError ? null : record, error: insertError }) };
+            },
+          };
+        },
+      };
+    },
+    storage: {
+      from() {
+        return {
+          createSignedUploadUrl: async (storagePath) => ({
+            data: { token: 'token', signedUrl: `https://upload.test/${storagePath}` }, error: null,
+          }),
+          list: async () => ({ data: storedObject ? [storedObject] : [], error: null }),
+          remove: async () => { removeCalled = true; return { error: null }; },
+        };
+      },
+    },
+  };
+}
+
+const newResourcePayload = {
+  title: 'PDF de prueba', description: 'Descripción', category: 'Organización',
+  sort_order: 19, is_active: true, mime_type: 'application/pdf', file_size: 321,
+};
+
+test('crea correctamente un recurso inactivo después de validar el PDF', async () => {
+  const admin = creationAdmin();
+  const authorization = await authorizeCreate(admin, 'freebies-private', newResourcePayload);
+  const upload = authorization.upload;
+  admin.setStoredObject({
+    name: upload.storage_path.split('/').at(-1),
+    metadata: { mimetype: 'application/pdf', size: 321 },
+  });
+  const result = await confirmCreate(admin, 'freebies-private', {
+    ...newResourcePayload,
+    resource_id: upload.resource_id,
+    storage_path: upload.storage_path,
+  });
+  assert.equal(result.resource.id, upload.resource_id);
+  assert.equal(result.resource.storage_path, upload.storage_path);
+  assert.equal(result.resource.is_active, false);
+  assert.equal(admin.insertedRecord.legacy_public_url, undefined);
+});
+
+test('rechaza el alta si no se proporciona un PDF válido', async () => {
+  const admin = creationAdmin();
+  await assert.rejects(
+    authorizeCreate(admin, 'freebies-private', { ...newResourcePayload, mime_type: '', file_size: 0 }),
+    (error) => error instanceof ApiError
+  );
+  assert.equal(admin.insertCalled, false);
+});
+
+test('un fallo o ausencia de subida no ejecuta ningún insert', async () => {
+  const admin = creationAdmin();
+  await authorizeCreate(admin, 'freebies-private', newResourcePayload);
+  assert.equal(admin.insertCalled, false);
+  const source = fs.readFileSync(path.join(__dirname, '..', 'public', 'admin', 'freebies', 'admin.js'), 'utf8');
+  assert.ok(source.indexOf('.uploadToSignedUrl(') < source.indexOf("action: 'confirm-create'"));
+  assert.match(source, /No se pudo subir el PDF\. No se creó ningún recurso\./);
+});
+
+test('un fallo de insert identifica el objeto huérfano y no lo borra', async () => {
+  const admin = creationAdmin({ insertError: { code: '23505', message: 'conflict' } });
+  const { upload } = await authorizeCreate(admin, 'freebies-private', newResourcePayload);
+  admin.setStoredObject({
+    name: upload.storage_path.split('/').at(-1),
+    metadata: { mimetype: 'application/pdf', size: 321 },
+  });
+  await assert.rejects(
+    confirmCreate(admin, 'freebies-private', {
+      ...newResourcePayload, resource_id: upload.resource_id, storage_path: upload.storage_path,
+    }),
+    (error) => {
+      assert.equal(error.code, 'resource_insert_failed');
+      assert.equal(error.details.orphaned_storage_object.storage_path, upload.storage_path);
+      return true;
+    }
+  );
+  assert.equal(admin.removeCalled, false);
+});
+
+test('el contador excluye el formulario nuevo sin persistir', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'public', 'admin', 'freebies', 'admin.js'), 'utf8');
+  assert.match(source, /resources\.filter\(\(resource\) => Boolean\(resource\.id\)\)\.length/);
+  assert.doesNotMatch(source, /count\.textContent = `\$\{resources\.length\}/);
 });
 
 function uploadAdmin(resource, storedObject) {
