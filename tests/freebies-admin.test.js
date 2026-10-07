@@ -15,31 +15,11 @@ const { createAdminDispatcher } = require('../api/admin/[handler]')._test;
 const {
   authorizeCreate,
   authorizeUpload,
-  buildAuthorizationDiagnostic,
   confirmCreate,
   confirmUpload,
   legacyThumbnailUrl,
   signedThumbnail,
 } = require('../lib/freebies-admin-handler')._test;
-
-test('el diagnóstico temporal solo expone datos seguros de autorización', () => {
-  assert.deepEqual(
-    buildAuthorizationDiagnostic(
-      { email: ' Sandy.Sarmiento@gmail.com ' },
-      'otra@example.com, sandy.sarmiento@gmail.com'
-    ),
-    {
-      admin_emails_exists: true,
-      recognized_email_count: 2,
-      contains_expected_email: true,
-      authenticated_email: 'sandy.sarmiento@gmail.com',
-    }
-  );
-  assert.deepEqual(
-    Object.keys(buildAuthorizationDiagnostic({ email: 'sandy.sarmiento@gmail.com' }, null)).sort(),
-    ['admin_emails_exists', 'authenticated_email', 'contains_expected_email', 'recognized_email_count']
-  );
-});
 
 test('el administrador reutiliza la autorización estricta de agenda-previews', () => {
   const allowlist = parseAdminEmails('admin@example.com');
@@ -47,6 +27,22 @@ test('el administrador reutiliza la autorización estricta de agenda-previews', 
   assert.equal(isAuthorizedAdmin({ email: 'admin@example.com' }, allowlist), true);
   assert.equal(isAuthorizedAdmin({ email: 'otra@example.com' }, new Set()), false);
   assert.equal(isAuthorizedAdmin({ user_metadata: { role: 'admin' } }, new Set()), false);
+});
+
+test('el acceso al administrador enlaza el flujo existente de recuperación', () => {
+  const adminLogin = fs.readFileSync(
+    path.join(__dirname, '..', 'public', 'admin', 'freebies', 'index.html'),
+    'utf8'
+  );
+  assert.match(adminLogin, /href="\/acceso\/recuperar\/"[^>]*>¿Olvidaste tu contraseña\?<\/a>/);
+  assert.doesNotMatch(adminLogin, /resetPasswordForEmail/);
+});
+
+test('el administrador no expone el diagnóstico temporal de autorización', () => {
+  const handler = fs.readFileSync(path.join(__dirname, '..', 'lib', 'freebies-admin-handler.js'), 'utf8');
+  const client = fs.readFileSync(path.join(__dirname, '..', 'public', 'admin', 'freebies', 'admin.js'), 'utf8');
+  assert.doesNotMatch(handler, /authorization_diagnostic|buildAuthorizationDiagnostic|DIAGNOSTIC_ADMIN_EMAIL/);
+  assert.doesNotMatch(client, /authorizationDiagnostic|authorization_diagnostic/);
 });
 
 test('los recursos nuevos siempre se crean inactivos', () => {

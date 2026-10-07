@@ -35,7 +35,6 @@
     if (!response.ok) {
       const error = new Error(payload?.error || 'No se pudo completar la operación.');
       error.code = payload?.code;
-      error.authorizationDiagnostic = payload?.authorization_diagnostic || null;
       error.orphanedStorageObject = payload?.orphaned_storage_object || null;
       throw error;
     }
@@ -206,17 +205,6 @@
       try { await loadResources(); setStatus('Panel listo.'); }
       catch (error) {
         panel.classList.add('hidden');
-        if (error.authorizationDiagnostic) {
-          const diagnostic = error.authorizationDiagnostic;
-          setStatus(
-            `${error.message} Diagnóstico Preview: ADMIN_EMAILS existe: ${diagnostic.admin_emails_exists ? 'sí' : 'no'}; `
-              + `correos reconocidos: ${diagnostic.recognized_email_count}; `
-              + `incluye sandy.sarmiento@gmail.com: ${diagnostic.contains_expected_email ? 'sí' : 'no'}; `
-              + `correo autenticado: ${diagnostic.authenticated_email || '(vacío)'}.`,
-            true
-          );
-          return;
-        }
         setStatus(error.message, true);
       }
     }
