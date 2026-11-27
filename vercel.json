@@ -1,137 +1,189 @@
 {
-    "$schema":  "https://openapi.vercel.sh/vercel.json",
-    "cleanUrls":  false,
-    "rewrites":  [
-                     {
-                         "source":  "/api/paid-products-admin",
-                         "destination":  "/api/admin/paid-products"
-                     },
-                     {
-                         "source":  "/api/agenda-previews-admin",
-                         "destination":  "/api/admin/agenda-previews"
-                     },
-                     {
-                         "source":  "/api/freebies-admin",
-                         "destination":  "/api/admin/freebies"
-                     },
-                     {
-                         "source":  "/sitemap.xml",
-                         "destination":  "/api/sitemap"
-                     },
-                     {
-                         "source":  "/plantillas/:slug",
-                         "destination":  "/api/plantilla?slug=:slug"
-                     },
-                     {
-                         "source":  "/plantillas/:slug/",
-                         "destination":  "/api/plantilla?slug=:slug"
-                     }
-                 ],
-    "redirects":  [
-                      {
-                          "source":  "/admin/agenda-previews",
-                          "destination":  "/admin/agenda-previews/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/admin/agenda-previews/",
-                          "destination":  "/admin/agenda-previews/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/admin/freebies",
-                          "destination":  "/admin/freebies/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/admin/freebies/",
-                          "destination":  "/admin/freebies/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/admin/folia-preview",
-                          "destination":  "/admin/folia-preview/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/admin/folia-preview/",
-                          "destination":  "/admin/folia-preview/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/admin/paid-products",
-                          "destination":  "/admin/paid-products/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/admin/paid-products/",
-                          "destination":  "/admin/paid-products/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/admin/folia-invite",
-                          "destination":  "/admin/folia-invite/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/admin/folia-invite/",
-                          "destination":  "/admin/folia-invite/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/admin/stackpdf-invite",
-                          "destination":  "/admin/stackpdf-invite/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/admin/stackpdf-invite/",
-                          "destination":  "/admin/stackpdf-invite/index.html",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/stackpdf",
-                          "destination":  "/app/stackpdf/",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/stackpdf/",
-                          "destination":  "/app/stackpdf/",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/AralCalc-v1.html",
-                          "destination":  "/acceso/?next=/aral-calc/",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/mini_calculadora_aral_calc_preview_v5.html",
-                          "destination":  "/acceso/?next=/aral-calc/",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/folia_v1.html",
-                          "destination":  "/folia-bloqueada/",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/folia_v1",
-                          "destination":  "/folia-bloqueada/",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/folia",
-                          "destination":  "/folia-bloqueada/",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/folia/",
-                          "destination":  "/folia-bloqueada/",
-                          "permanent":  false
-                      },
-                      {
-                          "source":  "/folia/(.*)",
-                          "destination":  "/folia-bloqueada/",
-                          "permanent":  false
-                      }
-                  ]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": false,
+  "rewrites": [
+    {
+      "source": "/api/paid-products-admin",
+      "destination": "/api/admin/paid-products"
+    },
+    {
+      "source": "/api/agenda-previews-admin",
+      "destination": "/api/admin/agenda-previews"
+    },
+    {
+      "source": "/api/freebies-admin",
+      "destination": "/api/admin/freebies"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/plantillas/:slug",
+      "destination": "/api/plantilla?slug=:slug"
+    },
+    {
+      "source": "/plantillas/:slug/",
+      "destination": "/api/plantilla?slug=:slug"
+    },
+    {
+      "source": "/api/aral-calc-invite",
+      "destination": "/api/app-invite?app=aral_calc"
+    },
+    {
+      "source": "/api/aral-costos-invite",
+      "destination": "/api/app-invite?app=aral_costos"
+    },
+    {
+      "source": "/api/stackpdf-invite",
+      "destination": "/api/app-invite?app=stackpdf"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/admin/agenda-previews",
+      "destination": "/admin/agenda-previews/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/agenda-previews/",
+      "destination": "/admin/agenda-previews/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/freebies",
+      "destination": "/admin/freebies/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/freebies/",
+      "destination": "/admin/freebies/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/folia-preview",
+      "destination": "/admin/folia-preview/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/folia-preview/",
+      "destination": "/admin/folia-preview/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/paid-products",
+      "destination": "/admin/paid-products/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/admin/paid-products/",
+      "destination": "/admin/paid-products/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/stackpdf",
+      "destination": "/app/stackpdf/",
+      "permanent": false
+    },
+    {
+      "source": "/stackpdf/",
+      "destination": "/app/stackpdf/",
+      "permanent": false
+    },
+    {
+      "source": "/AralCalc-v1.html",
+      "destination": "/acceso/?next=/aral-calc/",
+      "permanent": false
+    },
+    {
+      "source": "/mini_calculadora_aral_calc_preview_v5.html",
+      "destination": "/acceso/?next=/aral-calc/",
+      "permanent": false
+    },
+    {
+      "source": "/folia_v1.html",
+      "destination": "/folia-bloqueada/",
+      "permanent": false
+    },
+    {
+      "source": "/folia_v1",
+      "destination": "/folia-bloqueada/",
+      "permanent": false
+    },
+    {
+      "source": "/folia",
+      "destination": "/folia-bloqueada/",
+      "permanent": false
+    },
+    {
+      "source": "/folia/",
+      "destination": "/folia-bloqueada/",
+      "permanent": false
+    },
+    {
+      "source": "/folia/(.*)",
+      "destination": "/folia-bloqueada/",
+      "permanent": false
+    },
+    {
+      "source": "/admin/aral-calc-invite",
+      "destination": "/admin/accesos/?app=aral_calc",
+      "permanent": false
+    },
+    {
+      "source": "/admin/aral-calc-invite/",
+      "destination": "/admin/accesos/?app=aral_calc",
+      "permanent": false
+    },
+    {
+      "source": "/admin/aral-calc-invite/index.html",
+      "destination": "/admin/accesos/?app=aral_calc",
+      "permanent": false
+    },
+    {
+      "source": "/admin/aral-costos-invite",
+      "destination": "/admin/accesos/?app=aral_costos",
+      "permanent": false
+    },
+    {
+      "source": "/admin/aral-costos-invite/",
+      "destination": "/admin/accesos/?app=aral_costos",
+      "permanent": false
+    },
+    {
+      "source": "/admin/aral-costos-invite/index.html",
+      "destination": "/admin/accesos/?app=aral_costos",
+      "permanent": false
+    },
+    {
+      "source": "/admin/stackpdf-invite",
+      "destination": "/admin/accesos/?app=stackpdf",
+      "permanent": false
+    },
+    {
+      "source": "/admin/stackpdf-invite/",
+      "destination": "/admin/accesos/?app=stackpdf",
+      "permanent": false
+    },
+    {
+      "source": "/admin/stackpdf-invite/index.html",
+      "destination": "/admin/accesos/?app=stackpdf",
+      "permanent": false
+    },
+    {
+      "source": "/admin/folia-invite",
+      "destination": "/admin/accesos/?app=folia_studio",
+      "permanent": false
+    },
+    {
+      "source": "/admin/folia-invite/",
+      "destination": "/admin/accesos/?app=folia_studio",
+      "permanent": false
+    },
+    {
+      "source": "/admin/folia-invite/index.html",
+      "destination": "/admin/accesos/?app=folia_studio",
+      "permanent": false
+    }
+  ]
 }

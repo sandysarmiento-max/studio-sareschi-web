@@ -86,7 +86,7 @@
       let supabaseClient = null;
       const urlParams = new URLSearchParams(window.location.search);
 const appParam = urlParams.get('app');
-const safeApp = appParam === 'aral_calc' || appParam === 'folia' || appParam === 'aral_costos' ? appParam : '';
+const safeApp = ['aral_calc','folia','folia_planner','aral_costos','stackpdf','folia_studio'].includes(appParam) ? appParam : '';
 const loginUrl = safeApp ? `/acceso/?app=${safeApp}` : '/acceso/';
 const navLoginLink = document.getElementById('nav-login-link');
 

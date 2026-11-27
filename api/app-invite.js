@@ -1,10 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const INVITE_REDIRECT_PATH = '/acceso/nueva-contrasena/?app=stackpdf';
-const STACKPDF_APP_KEY = 'stackpdf';
+const APPS = new Set(['folia_studio','aral_calc','aral_costos','stackpdf']);
 const ACTIVE_STATUS = 'active';
 
-function getInviteRedirectTo(req) {
+function getInviteRedirectTo(req, appKey) {
   const rawHost = String(req.headers['x-forwarded-host'] || req.headers.host || '')
     .split(',')[0]
     .trim();
@@ -15,7 +14,7 @@ function getInviteRedirectTo(req) {
     rawHost.endsWith('.vercel.app');
 
   const host = allowedHost ? rawHost : 'www.studio-sareschi.com';
-  return `https://${host}${INVITE_REDIRECT_PATH}`;
+  return `https://${host}/acceso/nueva-contrasena/?app=${appKey}`;
 }
 
 function json(res, status, body) {
@@ -90,6 +89,8 @@ function isAlreadyRegisteredError(message) {
 }
 
 async function findUserIdByEmail(supabase, email) {
+  // Supabase Admin API: list users and match by email
+  // (pagination básica para robustez).
   let page = 1;
   const perPage = 200;
 
@@ -122,11 +123,11 @@ async function findUserIdByEmail(supabase, email) {
   return { userId: '', error: 'No se encontró user_id para el email indicado.' };
 }
 
-async function upsertAppAccess(supabase, userId) {
+async function upsertAppAccess(supabase, userId, appKey) {
   const { error } = await supabase.from('app_access').upsert(
     {
       user_id: userId,
-      app_key: STACKPDF_APP_KEY,
+      app_key: appKey,
       status: ACTIVE_STATUS,
       granted_at: new Date().toISOString(),
     },
@@ -184,6 +185,10 @@ module.exports = async function handler(req, res) {
     return json(res, 400, { error: bodyError, step: 'body' });
   }
 
+  const appKey = String(req.query?.app || body?.app || '').trim();
+  if (!APPS.has(appKey)) return json(res, 400, { error: 'Aplicación no permitida' });
+  const action = body?.action || 'activate';
+  if (!['activate','revoke','inspect'].includes(action)) return json(res, 400, {error:'Acción no permitida'});
   const email = String(body?.email || '').trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(email)) {
     return json(res, 400, { error: 'Email inválido', step: 'email' });
@@ -207,16 +212,30 @@ module.exports = async function handler(req, res) {
       },
     });
 
+    if (action !== 'activate') {
+      const found = await findUserIdByEmail(supabase, email);
+      if (!found.userId) return json(res,404,{error:'Usuario no localizado'});
+      if (action === 'inspect') {
+        const {data,error} = await supabase.from('app_access').select('app_key,status').eq('user_id',found.userId).in('app_key',[...APPS]);
+        if(error) return json(res,503,{error:'No se pudieron consultar permisos'});
+        return json(res,200,{ok:true,access:data});
+      }
+      const {data,error} = await supabase.from('app_access').delete().eq('user_id',found.userId).eq('app_key',appKey).select('id');
+      if(error) return json(res,503,{error:'No se pudo retirar acceso'});
+      return json(res,200,{ok:true,removed:data.length});
+    }
     let userId = '';
     let invited = false;
     let existingUser = false;
 
+    // 1) Intentar invitar
     const { data: inviteData, error: inviteError } =
       await supabase.auth.admin.inviteUserByEmail(email, {
-        redirectTo: getInviteRedirectTo(req),
+        redirectTo: getInviteRedirectTo(req, appKey),
       });
 
     if (inviteError) {
+      // 2) Si ya existe, continuar flujo de usuario existente
       if (isAlreadyRegisteredError(inviteError.message)) {
         existingUser = true;
       } else {
@@ -231,6 +250,7 @@ module.exports = async function handler(req, res) {
       userId = String(inviteData?.user?.id || '').trim();
     }
 
+    // 3) Si no llegó userId por invitación (usuario ya existente), buscar por email
     if (!userId) {
       const found = await findUserIdByEmail(supabase, email);
       if (found.error || !found.userId) {
@@ -243,10 +263,11 @@ module.exports = async function handler(req, res) {
       userId = found.userId;
     }
 
-    const upsertError = await upsertAppAccess(supabase, userId);
+    // 4) Upsert app_access siempre
+    const upsertError = await upsertAppAccess(supabase, userId, appKey);
     if (upsertError) {
       return json(res, 500, {
-        error: 'No se pudo activar acceso StackPDF',
+        error: 'No se pudo activar acceso',
         step: 'app-access-upsert',
         details: upsertError,
       });
