@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
     <title>Admin · Gestión de accesos | Studio Sareschi</title>
     <link rel="stylesheet" href="/styles.css" />
     <style>
@@ -22,6 +23,15 @@
         font-size: 14px;
         color: #6f6471;
       }
+      .invite-form input:not([type=checkbox]) {width:100%;box-sizing:border-box;border:1px solid #e4ccd9;border-radius:10px;padding:11px;font:inherit;background:white}
+      .app-options{border:1px solid #ead7e2;border-radius:12px;padding:12px;display:grid;gap:8px;margin:4px 0}
+      .app-options legend{padding:0 6px;font-weight:600;color:#453440}
+      .invite-form .app-choice{display:flex;align-items:center;gap:9px;padding:8px;border-radius:8px;background:#fcf6f9;color:#453440}
+      .app-choice input{accent-color:#b63873;width:17px;height:17px;margin:0}
+      .action-buttons{display:grid;gap:8px}
+      .action-buttons button{width:100%}
+      .revoke-btn{color:#943653!important}
+      #status{white-space:pre-line}
       .status-ok {
         color: #2f6f44;
       }
@@ -43,7 +53,7 @@
           <div class="section-heading" style="margin: 0">
             <p class="eyebrow">Panel interno</p>
             <h1 style="margin-bottom: 8px">Gestión de accesos</h1>
-            <p class="hero-copy" style="margin: 0">Activa o retira permisos individuales. Las renovaciones son manuales.</p>
+            <p class="hero-copy" style="margin: 0">Activa o retira una o varias aplicaciones. Las renovaciones son manuales.</p>
           </div>
 
           <form id="invite-form" class="invite-form">
@@ -57,10 +67,22 @@
               <input id="email" type="email" autocomplete="email" required placeholder="clienta@correo.com" />
             </label>
 
-            <label>Aplicación<select id="app" required><option value="folia_studio">Folia Studio</option><option value="aral_calc">Aral Calc</option><option value="aral_costos">Aral Costos</option><option value="stackpdf">StackPDF</option></select></label><label>Acción<select id="action"><option value="inspect">Consultar permisos</option><option value="activate">Activar / invitar</option><option value="revoke">Retirar acceso</option></select></label><button class="btn btn-primary" type="submit" id="send-btn">Ejecutar</button>
+            <fieldset class="app-options">
+              <legend>Aplicaciones</legend>
+              <label class="app-choice"><input type="checkbox" name="apps" value="folia_studio"> Folia Studio</label>
+              <label class="app-choice"><input type="checkbox" name="apps" value="aral_calc"> Aral Calc</label>
+              <label class="app-choice"><input type="checkbox" name="apps" value="aral_costos"> Aral Costos</label>
+              <label class="app-choice"><input type="checkbox" name="apps" value="stackpdf"> StackPDF</label>
+              <p class="tiny-note" style="margin:0">Marca solo las aplicaciones que deseas activar o retirar. Consultar no requiere selección.</p>
+            </fieldset>
+            <div class="action-buttons">
+              <button class="btn btn-primary" type="submit" data-action="activate">Activar / invitar</button>
+              <button class="btn btn-secondary" type="submit" data-action="inspect">Consultar permisos actuales</button>
+              <button class="btn btn-secondary revoke-btn" type="submit" data-action="revoke">Retirar accesos seleccionados</button>
+            </div>
           </form>
 
-          <p id="status" class="tiny-note" aria-live="polite">Listo para enviar.</p>
+          <p id="status" class="tiny-note" aria-live="polite">Listo para consultar o gestionar accesos.</p>
         </article>
       </div>
     </main>
@@ -71,12 +93,9 @@
       const emailInput = document.getElementById('email');
       const tokenInput = document.getElementById('token');
       const statusEl = document.getElementById('status');
-      const sendBtn = document.getElementById('send-btn');
-
-      const appInput = document.getElementById('app');
-      const actionInput = document.getElementById('action');
-      const initialApp = new URLSearchParams(location.search).get('app');
-      if ([...appInput.options].some(o => o.value === initialApp)) appInput.value = initialApp;
+      const buttons = [...form.querySelectorAll('button[data-action]')];
+      const choices = [...form.querySelectorAll('input[name="apps"]')];
+      const names = {folia_studio:'Folia Studio',aral_calc:'Aral Calc',aral_costos:'Aral Costos',stackpdf:'StackPDF'};
       tokenInput.value = sessionStorage.getItem(STORAGE_KEY) || '';
 
       function setStatus(message, state = 'idle') {
@@ -111,10 +130,13 @@
 
         sessionStorage.setItem(STORAGE_KEY, token);
 
-        const app = appInput.value, action = actionInput.value;
-        if(action === 'revoke' && !confirm('¿Retirar únicamente el acceso a '+appInput.selectedOptions[0].text+' para '+email+'?')) return;
-        sendBtn.disabled = true;
-        setStatus('Enviando invitación...', 'idle');
+        const action = event.submitter?.dataset.action || 'inspect';
+        const apps = choices.filter(x=>x.checked).map(x=>x.value);
+        if(action !== 'inspect' && !apps.length){setStatus('Selecciona al menos una aplicación.','error');return;}
+        if(action === 'revoke' && !confirm('¿Retirar únicamente '+apps.map(x=>names[x]).join(', ')+' para '+email+'?')) return;
+        if(action === 'activate' && !confirm('¿Activar '+apps.map(x=>names[x]).join(', ')+' para '+email+'?')) return;
+        buttons.forEach(b=>b.disabled=true);
+        setStatus('Procesando...', 'idle');
 
         try {
           const response = await fetch('/api/app-invite', {
@@ -123,7 +145,7 @@
               'Content-Type': 'application/json',
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ email, app, action }),
+            body: JSON.stringify({ email, apps, action }),
           });
 
           const payload = await response.json().catch(() => ({}));
@@ -134,11 +156,17 @@
             return;
           }
 
-          setStatus(action === 'inspect' ? (payload.access || []).map(x=>x.app_key+': '+x.status).join(' · ') || 'Sin permisos activos registrados' : action === 'revoke' ? 'Acceso retirado (o ya inexistente).' : payload.invited ? 'Invitación enviada y acceso activado.' : 'Cuenta existente: acceso activado.', 'ok');
+          if(action === 'inspect'){
+            const active = new Map((payload.access||[]).map(x=>[x.app_key,x.status]));
+            setStatus(Object.entries(names).map(([key,label])=>label+': '+(active.get(key)==='active'?'Activo':'Sin acceso activo')).join('\n'),'ok');
+          } else {
+            setStatus(action==='revoke'?'Accesos retirados: '+payload.removed+'. Los demás se conservan.':(payload.invited?'Una invitación enviada. ':'Cuenta existente. ')+'Accesos activados: '+apps.map(x=>names[x]).join(', '),'ok');
+            choices.forEach(x=>x.checked=false);
+          }
         } catch (error) {
           setStatus(`Error de red: ${String(error?.message || error)}`, 'error');
         } finally {
-          sendBtn.disabled = false;
+          buttons.forEach(b=>b.disabled=false);
         }
       });
     </script>
