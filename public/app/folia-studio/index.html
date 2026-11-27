@@ -46,6 +46,25 @@
     }
     if (!editor.ok) throw Error('editor_not_available');
     const html = await editor.text();
+    window.__foliaStudioCheckAccess = async () => {
+      try {
+        const {data, error} = await client.auth.getSession();
+        if (error || !data?.session?.access_token) return 'unavailable';
+        const check = await fetch('/api/folia-studio-content?check=1', {
+          headers: { Authorization: 'Bearer ' + data.session.access_token },
+          cache: 'no-store', signal: AbortSignal.timeout(15000)
+        });
+        if (check.status === 403) {
+          const body = await check.json();
+          if (body.error === 'no_folia_studio_access') return 'denied';
+        }
+        if (check.ok) {
+          const body = await check.json();
+          if (body.active === true) return 'active';
+        }
+        return 'unavailable';
+      } catch { return 'unavailable'; }
+    };
     window.__foliaStudioSignOut = async () => {
       const {error} = await client.auth.signOut({scope:'local'});
       if(error) throw error;

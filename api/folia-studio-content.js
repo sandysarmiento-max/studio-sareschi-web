@@ -2,7 +2,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const BUCKET = 'folia-studio-private';
-const OBJECT_PATH = 'editor-v48-4.html';
+const OBJECT_PATH = 'editor-v48-5.html';
 
 function respond(res, status, body) {
   res.statusCode = status;
@@ -31,7 +31,12 @@ module.exports = async function handler(req, res) {
 
   try {
     const { data: authData, error: authError } = await supabase.auth.getUser(bearer[1]);
-    if (authError || !authData?.user?.id) return respond(res, 401, { error: 'invalid_session' });
+    if (authError) {
+      const status = Number(authError.status);
+      if (status === 401 || status === 403) return respond(res, 401, { error: 'invalid_session' });
+      return respond(res, 503, { error: 'auth_check_unavailable' });
+    }
+    if (!authData?.user?.id) return respond(res, 401, { error: 'invalid_session' });
 
     const { data: grant, error: grantError } = await supabase
       .from('app_access').select('id')
@@ -42,6 +47,8 @@ module.exports = async function handler(req, res) {
 
     if (grantError) return respond(res, 503, { error: 'access_check_unavailable' });
     if (!grant) return respond(res, 403, { error: 'no_folia_studio_access' });
+
+    if (req.query?.check === '1') return respond(res, 200, { active: true });
 
     const { data: htmlFile, error: fileError } = await supabase.storage
       .from(BUCKET).download(OBJECT_PATH);
