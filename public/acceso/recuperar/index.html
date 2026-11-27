@@ -6,7 +6,7 @@
     <title>Recuperar contraseña | Studio Sareschi</title>
     <meta
       name="description"
-      content="Solicita por correo la recuperación de contraseña para Aral Calc."
+      content="Solicita por correo la recuperación de contraseña de Studio Sareschi."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,7 +37,7 @@
             <p class="eyebrow">Soporte de acceso</p>
             <h1>Recuperar contraseña</h1>
             <p class="hero-copy" style="margin: 0">
-              Te enviaremos un enlace para crear una nueva contraseña de Aral Calc.
+              Te enviaremos un enlace para crear una nueva contraseña de tu cuenta de Studio Sareschi.
             </p>
           </div>
 
@@ -74,7 +74,7 @@
         if (!config.enabled) {
           form.hidden = true;
           setStatus(
-            'Falta configurar SUPABASE_URL y SUPABASE_ANON_KEY en Vercel para habilitar la recuperación.',
+            'El servicio de recuperación no está disponible en este momento. Intenta más tarde.',
             true
           );
           return;
