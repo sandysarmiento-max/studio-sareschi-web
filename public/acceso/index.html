@@ -72,20 +72,22 @@
   </div>
 
   <div class="card" style="padding:16px">
-    <h2 style="margin:0 0 8px;font-size:1.1rem">Folia</h2>
+    <h2 style="margin:0 0 8px;font-size:1.1rem">Folia Studio</h2>
     <p class="tiny-note" style="margin:0 0 12px">
-      Generador de hojas imprimibles para agendas, libretas y cuadernos.
+      Diseña agendas, planners y hojas imprimibles con tu membresía activa.
     </p>
-    <a class="btn btn-primary" href="/acceso/?app=folia">Entrar a Folia</a>
+    <a class="btn btn-primary" href="/acceso/?app=folia_studio">Entrar a Folia Studio</a>
   </div>
 
-  <div class="card" style="padding:16px">
-    <h2 style="margin:0 0 8px;font-size:1.1rem">Folia Planner</h2>
-    <p class="tiny-note" style="margin:0 0 12px">
-      Generador de planners, calendarios y separadores para suscriptoras.
-    </p>
-    <a class="btn btn-primary" href="/acceso/?app=folia_planner">Entrar a Folia Planner</a>
-  </div>
+  <details style="border-top:1px solid #e9dce9;padding:12px 2px 4px">
+    <summary style="cursor:pointer;color:#796580;font-size:13px">¿Todavía utilizas una versión anterior de Folia?</summary>
+    <div style="display:grid;gap:10px;padding:12px 0 4px">
+      <strong>Acceso temporal a versiones anteriores</strong>
+      <p class="tiny-note" style="margin:0">Exclusivo para suscriptoras con acceso previo. Descarga tus proyectos en PDF antes de finalizar el periodo de transición. Los proyectos antiguos no son compatibles con Folia Studio.</p>
+      <a class="btn btn-secondary" href="/acceso/?app=folia">Entrar a Folia antigua</a>
+      <a class="btn btn-secondary" href="/acceso/?app=folia_planner">Entrar a Folia Planner antigua</a>
+    </div>
+  </details>
 </div>
 
 <form id="login-form" style="display: grid; gap: 12px">
@@ -164,8 +166,8 @@ const APP_CONFIG = {
   aral_calc: {
     name: 'Aral Calc',
     next: '/app/aral-calc',
-    alternateLabel: 'Folia',
-    alternateHref: '/acceso/?app=folia',
+    alternateLabel: 'Folia Studio',
+    alternateHref: '/acceso/?app=folia_studio',
   },
   aral_costos: {
     name: 'Aral Costos',
@@ -176,8 +178,14 @@ const APP_CONFIG = {
   stackpdf: {
     name: 'StackPDF',
     next: '/app/stackpdf/',
-    alternateLabel: 'Folia',
-    alternateHref: '/acceso/?app=folia',
+    alternateLabel: 'Folia Studio',
+    alternateHref: '/acceso/?app=folia_studio',
+  },
+  folia_studio: {
+    name: 'Folia Studio',
+    next: '/app/folia-studio/',
+    alternateLabel: 'Aral Calc',
+    alternateHref: '/acceso/?app=aral_calc',
   },
   folia: {
     name: 'Folia',
@@ -189,8 +197,8 @@ const APP_CONFIG = {
     name: 'Folia Planner',
     next: '/app/folia-planner/',
     accessKey: 'folia',
-    alternateLabel: 'Folia',
-    alternateHref: '/acceso/?app=folia',
+    alternateLabel: 'Folia Studio',
+    alternateHref: '/acceso/?app=folia_studio',
   },
 };
 
@@ -217,7 +225,7 @@ const noAccessAppNameEl = document.getElementById('no-access-app-name');
 if (!currentApp) {
   document.title = 'Acceso a apps | Studio Sareschi';
   titleEl.textContent = 'Elige la app que quieres abrir';
-  descriptionEl.textContent = 'Selecciona Aral Calc, Aral Costos, StackPDF, Folia o Folia Planner para continuar con tu acceso protegido.';
+  descriptionEl.textContent = 'Selecciona Folia Studio, Aral Calc, Aral Costos, StackPDF para continuar con tu acceso protegido.';
   appSelector.hidden = false;
   appSelector.style.display = 'grid';
   form.hidden = true;

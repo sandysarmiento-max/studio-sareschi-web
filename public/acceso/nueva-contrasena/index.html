@@ -6,7 +6,7 @@
     <title>Nueva contraseña | Studio Sareschi</title>
     <meta
       name="description"
-      content="Define una nueva contraseña para tu acceso a Aral Calc."
+      content="Define una nueva contraseña para tu cuenta de Studio Sareschi."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -42,29 +42,23 @@
           </div>
 
           <article class="card" style="max-width: 620px">
-            <form id="update-password-form" style="display: grid; gap: 12px" hidden>
-              <label>
-                Nueva contraseña
-                <input
+            <form id="update-password-form" style="display: none; gap: 12px" hidden>
+              <div><label for="password">Nueva contraseña</label><div style="display:flex;align-items:center;gap:8px;margin-top:6px"><input
                   id="password"
                   type="password"
                   required
                   minlength="8"
                   autocomplete="new-password"
-                  style="width:100%;margin-top:6px"
-                />
-              </label>
-              <label>
-                Repetir nueva contraseña
-                <input
+                  style="width:100%;min-width:0;margin-top:0"
+                /><button type="button" class="btn btn-secondary" data-password-toggle="password" aria-label="Mostrar nueva contraseña" aria-pressed="false" style="padding:10px 12px;line-height:1">👁️</button></div></div>
+              <div><label for="password-confirm">Repetir nueva contraseña</label><div style="display:flex;align-items:center;gap:8px;margin-top:6px"><input
                   id="password-confirm"
                   type="password"
                   required
                   minlength="8"
                   autocomplete="new-password"
-                  style="width:100%;margin-top:6px"
-                />
-              </label>
+                  style="width:100%;min-width:0;margin-top:0"
+                /><button type="button" class="btn btn-secondary" data-password-toggle="password-confirm" aria-label="Mostrar repetir nueva contraseña" aria-pressed="false" style="padding:10px 12px;line-height:1">👁️</button></div></div>
               <button id="update-password-btn" class="btn btn-primary" type="submit">Guardar nueva contraseña</button>
             </form>
 
@@ -84,9 +78,19 @@
       const updatePasswordBtn = document.getElementById('update-password-btn');
       const backLoginLink = document.getElementById('back-login-link');
       let supabaseClient = null;
+      document.querySelectorAll('[data-password-toggle]').forEach(button => {
+        const field = document.getElementById(button.dataset.passwordToggle);
+        const label = field.id === 'password-confirm' ? 'confirmación de contraseña' : 'nueva contraseña';
+        button.addEventListener('click', () => {
+          const show = field.type === 'password';
+          field.type = show ? 'text' : 'password';
+          button.setAttribute('aria-pressed', String(show));
+          button.setAttribute('aria-label', (show ? 'Ocultar ' : 'Mostrar ') + label);
+        });
+      });
       const urlParams = new URLSearchParams(window.location.search);
 const appParam = urlParams.get('app');
-const safeApp = appParam === 'aral_calc' || appParam === 'folia' || appParam === 'aral_costos' ? appParam : '';
+const safeApp = ['aral_calc','folia','folia_planner','aral_costos','stackpdf','folia_studio'].includes(appParam) ? appParam : '';
 const loginUrl = safeApp ? `/acceso/?app=${safeApp}` : '/acceso/';
 const navLoginLink = document.getElementById('nav-login-link');
 
@@ -104,7 +108,7 @@ if (navLoginLink) navLoginLink.href = loginUrl;
 
         if (!config.enabled) {
           setStatus(
-            'Falta configurar SUPABASE_URL y SUPABASE_ANON_KEY en Vercel para habilitar esta pantalla.',
+            'El servicio de acceso no está disponible en este momento. Intenta más tarde.',
             true
           );
           return;
@@ -116,7 +120,6 @@ if (navLoginLink) navLoginLink.href = loginUrl;
         const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         const code = queryParams.get('code');
         const hashError = hashParams.get('error');
-        const hashErrorDescription = hashParams.get('error_description');
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
@@ -129,9 +132,9 @@ if (navLoginLink) navLoginLink.href = loginUrl;
           window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
         }
 
-        if (!code && hashError) {
+        if (!code && (hashError || queryParams.get('error'))) {
           setStatus(
-            decodeURIComponent(hashErrorDescription || 'No se pudo validar el enlace enviado por email.'),
+            'El enlace no es válido o ya venció. Solicita uno nuevo desde ¿Olvidaste tu contraseña? en la pantalla de acceso.',
             true
           );
           return;
@@ -159,6 +162,7 @@ if (navLoginLink) navLoginLink.href = loginUrl;
         }
 
         form.hidden = false;
+        form.style.display = 'grid';
       }
 
       form.addEventListener('submit', async (event) => {
@@ -188,7 +192,7 @@ if (navLoginLink) navLoginLink.href = loginUrl;
         updatePasswordBtn.disabled = false;
 
         if (error) {
-          setStatus('No se pudo actualizar la contraseña. Solicita un nuevo enlace e intenta otra vez.', true);
+          setStatus('No se pudo actualizar la contraseña. Si el enlace venció, solicita uno nuevo e intenta otra vez.', true);
           return;
         }
 
