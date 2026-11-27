@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Folia Studio | Studio Sareschi</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f3f8;color:#503c57}
+    main{max-width:440px;padding:30px;text-align:center;background:white;border-radius:18px;border:1px solid #e9dce9}
+    a{color:#805b8c}#message{line-height:1.6}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<main>
+  <h1>Folia Studio</h1>
+  <p id="message" role="status">Verificando tu suscripción…</p>
+  <p><a href="/acceso/?app=folia_studio">Volver al acceso</a></p>
+</main>
+<script>
+(async function () {
+  const message = document.getElementById('message');
+  const login = '/acceso/?app=folia_studio';
+  try {
+    const response = await fetch('/api/auth-config', { cache:'no-store' });
+    if (!response.ok) throw Error('auth_config_failed');
+    const config = await response.json();
+    if (!config.enabled || !window.supabase) throw Error('auth_not_configured');
+    const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+    const { data, error } = await client.auth.getSession();
+    if (error || !data?.session?.access_token) {
+      location.replace(login);
+      return;
+    }
+
+    message.textContent = 'Abriendo Folia Studio…';
+    const editor = await fetch('/api/folia-studio-content', {
+      headers: { Authorization: 'Bearer ' + data.session.access_token },
+      cache: 'no-store'
+    });
+    if (editor.status === 401) { location.replace(login); return; }
+    if (editor.status === 403) {
+      message.textContent = 'Tu suscripción no tiene acceso activo a Folia Studio. Escríbenos para revisar tu membresía.';
+      return;
+    }
+    if (!editor.ok) throw Error('editor_not_available');
+    const html = await editor.text();
+    document.open();
+    document.write(html);
+    document.close();
+  } catch (error) {
+    message.textContent = 'No se pudo abrir Folia Studio en este momento. Vuelve a intentarlo o contáctanos.';
+  }
+})();
+</script>
+</body>
+</html>
