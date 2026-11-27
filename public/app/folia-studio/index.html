@@ -51,11 +51,8 @@
       if(error) throw error;
       location.replace(login);
     };
-    const exitScript = "(function(){\nconst button=document.createElement('button');\nbutton.type='button';button.className='btn';button.textContent='Salir';button.title='Cerrar sesión de Folia Studio';\nconst target=document.querySelector('.f36-file-actions');\nif(!target)return;\ntarget.append(button);\nbutton.addEventListener('click',async()=>{\n if(!confirm('¿Guardar los cambios y cerrar sesión?'))return;\n button.disabled=true;\n try{\n  if(typeof busy!=='undefined'&&busy)throw Error('Hay una operación en curso. Espera a que termine.');\n  if(f15EditingId)f15EndTextEdit();\n  if(f31Editing)f31FinishEdit();\n  if(document.activeElement instanceof HTMLElement)document.activeElement.blur();\n  const deadline=Date.now()+15000;\n  while(editorSaving){if(Date.now()>deadline)throw Error('El guardado todavía no termina.');await new Promise(r=>setTimeout(r,50));}\n  await writeQueue;\n  if(editorPending.size||editorSaveError||document.getElementById('saveStatus')?.classList.contains('bad'))throw Error('No se pudo confirmar el guardado. Exporta una copia editable antes de salir.');\n  await window.__foliaStudioSignOut();\n }catch(e){alert(e.message||'No se pudo cerrar sesión.');button.disabled=false;}\n});\n})();";
-    if (!html.includes('</body>')) throw Error('editor_structure_missing');
-    const withExit = html.replace('</body>', () => '<scr'+'ipt>'+exitScript+'</scr'+'ipt></body>');
     document.open();
-    document.write(withExit);
+    document.write(html);
     document.close();
   } catch (error) {
     message.textContent = 'No se pudo abrir Folia Studio en este momento. Vuelve a intentarlo o contáctanos.';
