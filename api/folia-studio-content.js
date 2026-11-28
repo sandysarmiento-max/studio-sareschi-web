@@ -2,7 +2,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const BUCKET = 'folia-studio-private';
-const OBJECT_PATH = 'editor-v48-5.html';
+const OBJECT_PATH = 'editor-v48-8-2.html';
 
 function respond(res, status, body) {
   res.statusCode = status;
